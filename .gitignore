@@ -14,3 +14,11 @@ backend/data/ga4-events.json
 ga4-service-account.json
 *.pem
 *.key
+
+
+
+# Node binaries/archives
+node-v*/
+node-v*.tar.*
+node-v*.zip
+
