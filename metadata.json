@@ -1,0 +1,6 @@
+{
+  "name": "Hub de Artefatos",
+  "description": "Ferramenta de search para varredura de artefatos do Confluence e gestão de metadados de tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
