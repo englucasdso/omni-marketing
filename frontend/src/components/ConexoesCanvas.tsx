@@ -372,7 +372,7 @@ export const ConexoesCanvas = ({
      return simulationRef.current.nodes().find((n: any) => n.id === id) as any;
   }
 
-  const onNodeDragStart = useCallback((_: React.MouseEvent, node: Node) => {
+  const onNodeDragStart = useCallback((_: any, node: Node) => {
     const sn = getSimNode(node.id);
     if (sn && simulationRef.current) {
         sn.fx = sn.x;
@@ -381,7 +381,7 @@ export const ConexoesCanvas = ({
     }
   }, []);
 
-  const onNodeDrag = useCallback((_: React.MouseEvent, node: Node) => {
+  const onNodeDrag = useCallback((_: any, node: Node) => {
     const sn = getSimNode(node.id);
     if (sn) {
         // translate back from top-left (react flow) to center point (d3)
@@ -392,7 +392,7 @@ export const ConexoesCanvas = ({
     }
   }, []);
 
-  const onNodeDragStop = useCallback((_: React.MouseEvent, node: Node) => {
+  const onNodeDragStop = useCallback((_: any, node: Node) => {
     const sn = getSimNode(node.id);
     if (sn && simulationRef.current) {
         sn.fx = null;
