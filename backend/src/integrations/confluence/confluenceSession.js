@@ -70,11 +70,12 @@ export class ConfluenceSession {
 
     console.log(`[ConfluenceSession] Autenticado com sucesso.`);
     
-    // Extract cookies to be used by Node's fetch
-    const cookies = await this.context.cookies(this.baseUrl);
-    const cookieString = cookies.map(c => `${c.name}=${c.value}`).join('; ');
-    
-    return cookieString;
+    this.page = page;
+    return page;
+  }
+
+  getPage() {
+    return this.page;
   }
 
   async close() {
@@ -85,6 +86,7 @@ export class ConfluenceSession {
         // Ignored
       }
       this.context = null;
+      this.page = null;
     }
   }
 }

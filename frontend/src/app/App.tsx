@@ -14,7 +14,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useNavigate, useLocation, Routes, Route } from "react-router-dom";
-import { X, AlertTriangle, Target, Network, Filter, CheckCircle2, AlertCircle, Clock, User, Info, Shield, LogOut, Trash2, Plus, Settings, Landmark, LayoutList, RefreshCw, Check, Loader2, KeyRound, Activity, ArrowRight, Search, ChevronDown, ChevronUp, ChevronLeft, ExternalLink, Download, Sparkles, FileText, Layers, Sun, Moon } from "lucide-react";
+import { X, AlertTriangle, Target, Network, Filter, CheckCircle2, AlertCircle, Clock, User, Info, Shield, LogOut, Trash2, Plus, Settings, Landmark, LayoutList, RefreshCw, Check, Loader2, KeyRound, Activity, ArrowRight, Search, ChevronDown, ChevronUp, ChevronLeft, ExternalLink, Download, Sparkles, FileText, Layers } from "lucide-react";
 import { ConexoesCanvas } from "../components/ConexoesCanvas";
 import { getOperationalInsights } from "../utils/inventoryHelpers";
 import { fetchInventory, searchContent, fetchUsers, createUser, updateUser, deleteUser } from "../services/api";
@@ -364,103 +364,6 @@ const AdminUsers = ({ users, onAddUser, onUpdateUser, onDeleteUser, onClose }: {
   );
 };
 
-const Login = ({ onLogin, users }: { onLogin: (u: UserType) => void, users: UserType[] }) => {
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
-  const lastSync = localStorage.getItem('last_sync');
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    const allUsers = users.length > 0 ? users : [{
-      id: '1',
-      name: 'Lucas Admin',
-      email: 'lucas.doliveira@bradesco.com.br',
-      role: 'admin' as any,
-      status: 'ativo' as any,
-      createdAt: new Date().toISOString()
-    }];
-    const user = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (user) {
-      if (user.status !== 'ativo' && user.status !== 'active') {
-        setError("Seu acesso está inativo. Procure um administrador.");
-      } else {
-        onLogin(user);
-      }
-    } else {
-      setError("Acesso não autorizado. E-mail não encontrado na base de usuários.");
-    }
-  };
-
-  return (
-    <div className="min-h-screen hero bg-gray-50 dark:bg-slate-800 relative flex items-center justify-center overflow-hidden">
-      {/* Background elements */}
-      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-red-100/30 rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-purple-100/30 rounded-full blur-[100px]" />
-      
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass-card p-12 rounded-[50px] max-w-md w-full shadow-2xl dark:shadow-none relative z-10"
-      >
-        <div className="text-center mb-10">
-          <div 
-            className="w-16 h-16 rounded-3xl mx-auto mb-6 flex items-center justify-center text-white shadow-xl dark:shadow-none shadow-red-200"
-            style={{ background: 'linear-gradient(90deg, #7D046D 0%, #cc092f 100%)' }}
-          >
-            <Shield className="w-8 h-8" />
-          </div>
-          <h1 className="text-[26px] font-black text-gray-900 dark:text-slate-50 mb-1 tracking-tight">Omni Marketing</h1>
-          <div className="flex flex-col items-center gap-3">
-            <p className="text-gray-400 dark:text-slate-500 text-sm font-medium">Ecossistema central de governança e mensuração</p>
-          </div>
-        </div>
-
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest ml-4">E-mail Corporativo</label>
-            <input 
-              type="email" 
-              required
-              value={email}
-              onChange={(e) => { setEmail(e.target.value); setError(""); }}
-              placeholder="seu.email@bradesco.com.br"
-              className="w-full px-8 py-5 bg-gray-50 dark:bg-slate-800 border border-transparent rounded-[24px] focus:bg-white dark:bg-slate-900 dark:border-slate-800 focus:border-[#cc092f] focus:ring-4 focus:ring-[#cc092f]/10 transition-all font-bold text-gray-800 dark:text-slate-200"
-            />
-          </div>
-
-          <AnimatePresence>
-            {error && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex items-center gap-3 p-4 bg-red-50 text-[#cc092f] rounded-2xl border border-red-100"
-              >
-                <AlertCircle className="w-5 h-5 shrink-0" />
-                <p className="text-xs font-bold">{error}</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <button 
-            type="submit"
-            className="w-full py-4 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all shadow-xl dark:shadow-none shadow-red-200"
-            style={{ background: 'linear-gradient(90deg, #7D046D 0%, #cc092f 100%)' }}
-          >
-            Entrar no Sistema
-          </button>
-        </form>
-
-        <div className="mt-10 pt-10 border-t border-gray-100 dark:border-slate-700 flex flex-col justify-center text-center gap-1">
-          <p className="text-[10px] font-black text-gray-300 dark:text-slate-600 uppercase tracking-[0.2em]">bradesco - beta v2.0.0</p>
-          {lastSync && (
-            <p className="text-[9px] font-medium text-gray-400 dark:text-slate-500">Última sincronização: {lastSync}</p>
-          )}
-        </div>
-      </motion.div>
-    </div>
-  );
-};
-
 const AuthScreen = ({ onLogin, onCancel }: { onLogin: (u: string, p: string) => void, onCancel: () => void }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -628,33 +531,15 @@ const AIReveal = ({ isLoading, children }: { isLoading: boolean, children: React
 };
 
 export default function App() {
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('omni_dark_mode');
-    if (saved !== null) {
-      const isDark = saved === 'true';
-      if (isDark) document.documentElement.classList.add('dark');
-      else document.documentElement.classList.remove('dark');
-      return isDark;
-    }
-    return document.documentElement.classList.contains('dark');
-  });
-
-  const toggleDarkMode = () => {
-    setIsDarkMode(prev => {
-      const next = !prev;
-      if (next) document.documentElement.classList.add('dark');
-      else document.documentElement.classList.remove('dark');
-      localStorage.setItem('omni_dark_mode', String(next));
-      return next;
-    });
-  };
+  useEffect(() => {
+    document.documentElement.classList.remove('dark');
+    localStorage.removeItem('omni_dark_mode');
+    localStorage.removeItem('cortex_current_user');
+  }, []);
 
   const [query, setQuery] = useState("");
-  const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [usersDb, setUsersDb] = useState<UserType[]>([]);
   const [showAdmin, setShowAdmin] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
   const [results, setResults] = useState<Artifact[]>([]);
   const [insights, setInsights] = useState<Insights | null>(null);
   const [loading, setLoading] = useState(false);
@@ -883,27 +768,6 @@ export default function App() {
   };
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setShowUserMenu(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    // Session check
-    const savedUser = localStorage.getItem('cortex_current_user');
-    if (savedUser && savedUser !== 'undefined' && savedUser !== 'null') {
-      try {
-        setCurrentUser(JSON.parse(savedUser));
-      } catch (e) {
-        console.error("Invalid user in localStorage", e);
-        localStorage.removeItem('cortex_current_user');
-      }
-    }
-
     // Connect to Users API
     fetchUsers().then(users => {
       setUsersDb(users);
@@ -911,27 +775,6 @@ export default function App() {
       console.error("Failed to load users:", err);
     });
   }, []);
-
-  const handleLogin = async (user: UserType) => {
-    setCurrentUser(user);
-    localStorage.setItem('cortex_current_user', JSON.stringify(user));
-    
-    // Update lastAccess
-    try {
-      await updateUser(user.id, { lastAccess: new Date().toISOString() });
-      const updatedUsers = await fetchUsers();
-      setUsersDb(updatedUsers);
-    } catch (err) {
-      console.error("Failed to update last access", err);
-    }
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setShowAdmin(false);
-    localStorage.removeItem('cortex_current_user');
-    resetSearch();
-  };
 
   const handleAddUser = async (userData: Omit<UserType, 'id' | 'createdAt'>) => {
     try {
@@ -948,15 +791,6 @@ export default function App() {
       await updateUser(updated.id, updated);
       const updatedUsers = await fetchUsers();
       setUsersDb(updatedUsers);
-
-      // If I updated myself, refresh session
-      if (currentUser?.id === updated.id) {
-        const myNewData = updatedUsers.find((u: UserType) => u.id === updated.id);
-        if (myNewData) {
-          setCurrentUser(myNewData);
-          localStorage.setItem('cortex_current_user', JSON.stringify(myNewData));
-        }
-      }
     } catch (err: any) {
       alert(err.message || "Erro ao atualizar usuário.");
     }
@@ -1398,29 +1232,10 @@ export default function App() {
     );
   };
 
-  if (!currentUser) {
-    return <Login onLogin={handleLogin} users={usersDb} />;
-  }
-
-  const hasPermission = (() => {
-    const role = currentUser.role;
-    const state = appState;
-    if (state === 'auth' || state === 'syncing' || state === 'copilot') return true;
-    if (role === 'admin' || role === 'gestor360') return true;
-    if (role === 'estrategico') return ['home'].includes(state);
-    if (role === 'artefatos') return ['initial', 'results', 'decision', 'insights', 'empty', 'inventory_table', 'graph', 'catalog', 'operational_insights'].includes(state);
-    if (role === 'eventos') return ['events_capture'].includes(state);
-    return false;
-  })();
+  const hasPermission = true;
 
   return (
-    <main className="app flex flex-col min-h-screen bg-gray-50 dark:bg-slate-800/30 w-full h-full relative"
-      onClick={(e) => {
-        if (!(e.target as Element).closest('.user-menu-container') && !(e.target as Element).closest('.user-menu-btn')) {
-          setShowUserMenu(false);
-        }
-      }}
-    >
+    <main className="app flex flex-col min-h-screen bg-gray-50 w-full h-full relative">
       <AIReveal isLoading={loading}>
         <AnimatePresence>
         {appState === 'auth' && (
@@ -1439,7 +1254,7 @@ export default function App() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {showAdmin && currentUser.role === 'admin' && (
+        {showAdmin && (
           <AdminUsers 
             users={usersDb}
             onAddUser={handleAddUser}
@@ -1456,19 +1271,19 @@ export default function App() {
           <div className="flex items-center gap-8 flex-1">
             <div className="flex flex-col cursor-pointer group" onClick={() => { setAppState('copilot'); setQuery(''); }}>
               <div className="flex items-center gap-3">
-                <h1 className="brand-text text-2xl font-black tracking-tight text-gray-900 dark:text-slate-50 group-hover:text-red-600 transition-colors">
+                <h1 className="brand-text text-2xl font-black tracking-tight text-gray-900 group-hover:text-red-600 transition-colors">
                   Omni Marketing
                 </h1>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-sm font-medium text-gray-500 dark:text-slate-400 shrink-0">
-            <div className="flex items-center gap-2 mr-2">
+          <div className="flex items-center gap-4 text-sm font-medium text-gray-500 shrink-0">
+            <div className="flex items-center gap-2">
               {appState !== 'home' && appState !== 'initial' && appState !== 'events_capture' && (
                 <button 
                   onClick={handleBack}
-                  className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 dark:border-slate-800 rounded-full border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none hover:border-gray-300 hover:text-gray-900 dark:text-slate-50 transition-all font-bold text-[10px] uppercase tracking-wider h-10"
+                  className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-100 shadow-sm hover:border-gray-300 hover:text-gray-900 transition-all font-bold text-[10px] uppercase tracking-wider h-10"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
                   Voltar
@@ -1479,73 +1294,12 @@ export default function App() {
             {!loading && appState === "inventory_table" && (
               <button 
                 onClick={() => setShowExportModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 dark:border-slate-800 rounded-full border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none hover:border-bradesco-red hover:text-bradesco-red transition-all font-bold text-xs uppercase tracking-wider h-10"
+                className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-100 shadow-sm hover:border-bradesco-red hover:text-bradesco-red transition-all font-bold text-xs uppercase tracking-wider h-10"
               >
                 <Download className="w-3.5 h-3.5" />
                 Extrair Dados
               </button>
             )}
-
-            <div className="relative user-menu-container" ref={userMenuRef}>
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowUserMenu(!showUserMenu);
-                }}
-                className="user-menu-btn w-10 h-10 rounded-full bg-white dark:bg-slate-900 dark:border-slate-800 border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none flex items-center justify-center font-bold text-gray-600 dark:text-slate-300 hover:border-red-600 hover:text-red-600 transition-all overflow-hidden"
-              >
-                {currentUser.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-              </button>
-
-              <AnimatePresence>
-                {showUserMenu && (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                    className="absolute right-0 mt-3 w-64 bg-white dark:bg-slate-900 dark:border-slate-800 rounded-3xl shadow-2xl dark:shadow-none border border-gray-100 dark:border-slate-700 overflow-hidden z-[100]"
-                  >
-                    <div className="p-6 border-b border-gray-50 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/30">
-                      <p className="text-sm font-bold text-gray-900 dark:text-slate-50 truncate">{currentUser.name}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${currentUser.role === 'admin' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 dark:bg-slate-700 text-gray-400 dark:text-slate-500'}`}>
-                          {currentUser.role === 'admin' ? 'Administrador' : 'Usuário'}
-                        </span>
-                        <p className="text-[10px] text-gray-400 dark:text-slate-500 truncate">{currentUser.email}</p>
-                      </div>
-                    </div>
-
-                    <div className="p-2">
-                       <button 
-                         onClick={(e) => { e.stopPropagation(); toggleDarkMode(); }}
-                         className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:bg-slate-800 hover:text-gray-900 dark:text-slate-50 rounded-2xl transition-all"
-                       >
-                         {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                         Alternar para Modo {isDarkMode ? 'Claro' : 'Escuro'}
-                       </button>
-
-                      {currentUser.role === 'admin' && (
-                        <button 
-                          onClick={() => { navigate('/home/gestao-de-usuarios'); setShowUserMenu(false); }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-600 dark:text-slate-300 hover:bg-red-50 hover:text-red-600 rounded-2xl transition-all"
-                        >
-                          <Shield className="w-4 h-4" />
-                          Gestão de Usuários
-                        </button>
-                      )}
-                      
-                      <button 
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 dark:text-slate-500 hover:bg-gray-50 dark:bg-slate-800 hover:text-gray-900 dark:text-slate-50 rounded-2xl transition-all border-t border-gray-50 dark:border-slate-800 mt-2 pt-2"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        Sair do Sistema
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
           </div>
         </header>
 

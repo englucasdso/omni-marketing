@@ -16,7 +16,7 @@ export class TreeCrawler {
     let keepGoing = true;
 
     while (keepGoing) {
-      if (this.transport.isCancelled) throw new Error('Cancelado.');
+      if (this.transport.isCancelled) throw new Error('Operação cancelada pelo usuário.');
       
       const endpoint = `/rest/api/content/${pageId}/child/page?limit=${pageSize}&start=${start}&expand=version,history.lastUpdated`;
       const data = await this.transport.fetchApi(endpoint);

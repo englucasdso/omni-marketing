@@ -82,9 +82,20 @@ export class ConfluenceOrchestrator {
 
       // 2. Inicia Sessão
       this.session = new ConfluenceSession(CONFLUENCE_BASE_URL);
-      const cookieString = await this.session.authenticate(rootPageId, username, password);
+      const page = await this.session.authenticate(rootPageId, username, password);
       
-      this.transport = new ConfluenceTransport(CONFLUENCE_BASE_URL, cookieString);
+      this.transport = new ConfluenceTransport(page);
+
+      // Validação inicial obrigatória no contexto do navegador
+      console.log('[BrowserTransport] Contexto: browser');
+      const hostInfo = await page.evaluate(() => window.location.host);
+      console.log(`[BrowserTransport] Host autenticado: ${hostInfo}`);
+
+      const rootData = await this.transport.checkRoot(rootPageId);
+      console.log('[BrowserTransport] Página raiz: HTTP 200');
+      const childrenFound = (rootData && rootData.results) ? rootData.results.length : 0;
+      console.log(`[BrowserTransport] Filhos encontrados: ${childrenFound}`);
+
       const crawler = new TreeCrawler(this.transport, 4); // Max 4 reqs simultâneas na árvore
       const mapReader = new MapReader(this.transport);
 
