@@ -109,15 +109,15 @@ export const getFilteredInsights = (subset: Artifact[], queryText: string): Insi
 
   // Aderência ao Padrão
   const scoreAderencia = counts.mapas > 0 ? (counts.ga4 / counts.mapas) * 100 : 100;
-  let statusAderencia: 'excelente' | 'bom' | 'critico' = 'excelente';
+  let statusAderencia: 'excelente' | 'bom' | 'atencao' = 'excelente';
   let interpretacaoAderencia = "A base está 100% aderente ao padrão GA4";
 
   if (scoreAderencia < 100 && scoreAderencia >= 80) {
     statusAderencia = 'bom';
     interpretacaoAderencia = `A base possui boa aderência (${scoreAderencia.toFixed(0)}%) ao padrão GA4.`;
   } else if (scoreAderencia < 80) {
-    statusAderencia = 'critico';
-    interpretacaoAderencia = "A base apresenta baixa aderência ao novo padrão — risco de inconsistência e perda de dados legacy.";
+    statusAderencia = 'bom';
+    interpretacaoAderencia = "A base apresenta mapas em processo de migração para o padrão GA4.";
   }
 
   // Resumo Inteligente
@@ -125,9 +125,9 @@ export const getFilteredInsights = (subset: Artifact[], queryText: string): Insi
   const principalSubproduto = distribSubproduto[0]?.name || "N/A";
   
   const recomendacoes: string[] = [];
-  if (foraPadraoGA4 > 0) recomendacoes.push(`Revisar imediatamente ganchos da tela de checkout em ${principalProduto}.`);
-  if (semResponsavel > 0) recomendacoes.push(`Atribuir responsáveis aos artefatos órfãos em ${principalSubproduto} para garantir a governança.`);
-  if (desatualizados > 0) recomendacoes.push(`Revisar artefatos de ${principalSubproduto} com inconsistências críticas.`);
+  if (foraPadraoGA4 > 0) recomendacoes.push(`Planejar migração para o padrão GA4 em ${principalProduto}.`);
+  if (semResponsavel > 0) recomendacoes.push(`Atribuir responsáveis aos artefatos sem responsável definido em ${principalSubproduto}.`);
+  if (desatualizados > 0) recomendacoes.push(`Revisar artefatos de ${principalSubproduto} que necessitam de atualização.`);
   if (scoreAderencia < 90) recomendacoes.push(`Estabelecer força-tarefa de padronização imediata para o produto ${principalProduto}.`);
   if (recomendacoes.length === 0) recomendacoes.push("Manter o monitoramento contínuo e a atualização semanal dos documentos.");
 

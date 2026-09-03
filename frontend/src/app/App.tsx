@@ -14,7 +14,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useNavigate, useLocation, Routes, Route } from "react-router-dom";
-import { X, AlertTriangle, Target, Network, Filter, CheckCircle2, AlertCircle, Clock, User, Info, Shield, LogOut, Trash2, Plus, Settings, Landmark, LayoutList, RefreshCw, Check, Loader2, KeyRound, Activity, ArrowRight, Search, ChevronDown, ChevronUp, ChevronLeft, ExternalLink, Download, Sparkles, FileText, Layers } from "lucide-react";
+import { X, AlertTriangle, Target, Network, Filter, CheckCircle2, AlertCircle, Clock, User, Info, Shield, LogOut, Trash2, Plus, Settings, Landmark, LayoutList, RefreshCw, Check, Loader2, KeyRound, Activity, ArrowRight, Search, ChevronDown, ChevronUp, ChevronLeft, ExternalLink, Download, Sparkles, FileText, Layers, Tag, Code2, Eye } from "lucide-react";
 import { ConexoesCanvas } from "../components/ConexoesCanvas";
 import { getOperationalInsights } from "../utils/inventoryHelpers";
 import { fetchInventory, searchContent, fetchUsers, createUser, updateUser, deleteUser } from "../services/api";
@@ -22,6 +22,10 @@ import { Artifact, Insights, SearchResponse, User as UserType, UserRole, UserSta
 import { normalizar, formatDataBR, getFilteredInsights } from "../utils/helpers";
 import { MultiSelect } from "../components/MultiSelect";
 import { TypewriterText } from "../components/TypewriterText";
+import { MapDetailModal } from "../components/MapDetailModal";
+import { ProductAnalysisView } from "../components/ProductAnalysisView";
+import { ParameterAnalysisView } from "../components/ParameterAnalysisView";
+import { CanonicalInsightsDashboard } from "../components/CanonicalInsightsDashboard";
 
 const INITIAL_USERS: UserType[] = [
   {
@@ -81,8 +85,8 @@ const GraphView = ({ data, isEmbedded = false, onClose }: { data: Artifact[], is
                   <p className="text-sm font-bold text-gray-800 dark:text-slate-200">{selectedItem.id}</p>
                 </div>
                 <div className="p-6 bg-gray-50 dark:bg-slate-800 rounded-[32px] border border-gray-100 dark:border-slate-700">
-                  <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-1">Nível Crítico</p>
-                  <p className="text-sm font-bold text-gray-800 dark:text-slate-200">{selectedItem.nivel || "Standard"}</p>
+                  <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-1">Nível de Taxonomia</p>
+                  <p className="text-sm font-bold text-gray-800 dark:text-slate-200">{selectedItem.taxonomy_depth || selectedItem.nivel || "1"}</p>
                 </div>
               </div>
 
@@ -546,10 +550,11 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [rawAppState, setRawAppState] = useState<"home" | "catalog" | "initial" | "results" | "decision" | "insights" | "empty" | "inventory_table" | "graph" | "auth" | "syncing" | "events_capture" | "operational_insights" | "copilot">("initial");
+  const [rawAppState, setRawAppState] = useState<"home" | "catalog" | "initial" | "results" | "decision" | "insights" | "empty" | "inventory_table" | "graph" | "auth" | "syncing" | "events_capture" | "operational_insights" | "copilot" | "produtos_analise" | "parametros_analise">("initial");
   const appState = rawAppState;
 
   const [insightsActiveTab, setRawInsightsActiveTab] = useState<"indicadores" | "resumo_executivo">("indicadores");
+  const [detailModalItem, setDetailModalItem] = useState<Artifact | null>(null);
 
   const setAppState = (newState: typeof rawAppState, updateUrl = true) => {
     setRawAppState(newState);
@@ -558,6 +563,8 @@ export default function App() {
     if (newState === 'initial' || newState === 'home') navigate('/hub-de-artefatos');
     else if (newState === 'results') navigate('/hub-de-artefatos/cards');
     else if (newState === 'inventory_table') navigate('/hub-de-artefatos/inventario');
+    else if (newState === 'produtos_analise') navigate('/hub-de-artefatos/por-produto');
+    else if (newState === 'parametros_analise') navigate('/hub-de-artefatos/por-parametro');
     else if (newState === 'insights' && insightsActiveTab === 'indicadores') navigate('/hub-de-artefatos/insights');
     else if (newState === 'insights' && insightsActiveTab === 'resumo_executivo') navigate('/hub-de-artefatos/insights/resumo-executivo');
     else if (newState === 'operational_insights') navigate('/hub-de-artefatos/insights-operacionais');
@@ -593,6 +600,10 @@ export default function App() {
       setRawAppState('results');
     } else if (p === '/hub-de-artefatos/inventario') {
       setRawAppState('inventory_table');
+    } else if (p === '/hub-de-artefatos/por-produto') {
+      setRawAppState('produtos_analise');
+    } else if (p === '/hub-de-artefatos/por-parametro') {
+      setRawAppState('parametros_analise');
     } else if (p === '/hub-de-artefatos/insights') {
       setRawAppState('insights');
       setRawInsightsActiveTab('indicadores');
@@ -728,9 +739,12 @@ export default function App() {
     produto: [],
     subproduto: [],
     responsavel: [],
-    status: [],
+    status_real: [],
+    measurement_class: [],
+    parametro: [],
     ano: []
   });
+  const [onlyDivergent, setOnlyDivergent] = useState(false);
   const [inventorySort, setInventorySort] = useState<{
     field: keyof Artifact | 'null';
     direction: 'asc' | 'desc';
@@ -747,7 +761,7 @@ export default function App() {
         if (capturePlatform) {
           setCapturePlatform(null);
         } else {
-          setAppState('copilot');
+          setAppState('initial');
         }
         break;
       case 'inventory_table':
@@ -757,13 +771,15 @@ export default function App() {
       case 'decision':
       case 'empty':
       case 'operational_insights':
+      case 'produtos_analise':
+      case 'parametros_analise':
         setAppState('initial');
         break;
       case 'initial':
       case 'home':
       case 'catalog':
       default:
-        setAppState('copilot');
+        setAppState('initial');
     }
   };
 
@@ -957,43 +973,52 @@ export default function App() {
     }
 
     // Quick Chips (shortcuts)
-    if (activeChip === 'GA4') base = base.filter(i => normalizar(i.tipo_mapa) === 'ga4');
-    if (activeChip === 'Universal Analytics') base = base.filter(i => normalizar(i.tipo_mapa) === 'universal analytics');
-    if (activeChip === 'Doc') base = base.filter(i => {
-      const t = normalizar(i.tipo_mapa);
-      return t === 'doc' || (t !== 'ga4' && t !== 'universal analytics');
-    });
+    if (activeChip === 'GA4') base = base.filter(i => (i.measurement_class === 'GA4' || normalizar(i.tipo_mapa) === 'ga4'));
+    if (activeChip === 'Universal Analytics') base = base.filter(i => (i.measurement_class === 'GA3' || normalizar(i.tipo_mapa) === 'universal analytics'));
+    if (activeChip === 'Doc') base = base.filter(i => (i.artifact_type === 'DOCUMENTACAO' || normalizar(i.tipo_mapa) === 'doc'));
     if (activeChip === 'Sem responsável') base = base.filter(i => !i.responsavel || i.responsavel === '-');
     if (activeChip === 'Sem subproduto') base = base.filter(i => !i.subproduto || i.subproduto === '-');
+    if (activeChip === 'Divergentes') base = base.filter(i => i.status_divergent === true);
 
-    // Independent Filters
-    if (inventoryFilters.tipo_mapa.length > 0) {
-      base = base.filter(i => inventoryFilters.tipo_mapa.includes(normalizar(i.tipo_mapa)));
-    }
-    if (inventoryFilters.produto.length > 0) {
-      base = base.filter(i => inventoryFilters.produto.includes(i.produto || ""));
-    }
-    if (inventoryFilters.subproduto.length > 0) {
-      base = base.filter(i => inventoryFilters.subproduto.includes(i.subproduto || ""));
-    }
-    if (inventoryFilters.responsavel.length > 0) {
-      base = base.filter(i => inventoryFilters.responsavel.includes(i.responsavel || ""));
-    }
-    if (inventoryFilters.status.length > 0) {
+    // Independent Multidimensional Filters
+    if (inventoryFilters.tipo_mapa && inventoryFilters.tipo_mapa.length > 0) {
       base = base.filter(i => {
-        let isMatch = false;
-        const t = normalizar(i.tipo_mapa);
-        if (inventoryFilters.status.includes('ga4') && t === 'ga4') isMatch = true;
-        if (inventoryFilters.status.includes('universal analytics') && t === 'universal analytics') isMatch = true;
-        if (inventoryFilters.status.includes('doc') && (t === 'doc' || (t !== 'ga4' && t !== 'universal analytics'))) isMatch = true;
-        return isMatch;
+        const t = (i.artifact_type || (normalizar(i.tipo_mapa) === 'doc' ? 'DOCUMENTACAO' : 'MAPA')).toUpperCase();
+        return inventoryFilters.tipo_mapa.includes(t);
       });
     }
-    if (inventoryFilters.ano.length > 0) {
+    if (inventoryFilters.measurement_class && inventoryFilters.measurement_class.length > 0) {
+      base = base.filter(i => {
+        const m = (i.measurement_class || (normalizar(i.tipo_mapa) === 'ga4' ? 'GA4' : 'GA3')).toUpperCase();
+        return inventoryFilters.measurement_class.includes(m);
+      });
+    }
+    if (inventoryFilters.status_real && inventoryFilters.status_real.length > 0) {
+      base = base.filter(i => {
+        const st = (i.calculated_status || i.declared_status || 'NAO_IDENTIFICADO').toUpperCase();
+        return inventoryFilters.status_real.includes(st);
+      });
+    }
+    if (inventoryFilters.produto && inventoryFilters.produto.length > 0) {
+      base = base.filter(i => inventoryFilters.produto.includes(i.produto || ""));
+    }
+    if (inventoryFilters.subproduto && inventoryFilters.subproduto.length > 0) {
+      base = base.filter(i => inventoryFilters.subproduto.includes(i.subproduto || ""));
+    }
+    if (inventoryFilters.responsavel && inventoryFilters.responsavel.length > 0) {
+      base = base.filter(i => inventoryFilters.responsavel.includes(i.responsavel || ""));
+    }
+    if (inventoryFilters.parametro && inventoryFilters.parametro.length > 0) {
+      base = base.filter(i => (i.parameter_summary || []).some(p => inventoryFilters.parametro.includes(p.name)));
+    }
+    if (inventoryFilters.ano && inventoryFilters.ano.length > 0) {
       base = base.filter(i => {
         const date = new Date(i.ultima_atualizacao);
         return inventoryFilters.ano.includes(date.getFullYear().toString());
       });
+    }
+    if (onlyDivergent) {
+      base = base.filter(i => i.status_divergent === true);
     }
 
     // Sorting
@@ -1011,7 +1036,7 @@ export default function App() {
     }
 
     return base;
-  }, [results, tableFilter, inventoryFilters, inventorySort, activeChip]);
+  }, [results, tableFilter, inventoryFilters, inventorySort, activeChip, onlyDivergent]);
 
   const currentInventoryInsights = useMemo(() => {
     return getFilteredInsights(filteredInventory, tableFilter || query);
@@ -1082,9 +1107,12 @@ export default function App() {
       produto: [],
       subproduto: [],
       responsavel: [],
-      status: [],
+      status_real: [],
+      measurement_class: [],
+      parametro: [],
       ano: []
     });
+    setOnlyDivergent(false);
     
     setTimeout(() => {
       if (!expandedInventoryRows.has(id)) {
@@ -1102,12 +1130,92 @@ export default function App() {
       produto: [],
       subproduto: [],
       responsavel: [],
-      status: [],
+      status_real: [],
+      measurement_class: [],
+      parametro: [],
       ano: []
     });
+    setOnlyDivergent(false);
     setActiveChip('Todos');
     setInventorySort({ field: 'null', direction: 'desc' });
   };
+
+  const filterOptions = useMemo(() => {
+    const prodCounts = new Map<string, number>();
+    const subCounts = new Map<string, number>();
+    const statusCounts = new Map<string, number>();
+    const measurementCounts = new Map<string, number>();
+    const typeCounts = new Map<string, number>();
+    const paramCounts = new Map<string, number>();
+    const yearCounts = new Map<string, number>();
+
+    results.forEach(i => {
+      if (i.produto) prodCounts.set(i.produto, (prodCounts.get(i.produto) || 0) + 1);
+      if (i.subproduto) subCounts.set(i.subproduto, (subCounts.get(i.subproduto) || 0) + 1);
+
+      const st = (i.calculated_status || i.declared_status || 'NAO_IDENTIFICADO').toUpperCase();
+      statusCounts.set(st, (statusCounts.get(st) || 0) + 1);
+
+      const mc = (i.measurement_class || (normalizar(i.tipo_mapa) === 'ga4' ? 'GA4' : 'GA3')).toUpperCase();
+      measurementCounts.set(mc, (measurementCounts.get(mc) || 0) + 1);
+
+      const tp = (i.artifact_type || (normalizar(i.tipo_mapa) === 'doc' ? 'DOCUMENTACAO' : 'MAPA')).toUpperCase();
+      typeCounts.set(tp, (typeCounts.get(tp) || 0) + 1);
+
+      (i.parameter_summary || []).forEach(p => {
+        paramCounts.set(p.name, (paramCounts.get(p.name) || 0) + 1);
+      });
+
+      if (i.ultima_atualizacao) {
+        const y = new Date(i.ultima_atualizacao).getFullYear().toString();
+        if (y && !isNaN(Number(y))) yearCounts.set(y, (yearCounts.get(y) || 0) + 1);
+      }
+    });
+
+    const topParams = Array.from(paramCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 25);
+
+    return {
+      tipoArtefato: [
+        { v: 'all', l: `QUALQUER TIPO (${results.length})` },
+        { v: 'MAPA', l: `MAPA (${typeCounts.get('MAPA') || 0})` },
+        { v: 'DOCUMENTACAO', l: `DOCUMENTAÇÃO (${typeCounts.get('DOCUMENTACAO') || 0})` }
+      ],
+      mensuracao: [
+        { v: 'all', l: 'QUALQUER MENSURAÇÃO' },
+        { v: 'GA4', l: `GA4 (${measurementCounts.get('GA4') || 0})` },
+        { v: 'GA3', l: `UNIVERSAL / GA3 (${measurementCounts.get('GA3') || 0})` },
+        { v: 'MISTO', l: `MISTO (${measurementCounts.get('MISTO') || 0})` },
+        { v: 'NAO_CLASSIFICADO', l: `NÃO CLASSIFICADO (${measurementCounts.get('NAO_CLASSIFICADO') || 0})` }
+      ],
+      statusReal: [
+        { v: 'all', l: 'QUALQUER STATUS' },
+        { v: 'VALIDADO', l: `VALIDADO (${statusCounts.get('VALIDADO') || 0})` },
+        { v: 'CORRECAO', l: `CORREÇÃO (${statusCounts.get('CORRECAO') || 0})` },
+        { v: 'NOVO', l: `NOVO (${statusCounts.get('NOVO') || 0})` },
+        { v: 'EXCLUIR', l: `EXCLUIR (${statusCounts.get('EXCLUIR') || 0})` },
+        { v: 'DESCONTINUAR', l: `DESCONTINUAR (${statusCounts.get('DESCONTINUAR') || 0})` },
+        { v: 'NAO_IDENTIFICADO', l: `NÃO IDENTIFICADO (${statusCounts.get('NAO_IDENTIFICADO') || 0})` }
+      ],
+      produtos: [
+        { v: 'all', l: `TODOS OS PRODUTOS (${prodCounts.size})` },
+        ...Array.from(prodCounts.entries()).sort().map(([p, c]) => ({ v: p, l: `${p.toUpperCase()} (${c})` }))
+      ],
+      subprodutos: [
+        { v: 'all', l: `TODOS OS SUBPRODUTOS (${subCounts.size})` },
+        ...Array.from(subCounts.entries()).sort().map(([s, c]) => ({ v: s, l: `${s.toUpperCase()} (${c})` }))
+      ],
+      parametros: [
+        { v: 'all', l: 'QUALQUER PARÂMETRO' },
+        ...topParams.map(([p, c]) => ({ v: p, l: `${p} (${c})` }))
+      ],
+      anos: [
+        { v: 'all', l: 'TODAS AS DATAS' },
+        ...Array.from(yearCounts.entries()).sort((a, b) => b[0].localeCompare(a[0])).map(([y, c]) => ({ v: y, l: `${y} (${c})` }))
+      ]
+    };
+  }, [results]);
 
   const handleSort = (field: keyof Artifact) => {
     setInventorySort(prev => {
@@ -1197,12 +1305,14 @@ export default function App() {
   );
 
   const NavigationModes = () => {
-    if (!["results", "insights", "graph", "inventory_table", "decision"].includes(appState) || loading) return null;
+    if (!["results", "insights", "graph", "inventory_table", "decision", "produtos_analise", "parametros_analise"].includes(appState) || loading) return null;
     if (appState === "decision") return null;
 
     const modes = [
       { id: "results", label: "Cards", icon: LayoutList },
       { id: "inventory_table", label: "Inventário", icon: Landmark },
+      { id: "produtos_analise", label: "Por Produto", icon: Layers },
+      { id: "parametros_analise", label: "Por Parâmetro", icon: Tag },
       { id: "insights", label: "Insights", icon: Sparkles },
       { id: "graph", label: "Conexões", icon: Network }
     ];
@@ -1269,7 +1379,7 @@ export default function App() {
         {/* Header */}
         <header className="flex justify-between items-center mb-12 relative z-40">
           <div className="flex items-center gap-8 flex-1">
-            <div className="flex flex-col cursor-pointer group" onClick={() => { setAppState('copilot'); setQuery(''); }}>
+            <div className="flex flex-col cursor-pointer group" onClick={() => { setAppState('initial'); setQuery(''); setTableFilter(''); }}>
               <div className="flex items-center gap-3">
                 <h1 className="brand-text text-2xl font-black tracking-tight text-gray-900 group-hover:text-red-600 transition-colors">
                   Omni Marketing
@@ -1582,8 +1692,57 @@ export default function App() {
             ) : null}
           </section>
 
-          {/* Summary / Insights Area */}
+          {/* Canonical Insights Dashboard */}
           {appState === "insights" && (
+            <motion.section 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="summary pb-20"
+            >
+              <CanonicalInsightsDashboard 
+                artifacts={results}
+                onOpenMap={(art) => setDetailModalItem(art)}
+                onFilterByProduct={(prod) => {
+                  setInventoryFilters(f => ({ ...f, produto: [prod] }));
+                  setAppState("inventory_table");
+                }}
+              />
+            </motion.section>
+          )}
+
+          {/* Análise por Produto */}
+          {appState === "produtos_analise" && (
+            <motion.section 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="produtos-container pb-20"
+            >
+              <ProductAnalysisView 
+                artifacts={results}
+                onOpenMap={(art) => setDetailModalItem(art)}
+                onSelectProduct={(prod) => {
+                  setInventoryFilters(f => ({ ...f, produto: [prod] }));
+                  setAppState("inventory_table");
+                }}
+              />
+            </motion.section>
+          )}
+
+          {/* Análise por Parâmetro */}
+          {appState === "parametros_analise" && (
+            <motion.section 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="parametros-container pb-20"
+            >
+              <ParameterAnalysisView 
+                artifacts={results}
+                onOpenMap={(art) => setDetailModalItem(art)}
+              />
+            </motion.section>
+          )}
+
+          {false && appState === "insights" && (
             !insights ? (
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
@@ -1818,19 +1977,75 @@ export default function App() {
           <section className={`results space-y-6 ${appState === "results" && !loading ? "" : "hidden"}`}>
             <AnimatePresence>
               {results.map((item, index) => {
-                let score = 100;
-                if (item.ultima_atualizacao) {
-                  if (item.ultima_atualizacao.includes('2023')) score -= 30;
-                  else if (item.ultima_atualizacao.includes('2022') || item.ultima_atualizacao.includes('2021')) score -= 60;
-                } else score -= 50;
-                if (!item.responsavel || item.responsavel.toLowerCase() === 'n/a') score -= 20;
-                if (!item.produto && !item.subproduto) score -= 20;
+                // Real Confluence status mapping
+                const realStatus = item.calculated_status || item.declared_status || 'NAO_IDENTIFICADO';
+                const isDoc = item.artifact_type === 'DOCUMENTACAO';
+                
+                let statusBadge = {
+                  label: realStatus,
+                  bg: 'bg-slate-50 dark:bg-slate-800',
+                  border: 'border-slate-200 dark:border-slate-700',
+                  color: 'text-slate-700 dark:text-slate-300',
+                  icon: <Info className="w-3 h-3" />
+                };
 
-                const health = score >= 80 
-                  ? { status: 'Saudável', color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100', icon: <CheckCircle2 className="w-3 h-3" /> }
-                  : score >= 50 
-                    ? { status: 'Atenção', color: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-100', icon: <AlertTriangle className="w-3 h-3" /> }
-                    : { status: 'Crítico', color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100', icon: <AlertCircle className="w-3 h-3" /> };
+                if (isDoc) {
+                  statusBadge = {
+                    label: 'Documento',
+                    bg: 'bg-slate-50 dark:bg-slate-800',
+                    border: 'border-slate-200 dark:border-slate-700',
+                    color: 'text-slate-700 dark:text-slate-300',
+                    icon: <FileText className="w-3 h-3" />
+                  };
+                } else if (realStatus === 'VALIDADO') {
+                  statusBadge = {
+                    label: 'Validado',
+                    bg: 'bg-emerald-50 dark:bg-emerald-950/40',
+                    border: 'border-emerald-200 dark:border-emerald-800',
+                    color: 'text-emerald-700 dark:text-emerald-300',
+                    icon: <CheckCircle2 className="w-3 h-3" />
+                  };
+                } else if (realStatus === 'PARCIAL') {
+                  statusBadge = {
+                    label: 'Parcial',
+                    bg: 'bg-amber-50 dark:bg-amber-950/40',
+                    border: 'border-amber-200 dark:border-amber-800',
+                    color: 'text-amber-700 dark:text-amber-300',
+                    icon: <AlertTriangle className="w-3 h-3" />
+                  };
+                } else if (realStatus === 'CORRECAO') {
+                  statusBadge = {
+                    label: 'Correção',
+                    bg: 'bg-orange-50 dark:bg-orange-950/40',
+                    border: 'border-orange-200 dark:border-orange-800',
+                    color: 'text-orange-700 dark:text-orange-300',
+                    icon: <AlertTriangle className="w-3 h-3" />
+                  };
+                } else if (realStatus === 'NOVO') {
+                  statusBadge = {
+                    label: 'Novo',
+                    bg: 'bg-blue-50 dark:bg-blue-950/40',
+                    border: 'border-blue-200 dark:border-blue-800',
+                    color: 'text-blue-700 dark:text-blue-300',
+                    icon: <Sparkles className="w-3 h-3" />
+                  };
+                } else if (realStatus === 'EXCLUIR') {
+                  statusBadge = {
+                    label: 'Excluir',
+                    bg: 'bg-rose-50 dark:bg-rose-950/40',
+                    border: 'border-rose-200 dark:border-rose-800',
+                    color: 'text-rose-700 dark:text-rose-300',
+                    icon: <AlertCircle className="w-3 h-3" />
+                  };
+                } else if (realStatus === 'DESCONTINUAR') {
+                  statusBadge = {
+                    label: 'Descontinuar',
+                    bg: 'bg-gray-100 dark:bg-slate-800',
+                    border: 'border-gray-300 dark:border-slate-700',
+                    color: 'text-gray-600 dark:text-slate-400',
+                    icon: <Info className="w-3 h-3" />
+                  };
+                }
 
                 return (
                 <motion.article 
@@ -1840,11 +2055,15 @@ export default function App() {
                   transition={{ delay: index * 0.05 }}
                   className="glass-card rounded-[40px] pt-10 px-10 pb-5 group transition-all relative overflow-hidden hover:shadow-xl dark:shadow-none hover:shadow-red-500/5 hover:-translate-y-1"
                 >
-                  <div className="absolute top-6 right-8 flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-sm dark:shadow-none text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105 cursor-default
-                    ${health.bg} ${health.border} ${health.color}"
-                    style={{ backgroundColor: score >= 80 ? '#ecfdf5' : score >= 50 ? '#fffbeb' : '#fef2f2', borderColor: score >= 80 ? '#d1fae5' : score >= 50 ? '#fef3c7' : '#fee2e2', color: score >= 80 ? '#059669' : score >= 50 ? '#d97706' : '#dc2626' }}
-                  >
-                    {health.icon} {health.status}
+                  <div className="absolute top-6 right-8 flex items-center gap-2">
+                    {item.status_divergent && (
+                      <span className="flex items-center gap-1 px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-wider bg-amber-50 dark:bg-amber-950/50 border-amber-200 text-amber-700 dark:text-amber-300">
+                        <AlertTriangle className="w-2.5 h-2.5" /> Divergente
+                      </span>
+                    )}
+                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-sm dark:shadow-none text-[10px] font-black uppercase tracking-widest cursor-default ${statusBadge.bg} ${statusBadge.border} ${statusBadge.color}`}>
+                      {statusBadge.icon} {statusBadge.label}
+                    </div>
                   </div>
                   <div className="mb-6">
                     <a
@@ -1858,9 +2077,9 @@ export default function App() {
                     
                     <div className="flex flex-wrap gap-3">
                       <span className="red-badge">
-                        {item.tipo_mapa && (normalizar(item.tipo_mapa) === "ga4" || normalizar(item.tipo_mapa) === "universal analytics") 
-                          ? item.tipo_mapa.toUpperCase() 
-                          : "DOCUMENTO"}
+                        {item.artifact_type === 'DOCUMENTACAO' || (item.tipo_mapa && normalizar(item.tipo_mapa) === 'doc')
+                          ? "DOCUMENTO" 
+                          : (item.measurement_class || item.tipo_mapa || "MAPA").toUpperCase()}
                       </span>
                       {item.produto && <span className="red-badge">{item.produto}</span>}
                       {item.subproduto && <span className="red-badge">{item.subproduto}</span>}
@@ -1881,8 +2100,8 @@ export default function App() {
                       <span className="text-sm font-bold text-gray-800 dark:text-slate-200">{item.versao || "1"}</span>
                     </div>
                     <div className="flex flex-col gap-1">
-                      <span className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest">Nível Crítico</span>
-                      <span className="text-sm font-bold text-gray-800 dark:text-slate-200">{item.nivel || "Standard"}</span>
+                      <span className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest">Nível de Taxonomia</span>
+                      <span className="text-sm font-bold text-gray-800 dark:text-slate-200">{item.taxonomy_depth || item.nivel || "1"}</span>
                     </div>
                   </div>
 
@@ -1895,12 +2114,10 @@ export default function App() {
                         <>
                           <ChevronUp className="w-4 h-4" />
                           Ocultar detalhes
-                          Ocultar detalhes
                         </>
                       ) : (
                         <>
                           <ChevronDown className="w-4 h-4" />
-                          Ver detalhes
                           Ver detalhes
                         </>
                       )}
@@ -1988,39 +2205,55 @@ export default function App() {
                     />
                   </div>
 
-                  <div className="flex flex-wrap gap-2 justify-center">
+                  <div className="flex flex-wrap gap-2 justify-center items-center">
                     {['Todos', 'GA4', 'Universal Analytics', 'Doc', 'Sem responsável', 'Sem subproduto'].map(chip => (
                       <button 
                         key={chip}
-                        onClick={() => setActiveChip(chip)}
+                        onClick={() => {
+                          setActiveChip(chip);
+                          if (onlyDivergent) setOnlyDivergent(false);
+                        }}
                         className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all
-                          ${activeChip === chip 
+                          ${activeChip === chip && !onlyDivergent
                             ? 'text-white shadow-lg dark:shadow-none shadow-red-200 scale-105' 
                             : 'bg-white dark:bg-slate-900 dark:border-slate-800 border border-gray-100 dark:border-slate-700 text-gray-400 dark:text-slate-500 hover:border-gray-200 dark:border-slate-600 hover:text-gray-600 dark:text-slate-300'}
                         `}
-                        style={activeChip === chip ? { background: 'linear-gradient(90deg, #7D046D 0%, #cc092f 100%)' } : {}}
+                        style={activeChip === chip && !onlyDivergent ? { background: 'linear-gradient(90deg, #7D046D 0%, #cc092f 100%)' } : {}}
                       >
                         {chip}
                       </button>
                     ))}
+
+                    <button
+                      onClick={() => setOnlyDivergent(prev => !prev)}
+                      className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5
+                        ${onlyDivergent 
+                          ? 'bg-amber-500 text-white shadow-lg dark:shadow-none shadow-amber-200 scale-105' 
+                          : 'bg-white dark:bg-slate-900 dark:border-slate-800 border border-amber-200 text-amber-600 dark:text-amber-400 hover:bg-amber-50'}
+                      `}
+                    >
+                      <AlertTriangle className="w-3 h-3" />
+                      Apenas Divergentes
+                    </button>
                   </div>
                 </div>
 
                 {/* Grid of Independent Filters */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
                   {[
-                    { label: 'Tipo de Mapa', key: 'tipo_mapa', options: [{ v: 'all', l: 'QUALQUER TIPO' }, { v: 'universal analytics', l: 'UNIVERSAL ANALYTICS' }, { v: 'ga4', l: 'GA4' }, { v: 'doc', l: 'DOC' }] },
-                    { label: 'Produto', key: 'produto', options: [{ v: 'all', l: 'TODOS PRODUTOS' }, ...Array.from(new Set(results.map(r => r.produto))).filter(Boolean).map(p => ({ v: p, l: String(p).toUpperCase() }))] },
-                    { label: 'Subproduto', key: 'subproduto', options: [{ v: 'all', l: 'QUALQUER SUB' }, ...Array.from(new Set(results.map(r => r.subproduto))).filter(Boolean).map(s => ({ v: s, l: String(s).toUpperCase() }))] },
-                    { label: 'Responsável', key: 'responsavel', options: [{ v: 'all', l: 'RESPONSÁVEL' }, ...Array.from(new Set(results.map(r => r.responsavel))).filter(Boolean).map(r => ({ v: r, l: String(r).toUpperCase() }))] },
-                    { label: 'Classificação', key: 'status', options: [{ v: 'all', l: 'STATUS' }, { v: 'ga4', l: 'GA4' }, { v: 'universal analytics', l: 'UNIVERSAL ANALYTICS' }, { v: 'doc', l: 'DOC' }] },
-                    { label: 'Ano Ref.', key: 'ano', options: [{ v: 'all', l: 'TODAS DATAS' }, { v: '2025', l: '2025' }, { v: '2024', l: '2024' }, { v: '2023', l: '2023' }] }
+                    { label: 'Artefato', key: 'tipo_mapa', options: filterOptions.tipoArtefato },
+                    { label: 'Mensuração', key: 'measurement_class', options: filterOptions.mensuracao },
+                    { label: 'Status Real', key: 'status_real', options: filterOptions.statusReal },
+                    { label: 'Produto', key: 'produto', options: filterOptions.produtos },
+                    { label: 'Subproduto', key: 'subproduto', options: filterOptions.subprodutos },
+                    { label: 'Parâmetro', key: 'parametro', options: filterOptions.parametros },
+                    { label: 'Ano Ref.', key: 'ano', options: filterOptions.anos }
                   ].map(filter => (
                     <MultiSelect 
                       key={filter.key} 
                       label={filter.label} 
                       options={filter.options}
-                      values={inventoryFilters[filter.key as keyof typeof inventoryFilters]}
+                      values={inventoryFilters[filter.key as keyof typeof inventoryFilters] || []}
                       onChange={(vals) => setInventoryFilters(f => ({ ...f, [filter.key]: vals }))}
                     />
                   ))}
@@ -2133,15 +2366,41 @@ export default function App() {
                                   </td>
                                   <td className="p-6">
                                     <div className="flex flex-col items-start w-full overflow-hidden">
-                                      <a 
-                                        href={item.link} 
-                                        target="_blank" 
-                                        rel="noreferrer"
-                                        className="block text-sm font-bold text-gray-900 dark:text-slate-50 leading-tight mb-1 truncate w-full hover:text-red-600 transition-colors"
-                                      >
-                                        {highlightText(item.titulo, tableFilter)}
-                                      </a>
-                                      <span className="block text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest truncate w-full">{item.id}</span>
+                                      <div className="flex items-center gap-2 max-w-full">
+                                        <a 
+                                          href={item.link} 
+                                          target="_blank" 
+                                          rel="noreferrer"
+                                          className="block text-sm font-bold text-gray-900 dark:text-slate-50 leading-tight mb-1 truncate hover:text-red-600 transition-colors"
+                                        >
+                                          {highlightText(item.titulo, tableFilter)}
+                                        </a>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setDetailModalItem(item);
+                                          }}
+                                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300 text-[9px] font-bold border border-purple-200 dark:border-purple-800 transition-colors shrink-0"
+                                          title="Inspecionar Telas, Snippets e Parâmetros"
+                                        >
+                                          <FileText className="w-2.5 h-2.5" />
+                                          Telas ({item.screens?.length || 0})
+                                        </button>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="block text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest truncate">{item.id}</span>
+                                        {item.calculated_status && (
+                                          <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full ${
+                                            item.calculated_status === 'VALIDADO' ? 'bg-green-100 text-green-800' :
+                                            item.calculated_status === 'CORRECAO' ? 'bg-amber-100 text-amber-800' :
+                                            item.calculated_status === 'NOVO' ? 'bg-blue-100 text-blue-800' :
+                                            item.calculated_status === 'EXCLUIR' || item.calculated_status === 'DESCONTINUAR' ? 'bg-red-100 text-red-800' :
+                                            'bg-gray-100 text-gray-600'
+                                          }`}>
+                                            {item.calculated_status}
+                                          </span>
+                                        )}
+                                      </div>
                                     </div>
                                   </td>
                                   <td className="p-6">
@@ -2503,6 +2762,13 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Modal de Detalhes Canônico de Telas e Snippets */}
+      <MapDetailModal 
+        item={detailModalItem} 
+        onClose={() => setDetailModalItem(null)} 
+      />
+
       </AIReveal>
     </main>
   );

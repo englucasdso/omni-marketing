@@ -1,27 +1,127 @@
+/**
+ * MeasurementClassifier
+ * Classifica artefatos em:
+ * - artifact_type: MAPA | DOCUMENTACAO
+ * - measurement_class: GA4 | GA3 | MISTO | NAO_CLASSIFICADO
+ * Calcula distribuição dos 5 status reais:
+ * NOVO, VALIDADO, CORRECAO, EXCLUIR, DESCONTINUAR (e NAO_IDENTIFICADO)
+ */
+
 export class MeasurementClassifier {
-  classify(screens) {
-    if (!screens || screens.length === 0) return 'Doc';
+  /**
+   * Determina a classificação de mensuração e sumários a partir das telas do mapa
+   */
+  classifyMap(screens = [], declaredStatus = '') {
+    const statusSummary = {
+      NOVO: 0,
+      VALIDADO: 0,
+      CORRECAO: 0,
+      EXCLUIR: 0,
+      DESCONTINUAR: 0,
+      NAO_IDENTIFICADO: 0
+    };
 
     let hasGa3 = false;
     let hasGa4 = false;
+    let totalSnippets = 0;
 
     for (const screen of screens) {
-      const screenParams = screen.parameters || [];
-      const keys = screenParams.map(p => p.parameter_path.toLowerCase());
-      
-      const isGa3 = keys.some(k => k === 'eventcategory' || k === 'event_category' || k === 'eventaction' || k === 'event_action' || k === 'eventlabel' || k === 'event_label');
-      
-      const isGa4 = keys.some(k => k === 'event_type' || k === 'eventtype' || k === 'event_name' || k === 'eventname' || k.startsWith('ga_event') || k.startsWith('screen') || k.startsWith('product') || k.startsWith('user') || k.startsWith('debug'));
+      // Contagem de status da tela
+      const normStatus = (screen.status || 'NAO_IDENTIFICADO').toUpperCase();
+      if (statusSummary.hasOwnProperty(normStatus)) {
+        statusSummary[normStatus]++;
+      } else {
+        statusSummary.NAO_IDENTIFICADO++;
+      }
 
-      if (isGa3) hasGa3 = true;
-      if (isGa4) hasGa4 = true;
+      // Avaliação de snippets
+      const snippets = screen.snippets || [];
+      totalSnippets += snippets.length;
+
+      for (const snippet of snippets) {
+        if (snippet.measurement_class === 'GA4') hasGa4 = true;
+        else if (snippet.measurement_class === 'GA3') hasGa3 = true;
+        else if (snippet.measurement_class === 'MISTO') {
+          hasGa4 = true;
+          hasGa3 = true;
+        }
+      }
     }
 
-    if (hasGa3 && hasGa4) return 'Misto';
-    if (hasGa4) return 'GA4';
-    if (hasGa3) return 'Universal Analytics';
-    
-    // Se extraiu tela mas sem padrão reconhecido
-    return 'Não classificado';
+    // Tipo de artefato: MAPA se possui telas ou snippets de tagueamento; DOCUMENTACAO se solto
+    const artifact_type = (screens.length > 0 || totalSnippets > 0) ? 'MAPA' : 'DOCUMENTACAO';
+
+    // Classificação de mensuração
+    let measurement_class = 'NAO_CLASSIFICADO';
+    if (hasGa4 && hasGa3) {
+      measurement_class = 'MISTO';
+    } else if (hasGa4) {
+      measurement_class = 'GA4';
+    } else if (hasGa3) {
+      measurement_class = 'GA3';
+    }
+
+    // Status calculado do mapa
+    const totalScreens = screens.length;
+    let calculated_status = 'NAO_IDENTIFICADO';
+    if (totalScreens > 0) {
+      if (statusSummary.VALIDADO === totalScreens) {
+        calculated_status = 'VALIDADO';
+      } else {
+        calculated_status = 'PARCIAL';
+      }
+    }
+
+    const normDeclared = this.normalizeDeclaredStatus(declaredStatus);
+    const status_divergent = Boolean(
+      normDeclared && 
+      calculated_status !== 'NAO_IDENTIFICADO' && 
+      normDeclared !== calculated_status
+    );
+
+    return {
+      artifact_type,
+      measurement_class,
+      status_summary: statusSummary,
+      declared_status: normDeclared || null,
+      calculated_status,
+      status_divergent
+    };
+  }
+
+  /**
+   * Normaliza status declarado no header
+   */
+  normalizeDeclaredStatus(rawStatus) {
+    if (!rawStatus) return null;
+    const str = String(rawStatus).trim().toUpperCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    if (str.includes('VALIDADO') || str.includes('HOMOLOGADO') || str.includes('APROVADO')) {
+      return 'VALIDADO';
+    }
+    if (str.includes('CORRECAO') || str.includes('AJUSTE') || str.includes('BUG')) {
+      return 'CORRECAO';
+    }
+    if (str.includes('NOVO')) {
+      return 'NOVO';
+    }
+    if (str.includes('EXCLUIR') || str.includes('EXCLUSAO')) {
+      return 'EXCLUIR';
+    }
+    if (str.includes('DESCONTINUAR') || str.includes('DESCONTINUADO')) {
+      return 'DESCONTINUAR';
+    }
+    if (str.includes('PARCIAL')) {
+      return 'PARCIAL';
+    }
+    return str || null;
+  }
+
+  // Compatibilidade com chamadas legadas
+  classify(screens) {
+    const result = this.classifyMap(screens);
+    if (result.artifact_type === 'DOCUMENTACAO') return 'Doc';
+    return result.measurement_class === 'NAO_CLASSIFICADO' ? 'Não classificado' : result.measurement_class;
   }
 }

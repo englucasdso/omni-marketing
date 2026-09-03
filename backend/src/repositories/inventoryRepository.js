@@ -1,43 +1,41 @@
-import fs from 'fs/promises';
+import fs from 'fs';
 import path from 'path';
 
-const DATA_DIR = path.resolve('backend/data');
+const DATA_DIR = path.resolve(process.cwd(), 'backend/data');
 const INVENTORY_PATH = path.resolve(DATA_DIR, 'inventario.json');
-const DETAILS_PATH = path.resolve(DATA_DIR, 'inventory-details.json');
 
 export class InventoryRepository {
-  async loadExistingInventory() {
+  getInventory() {
+    if (!fs.existsSync(INVENTORY_PATH)) return [];
     try {
-      const data = await fs.readFile(INVENTORY_PATH, 'utf8');
-      return JSON.parse(data);
+      const data = fs.readFileSync(INVENTORY_PATH, 'utf-8');
+      const items = JSON.parse(data);
+      return Array.isArray(items) ? items : [];
     } catch (e) {
+      console.error('[InventoryRepository] Failed to read inventario.json:', e);
       return [];
     }
   }
 
-  async loadExistingDetails() {
-    try {
-      const data = await fs.readFile(DETAILS_PATH, 'utf8');
-      return JSON.parse(data);
-    } catch (e) {
-      return [];
+  saveSafely(items) {
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new Error('[InventoryRepository] Tentativa de salvar inventário vazio ou inválido rejeitada.');
     }
-  }
 
-  async saveSafely(inventoryData, detailsData) {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-
-    const tempInv = `${INVENTORY_PATH}.tmp`;
-    const tempDet = `${DETAILS_PATH}.tmp`;
-
-    // Save inventory
-    await fs.writeFile(tempInv, JSON.stringify(inventoryData, null, 2), 'utf8');
-    await fs.rename(tempInv, INVENTORY_PATH);
-
-    // Save details
-    if (detailsData) {
-      await fs.writeFile(tempDet, JSON.stringify(detailsData, null, 2), 'utf8');
-      await fs.rename(tempDet, DETAILS_PATH);
+    // Validação mínima de estrutura: cada item deve possuir id e titulo
+    const isValid = items.every(item => item && item.id && item.titulo);
+    if (!isValid) {
+      throw new Error('[InventoryRepository] Validação estrutural falhou: itens sem id ou titulo.');
     }
+
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+
+    // Gravação atômica via arquivo temporário
+    const tempPath = `${INVENTORY_PATH}.tmp.${Date.now()}`;
+    fs.writeFileSync(tempPath, JSON.stringify(items, null, 2), 'utf-8');
+    fs.renameSync(tempPath, INVENTORY_PATH);
+    console.log(`[InventoryRepository] Salvo com sucesso e atomicamente: ${items.length} mapas no inventario.json`);
   }
 }

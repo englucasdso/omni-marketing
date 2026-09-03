@@ -1,39 +1,152 @@
+export type ArtifactType = 'MAPA' | 'DOCUMENTACAO';
+export type MeasurementClass = 'GA4' | 'GA3' | 'MISTO' | 'NAO_CLASSIFICADO';
+export type ScreenStatus = 'NOVO' | 'VALIDADO' | 'CORRECAO' | 'EXCLUIR' | 'DESCONTINUAR' | 'NAO_IDENTIFICADO';
+export type ValueType = 'PLACEHOLDER' | 'HARDCODED' | 'JAVASCRIPT_REFERENCE' | 'BOOLEAN' | 'NUMBER' | 'NULL' | 'EMPTY' | 'UNKNOWN';
+
+export interface HeaderField {
+  value: string;
+  raw_label: string;
+  source: string;
+}
+
+export interface SemanticHeader {
+  produto_servico?: HeaderField;
+  numero_task?: HeaderField;
+  figma_xd?: HeaderField;
+  ga4_stream_id?: HeaderField;
+  firebase?: HeaderField;
+  gtm_id?: HeaderField;
+  dominio?: HeaderField;
+  status_homologacao?: HeaderField;
+  [key: string]: HeaderField | undefined;
+}
+
+export interface ParameterItem {
+  name: string;
+  path: string;
+  raw_value: string;
+  normalized_value: string;
+  value_type: ValueType;
+  map_id?: string;
+  screen_id?: string;
+}
+
+export interface SnippetItem {
+  snippet_id: string;
+  map_id: string;
+  screen_id: string;
+  raw_code: string;
+  event_raw: string;
+  event_normalized: string;
+  base_key: string;
+  detected_paths: string[];
+  signature: string[];
+  pattern_id: string;
+  measurement_class: MeasurementClass;
+  parameters: ParameterItem[];
+}
+
+export interface ScreenItem {
+  map_id: string;
+  screen_id: string;
+  screen_index: number;
+  status_raw: string;
+  status: ScreenStatus;
+  instruction: string;
+  image_name?: string;
+  additional_information?: string;
+  evidence?: string;
+  snippets: SnippetItem[];
+}
+
+export interface StatusSummary {
+  NOVO: number;
+  VALIDADO: number;
+  CORRECAO: number;
+  EXCLUIR: number;
+  DESCONTINUAR: number;
+  NAO_IDENTIFICADO: number;
+  [key: string]: number;
+}
+
+export interface ParameterSummaryItem {
+  path: string;
+  name: string;
+  occurrences: number;
+  screens_count: number;
+  distinct_values_count: number;
+  distinct_values: string[];
+  value_types: Record<string, number>;
+}
+
+export interface PatternSummaryItem {
+  pattern_id: string;
+  event: string;
+  signature: string[];
+  measurement_class: string;
+  count: number;
+  screens_count: number;
+}
+
 export interface Artifact {
   id: string;
   titulo: string;
   link: string;
   ultima_atualizacao: string;
-  tipo_mapa: string;
+  responsavel: string;
+  versao: number | string;
+  nivel: string | number;
+  taxonomy_depth?: number;
+  pai: string;
   produto: string;
   subproduto: string;
-  responsavel: string;
-  versao: number;
-  nivel: string;
-  pai: string;
-  produto_servico: string;
-  numero_da_task: string;
-  figma_xd: string;
-  propriedade_ga4_stream_id: string;
-  firebase: string;
-  gtm_id: string;
-  dominio_exclusivo_web: string;
+  artifact_type?: ArtifactType;
+  measurement_class?: MeasurementClass;
+  header?: SemanticHeader;
+  screens?: ScreenItem[];
+  status_summary?: StatusSummary;
+  declared_status?: string | null;
+  calculated_status?: string;
+  status_divergent?: boolean;
+  parameter_summary?: ParameterSummaryItem[];
+  pattern_summary?: PatternSummaryItem[];
+  // Retrocompatibilidade
+  tipo_mapa: string;
+  produto_servico?: string;
+  numero_da_task?: string;
+  figma_xd?: string;
+  propriedade_ga4_stream_id?: string;
+  firebase?: string;
+  gtm_id?: string;
+  dominio_exclusivo_web?: string;
 }
 
 export interface Insights {
   total: number;
-  ga4: number;
-  universalAnalytics: number;
-  mapas: number;
-  documentos: number;
-  distribProduto: { name: string; count: number; percent: string }[];
-  distribSubproduto: { name: string; count: number; percent: string }[];
-  distribTipos: { name: string; count: number; percent: string }[];
-  porcentagens: {
+  totalMaps?: number;
+  totalDocs?: number;
+  totalScreens?: number;
+  divergentCount?: number;
+  statusCounts?: StatusSummary;
+  measurementCounts?: {
+    GA4: number;
+    GA3: number;
+    MISTO: number;
+    NAO_CLASSIFICADO: number;
+  };
+  ga4?: number;
+  universalAnalytics?: number;
+  mapas?: number;
+  documentos?: number;
+  distribProduto?: { name: string; count: number; percent: string }[];
+  distribSubproduto?: { name: string; count: number; percent: string }[];
+  distribTipos?: { name: string; count: number; percent: string }[];
+  porcentagens?: {
     ga4: string;
     universalAnalytics: string;
     documentos: string;
   };
-  updates: {
+  updates?: {
     last30Days: number;
     last60Days: number;
     last90Days: number;
@@ -43,24 +156,24 @@ export interface Insights {
     percentLast90Days: string;
     percentOlderThan90Days: string;
   };
-  versioning: {
+  versioning?: {
     topUpdated: Artifact[];
     averageVersions: string;
   };
   searchTerm?: string;
-  problemas: {
+  problemas?: {
     semResponsavel: number;
     semSubproduto: number;
     foraPadraoGA4: number;
     desatualizados: number;
     nivelRisco: 'baixo' | 'medio' | 'alto';
   };
-  aderencia: {
+  aderencia?: {
     score: number;
     interpretacao: string;
-    status: 'excelente' | 'bom' | 'critico';
+    status: 'excelente' | 'bom' | 'atencao';
   };
-  resumoInteligente: {
+  resumoInteligente?: {
     principalProduto: string;
     principalSubproduto: string;
     textoCenario: string;

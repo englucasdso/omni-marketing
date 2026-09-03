@@ -35,7 +35,6 @@ export class ConfluenceOrchestrator {
   extrairProdutoSubprodutoDaTrilha(trilhaAtual, nivelAtual) {
     const ancestrais = trilhaAtual.filter(x => Number(x.nivel) < Number(nivelAtual));
     
-    // Allow taxonomy extraction without strict max limits
     const p = ancestrais.find(x => Number(x.nivel) === 1);
     const sp = ancestrais.find(x => Number(x.nivel) === 2);
     
@@ -54,7 +53,6 @@ export class ConfluenceOrchestrator {
     console.time('Coleta Confluence Refatorada');
     
     const allRows = [];
-    const allScreens = [];
     
     let stats = {
       reused: 0,
@@ -64,23 +62,14 @@ export class ConfluenceOrchestrator {
     };
 
     try {
-      // 1. Carrega o cache (sincronização incremental)
-      const existingInventory = await this.repository.loadExistingInventory();
-      const existingDetails = await this.repository.loadExistingDetails();
-      
+      // 1. Carrega o cache (sincronização incremental diretamente do inventario.json)
+      const existingInventory = this.repository.getInventory();
       const invMap = new Map();
       for (const item of existingInventory) {
         invMap.set(String(item.id), item);
       }
-      const detMap = new Map();
-      for (const det of existingDetails) {
-        if (!detMap.has(String(det.map_id))) {
-          detMap.set(String(det.map_id), []);
-        }
-        detMap.get(String(det.map_id)).push(det);
-      }
 
-      // 2. Inicia Sessão
+      // 2. Inicia Sessão obrigatória no navegador
       this.session = new ConfluenceSession(CONFLUENCE_BASE_URL);
       const page = await this.session.authenticate(rootPageId, username, password);
       
@@ -105,8 +94,17 @@ export class ConfluenceOrchestrator {
         const estrutura = this.extrairProdutoSubprodutoDaTrilha(trilhaAtual, nivel);
         
         let cabecalho = {};
+        let headerObj = {};
         let tipo_mapa = '';
         let telasDoMapa = [];
+        let artifact_type = 'DOCUMENTACAO';
+        let measurement_class = 'NAO_CLASSIFICADO';
+        let statusSummary = {};
+        let declaredStatus = null;
+        let calculatedStatus = 'NAO_IDENTIFICADO';
+        let statusDivergent = false;
+        let parameterSummary = [];
+        let patternSummary = [];
 
         if (ehFolha) {
           const currentVersion = (page.version && page.version.number) || '';
@@ -118,36 +116,52 @@ export class ConfluenceOrchestrator {
           if (cached && cached.versao === currentVersion && cached.ultima_atualizacao === currentUpdated) {
             cabecalho = {
               produto_servico: cached.produto_servico,
-              n_da_task: cached.numero_da_task,
+              numero_task: cached.numero_da_task,
               figma_xd: cached.figma_xd,
-              propriedade_ga4_stream_id: cached.propriedade_ga4_stream_id,
+              ga4_stream_id: cached.propriedade_ga4_stream_id,
               firebase: cached.firebase,
               gtm_id: cached.gtm_id,
-              dominio_exclusivo_web: cached.dominio_exclusivo_web
+              dominio: cached.dominio_exclusivo_web,
+              status_homologacao: cached.declared_status
             };
-            tipo_mapa = cached.tipo_mapa;
-            if (detMap.has(idStr)) {
-              telasDoMapa = detMap.get(idStr);
-            }
+            headerObj = cached.header || {};
+            telasDoMapa = cached.screens || [];
+            artifact_type = cached.artifact_type || (telasDoMapa.length > 0 ? 'MAPA' : 'DOCUMENTACAO');
+            measurement_class = cached.measurement_class || 'NAO_CLASSIFICADO';
+            tipo_mapa = cached.tipo_mapa || (artifact_type === 'DOCUMENTACAO' ? 'Doc' : measurement_class);
+            statusSummary = cached.status_summary || {};
+            declaredStatus = cached.declared_status || null;
+            calculatedStatus = cached.calculated_status || 'NAO_IDENTIFICADO';
+            statusDivergent = Boolean(cached.status_divergent);
+            parameterSummary = cached.parameter_summary || [];
+            patternSummary = cached.pattern_summary || [];
             stats.reused++;
           } else {
-            // Se for folha, verifica se é um mapa ou doc antes de baixar o HTML detalhado
-            // Se não for um mapa válido pelo título (Ex: não começa com 'MT -'), ainda podemos extrair
-            // mas vamos focar nos válidos. O requisito diz para preservar docs.
-            
             const isValido = this.ehMapaValidoPorTitulo(page.title);
             
-            // Para não baixar todas as folhas irrelevantes
             if (isValido) {
               const details = await mapReader.readMapDetails(idStr, estrutura.produto, estrutura.subproduto);
-              cabecalho = details.cabecalho;
-              telasDoMapa = details.telas;
-              tipo_mapa = this.classifier.classify(telasDoMapa);
+              cabecalho = details.cabecalho || {};
+              headerObj = details.header || {};
+              telasDoMapa = details.telas || [];
+              parameterSummary = details.parameter_summary || [];
+              patternSummary = details.pattern_summary || [];
+
+              const classification = this.classifier.classifyMap(telasDoMapa, cabecalho.status_homologacao);
+              artifact_type = classification.artifact_type;
+              measurement_class = classification.measurement_class;
+              statusSummary = classification.status_summary;
+              declaredStatus = classification.declared_status;
+              calculatedStatus = classification.calculated_status;
+              statusDivergent = classification.status_divergent;
+              tipo_mapa = artifact_type === 'DOCUMENTACAO' ? 'Doc' : measurement_class;
               
               if (cached) stats.altered++;
               else stats.new++;
             } else {
               // Documentação solta
+              artifact_type = 'DOCUMENTACAO';
+              measurement_class = 'NAO_CLASSIFICADO';
               tipo_mapa = 'Doc';
             }
           }
@@ -161,23 +175,32 @@ export class ConfluenceOrchestrator {
           responsavel: (page.version && page.version.by && page.version.by.displayName) || '',
           versao: (page.version && page.version.number) || '',
           nivel: nivel,
+          taxonomy_depth: nivel,
           pai: parentTitulo || '',
           produto: estrutura.produto,
           subproduto: estrutura.subproduto,
-          produto_servico: cabecalho.produto_servico || cabecalho.produto_servico_ || '',
-          numero_da_task: cabecalho.n_da_task || cabecalho.numero_da_task || '',
+          artifact_type,
+          measurement_class,
+          header: headerObj,
+          screens: telasDoMapa,
+          status_summary: statusSummary,
+          declared_status: declaredStatus,
+          calculated_status: calculatedStatus,
+          status_divergent: statusDivergent,
+          parameter_summary: parameterSummary,
+          pattern_summary: patternSummary,
+          // Campos planos para retrocompatibilidade
+          produto_servico: cabecalho.produto_servico || '',
+          numero_da_task: cabecalho.numero_task || cabecalho.n_da_task || cabecalho.numero_da_task || '',
           figma_xd: cabecalho.figma_xd || cabecalho.figma || '',
-          propriedade_ga4_stream_id: cabecalho.propriedade_ga4_stream_id || cabecalho.ga4_id || '',
+          propriedade_ga4_stream_id: cabecalho.ga4_stream_id || cabecalho.propriedade_ga4_stream_id || '',
           firebase: cabecalho.firebase || '',
           gtm_id: cabecalho.gtm_id || '',
-          dominio_exclusivo_web: cabecalho.dominio_exclusivo_web || cabecalho.dominio_exclusivo_web_ || '',
-          tipo_mapa: tipo_mapa
+          dominio_exclusivo_web: cabecalho.dominio || cabecalho.dominio_exclusivo_web || '',
+          tipo_mapa: tipo_mapa || 'Doc'
         };
 
         allRows.push(row);
-        if (telasDoMapa.length > 0) {
-          allScreens.push(...telasDoMapa);
-        }
         
         stats.total++;
         if (stats.total % 50 === 0) {
@@ -185,8 +208,8 @@ export class ConfluenceOrchestrator {
         }
       }, maxRows);
 
-      // 4. Salva de forma segura usando o repositório
-      await this.repository.saveSafely(allRows, allScreens);
+      // 4. Salva de forma segura usando o repositório diretamente no inventario.json
+      this.repository.saveSafely(allRows);
       
       console.log('--- Resumo da Coleta ---');
       console.log(`Duração: Concluída.`);
@@ -200,14 +223,11 @@ export class ConfluenceOrchestrator {
       console.log('------------------------');
 
       return allRows;
-    } catch (e) {
-      console.error(`[Orchestrator] Erro na coleta: ${e.message}`);
-      throw e;
     } finally {
-      this.isCollecting = false;
       if (this.session) {
         await this.session.close();
       }
+      this.isCollecting = false;
       console.timeEnd('Coleta Confluence Refatorada');
     }
   }
