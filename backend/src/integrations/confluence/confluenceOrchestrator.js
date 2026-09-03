@@ -103,6 +103,7 @@ export class ConfluenceOrchestrator {
         let declaredStatus = null;
         let calculatedStatus = 'NAO_IDENTIFICADO';
         let statusDivergent = false;
+        let homologado = false;
         let parameterSummary = [];
         let patternSummary = [];
 
@@ -133,6 +134,7 @@ export class ConfluenceOrchestrator {
             declaredStatus = cached.declared_status || null;
             calculatedStatus = cached.calculated_status || 'NAO_IDENTIFICADO';
             statusDivergent = Boolean(cached.status_divergent);
+            homologado = cached.homologado !== undefined ? Boolean(cached.homologado) : (telasDoMapa.length > 0 && telasDoMapa.every(s => s.status === 'VALIDADO'));
             parameterSummary = cached.parameter_summary || [];
             patternSummary = cached.pattern_summary || [];
             stats.reused++;
@@ -154,6 +156,7 @@ export class ConfluenceOrchestrator {
               declaredStatus = classification.declared_status;
               calculatedStatus = classification.calculated_status;
               statusDivergent = classification.status_divergent;
+              homologado = Boolean(classification.homologado);
               tipo_mapa = artifact_type === 'DOCUMENTACAO' ? 'Doc' : measurement_class;
               
               if (cached) stats.altered++;
@@ -186,6 +189,7 @@ export class ConfluenceOrchestrator {
           status_summary: statusSummary,
           declared_status: declaredStatus,
           calculated_status: calculatedStatus,
+          homologado,
           status_divergent: statusDivergent,
           parameter_summary: parameterSummary,
           pattern_summary: patternSummary,

@@ -205,30 +205,63 @@ export class MapReader {
    * NOVO, VALIDADO, CORRECAO, EXCLUIR, DESCONTINUAR (ou NAO_IDENTIFICADO)
    */
   normalizarStatusTela(rawStatus) {
-    if (!rawStatus) return { status: 'NAO_IDENTIFICADO', status_raw: '' };
-    const raw = String(rawStatus).trim();
+    if (!rawStatus || typeof rawStatus !== 'string') {
+      return { status: 'NAO_IDENTIFICADO', status_raw: '' };
+    }
+    const raw = rawStatus.trim();
+    if (!raw) {
+      return { status: 'NAO_IDENTIFICADO', status_raw: '' };
+    }
+
     const clean = raw
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
-      .toUpperCase();
+      .toUpperCase()
+      .trim();
 
-    if (clean.includes('VALIDADO') || clean.includes('HOMOLOGADO') || clean.includes('APROVADO')) {
+    if (clean === 'VALIDADO' || clean.includes('VALIDADO') || clean.includes('HOMOLOGADO') || clean.includes('APROVADO')) {
       return { status: 'VALIDADO', status_raw: raw };
     }
-    if (clean.includes('CORRECAO') || clean.includes('CORREÇAO') || clean.includes('AJUSTE') || clean.includes('BUG')) {
+    if (clean === 'CORRECAO' || clean.includes('CORRECAO') || clean.includes('CORREÇAO') || clean.includes('AJUSTE') || clean.includes('BUG')) {
       return { status: 'CORRECAO', status_raw: raw };
     }
-    if (clean.includes('NOVO') || clean.includes('NOVA')) {
+    if (clean === 'NOVO' || clean.includes('NOVO') || clean.includes('NOVA')) {
       return { status: 'NOVO', status_raw: raw };
     }
-    if (clean.includes('EXCLUIR') || clean.includes('EXCLUSAO') || clean.includes('EXCLUIDO')) {
+    if (clean === 'EXCLUIR' || clean.includes('EXCLUIR') || clean.includes('EXCLUSAO') || clean.includes('EXCLUIDO')) {
       return { status: 'EXCLUIR', status_raw: raw };
     }
-    if (clean.includes('DESCONTINUAR') || clean.includes('DESCONTINUADO')) {
+    if (clean === 'DESCONTINUAR' || clean.includes('DESCONTINUAR') || clean.includes('DESCONTINUADO')) {
       return { status: 'DESCONTINUAR', status_raw: raw };
     }
 
     return { status: 'NAO_IDENTIFICADO', status_raw: raw };
+  }
+
+  /**
+   * Extração de status semântico da segunda célula de uma linha de Status da tela
+   * Seletor semântico principal: [data-macro-name="status"], .status-macro, .aui-lozenge
+   * Fallback: texto da própria célula
+   */
+  extrairStatusDaCelula(secondCellHtml) {
+    if (!secondCellHtml) return { status: 'NAO_IDENTIFICADO', status_raw: '' };
+
+    // Procura macro de status: [data-macro-name="status"], .status-macro, .aui-lozenge
+    // Não depende da cor nem de classes visuais como success ou moved
+    const macroRegex = /<[^>]+(?:data-macro-name=["']status["']|class=["'][^"']*\b(?:status-macro|aui-lozenge)\b[^"']*)[^>]*>([\s\S]*?)<\/[a-z0-9]+>/i;
+    const match = secondCellHtml.match(macroRegex);
+
+    let rawVal = '';
+    if (match && match[1] !== undefined) {
+      rawVal = this.limpar(match[1]).trim();
+    }
+
+    // Se o macro não existir, usa o texto da segunda célula como fallback
+    if (!rawVal) {
+      rawVal = this.limpar(secondCellHtml).trim();
+    }
+
+    return this.normalizarStatusTela(rawVal);
   }
 
   /**
@@ -304,61 +337,84 @@ export class MapReader {
 
     while ((tableMatch = tableRegex.exec(html)) !== null) {
       const tableContent = tableMatch[1];
-      const normTable = this.normalizarRotulo(tableContent);
 
-      // Verifica se a tabela contém rótulos característicos de tela
-      const hasStatus = screenLabelPatterns.status.some(p => normTable.includes(p));
-      const hasInstruction = screenLabelPatterns.instruction.some(p => normTable.includes(p));
-      const hasScreenName = screenLabelPatterns.screenName.some(p => normTable.includes(p));
-      const hasTriggerCode = screenLabelPatterns.triggerCode.some(p => normTable.includes(p));
-      const hasEvidence = screenLabelPatterns.evidence.some(p => normTable.includes(p));
+      // 1. percorrer seus tr
+      // 2. ler os filhos diretos th e td
+      const trRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+      let trMatch;
+      const parsedRows = [];
 
-      const matchScore = [hasStatus, hasInstruction, hasScreenName, hasTriggerCode, hasEvidence].filter(Boolean).length;
+      while ((trMatch = trRegex.exec(tableContent)) !== null) {
+        const rowContent = trMatch[1];
+        const cellRegex = /<(th|td)[^>]*>([\s\S]*?)<\/\1>/gi;
+        const cells = [];
+        let cMatch;
+        while ((cMatch = cellRegex.exec(rowContent)) !== null) {
+          cells.push(cMatch[2]);
+        }
 
-      // Se contém ao menos 2 indicadores de tela
+        if (cells.length > 0) {
+          // 3. normalizar o texto da primeira célula
+          const labelNorm = this.normalizarRotulo(cells[0]);
+          parsedRows.push({
+            labelNorm,
+            firstCellHtml: cells[0],
+            secondCellHtml: cells[1] !== undefined ? cells[1] : '',
+            cells
+          });
+        }
+      }
+
+      // Verifica se a tabela candidata a tela possui a combinação de rótulos característicos de tela
+      const hasStatusRow = parsedRows.some(r => screenLabelPatterns.status.some(p => r.labelNorm === p || r.labelNorm.startsWith(p)));
+      const hasInstructionRow = parsedRows.some(r => screenLabelPatterns.instruction.some(p => r.labelNorm === p || r.labelNorm.startsWith(p)));
+      const hasScreenNameRow = parsedRows.some(r => screenLabelPatterns.screenName.some(p => r.labelNorm === p || r.labelNorm.startsWith(p)));
+      const hasTriggerCodeRow = parsedRows.some(r => screenLabelPatterns.triggerCode.some(p => r.labelNorm === p || r.labelNorm.startsWith(p)));
+      const hasAdditionalInfoRow = parsedRows.some(r => screenLabelPatterns.additionalInfo.some(p => r.labelNorm === p || r.labelNorm.startsWith(p)));
+      const hasEvidenceRow = parsedRows.some(r => screenLabelPatterns.evidence.some(p => r.labelNorm === p || r.labelNorm.startsWith(p)));
+
+      const matchScore = [
+        hasStatusRow, 
+        hasInstructionRow, 
+        hasScreenNameRow, 
+        hasTriggerCodeRow, 
+        hasAdditionalInfoRow, 
+        hasEvidenceRow
+      ].filter(Boolean).length;
+
+      // Se contém ao menos 2 indicadores de tela (evita legendas e tabelas arbitrárias)
       if (matchScore >= 2) {
-        let statusRaw = '';
+        let statusObj = { status: 'NAO_IDENTIFICADO', status_raw: '' };
         let instruction = '';
         let screenName = '';
         let additionalInfo = '';
         let evidence = '';
         let imageName = '';
 
-        // Varre as linhas da tabela da tela
-        const trRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-        let trMatch;
-        while ((trMatch = trRegex.exec(tableContent)) !== null) {
-          const rowContent = trMatch[1];
-          const tdRegex = /<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/gi;
-          const cells = [];
-          let tdMatch;
-          while ((tdMatch = tdRegex.exec(rowContent)) !== null) {
-            cells.push(tdMatch[1]);
-          }
+        for (const row of parsedRows) {
+          const { labelNorm, secondCellHtml } = row;
 
-          if (cells.length >= 2) {
-            const labelNorm = this.normalizarRotulo(cells[0]);
-            const val = cells[1];
-
-            if (screenLabelPatterns.status.some(p => labelNorm === p || labelNorm.startsWith(p))) {
-              if (!statusRaw) statusRaw = this.limpar(val);
-            } else if (screenLabelPatterns.instruction.some(p => labelNorm === p || labelNorm.startsWith(p))) {
-              if (!instruction) instruction = this.limpar(val);
-            } else if (screenLabelPatterns.screenName.some(p => labelNorm === p || labelNorm.startsWith(p))) {
-              if (!screenName) screenName = this.limpar(val);
-            } else if (screenLabelPatterns.additionalInfo.some(p => labelNorm === p || labelNorm.startsWith(p))) {
-              if (!additionalInfo) additionalInfo = this.limpar(val);
-            } else if (screenLabelPatterns.evidence.some(p => labelNorm === p || labelNorm.startsWith(p))) {
-              if (!evidence) evidence = this.limpar(val);
-              const imgMatch = val.match(/<img[^>]+src=["']([^"']+)["']/i);
-              if (imgMatch) imageName = imgMatch[1];
-            }
+          // 4. encontrar a linha cujo rótulo seja Status
+          if (screenLabelPatterns.status.some(p => labelNorm === p || labelNorm.startsWith(p))) {
+            // 5. procurar na segunda célula: [data-macro-name="status"], .status-macro, .aui-lozenge
+            // 6. ler o valor com textContent.trim()
+            // 7. se o macro não existir, usar o texto da segunda célula como fallback
+            statusObj = this.extrairStatusDaCelula(secondCellHtml);
+          } else if (screenLabelPatterns.instruction.some(p => labelNorm === p || labelNorm.startsWith(p))) {
+            if (!instruction) instruction = this.limpar(secondCellHtml);
+          } else if (screenLabelPatterns.screenName.some(p => labelNorm === p || labelNorm.startsWith(p))) {
+            if (!screenName) screenName = this.limpar(secondCellHtml);
+          } else if (screenLabelPatterns.additionalInfo.some(p => labelNorm === p || labelNorm.startsWith(p))) {
+            if (!additionalInfo) additionalInfo = this.limpar(secondCellHtml);
+          } else if (screenLabelPatterns.evidence.some(p => labelNorm === p || labelNorm.startsWith(p))) {
+            if (!evidence) evidence = this.limpar(secondCellHtml);
+            const imgMatch = secondCellHtml.match(/<img[^>]+src=["']([^"']+)["']/i);
+            if (imgMatch) imageName = imgMatch[1];
           }
         }
 
         // Extrai snippets dentro desta tabela da tela
         const rawSnippets = this.extrairSnippetsDeHtml(tableContent);
-        const { status, status_raw } = this.normalizarStatusTela(statusRaw);
 
         // ID estável da tela
         const screenId = crypto.createHash('sha256')
@@ -374,8 +430,8 @@ export class MapReader {
           map_id: mapId,
           screen_id: screenId,
           screen_index: screenIndex,
-          status_raw: status_raw || 'Não informado',
-          status,
+          status_raw: statusObj.status_raw,
+          status: statusObj.status,
           instruction: instruction || screenName || 'Instrução de disparo',
           image_name: imageName || '',
           additional_information: additionalInfo || '',
@@ -403,7 +459,7 @@ export class MapReader {
           map_id: mapId,
           screen_id: screenId,
           screen_index: idx,
-          status_raw: 'Não informado',
+          status_raw: '',
           status: 'NAO_IDENTIFICADO',
           instruction: `Disparo ${idx + 1}`,
           image_name: '',

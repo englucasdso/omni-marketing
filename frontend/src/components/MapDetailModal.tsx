@@ -131,7 +131,6 @@ export const MapDetailModal: React.FC<MapDetailModalProps> = ({ item, onClose })
             <span><strong>Subproduto:</strong> {item.subproduto || 'N/A'}</span>
             <span><strong>Responsável:</strong> {item.responsavel || 'N/A'}</span>
             <span><strong>Versão:</strong> {item.versao || 1}</span>
-            <span><strong>Taxonomia:</strong> Nível {item.taxonomy_depth || item.nivel || 1}</span>
           </div>
 
           {/* Divergence Warning Banner */}

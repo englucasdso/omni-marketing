@@ -76,7 +76,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "7958455871",
@@ -406,7 +407,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7232920819",
@@ -822,7 +824,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6935735667",
@@ -1066,7 +1069,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8810957180",
@@ -1145,7 +1149,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "434875562",
@@ -1561,7 +1566,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "8746037482",
@@ -1805,7 +1811,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7311491415",
@@ -2135,7 +2142,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5897162198",
@@ -2551,7 +2559,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7385116489",
@@ -2912,7 +2921,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8789651370",
@@ -2991,7 +3001,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "7096456381",
@@ -3699,7 +3710,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3093220361",
@@ -4060,7 +4072,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "8761477179",
@@ -4621,7 +4634,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5117311583",
@@ -5329,7 +5343,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7646829786",
@@ -5690,7 +5705,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7567025859",
@@ -6020,7 +6036,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5794197528",
@@ -6436,7 +6453,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4332848141",
@@ -6515,7 +6533,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "1062741565",
@@ -6594,7 +6613,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "4567110133",
@@ -7010,7 +7030,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "8529793628",
@@ -7371,7 +7392,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4016269254",
@@ -7701,7 +7723,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8703157053",
@@ -8409,7 +8432,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9043325260",
@@ -8770,7 +8794,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3602527455",
@@ -9100,7 +9125,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "6280871002",
@@ -9516,7 +9542,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2442642530",
@@ -9595,7 +9622,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "9245083677",
@@ -9925,7 +9953,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7752038865",
@@ -10341,7 +10370,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9495443150",
@@ -10702,7 +10732,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2141363079",
@@ -11032,7 +11063,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "186199853",
@@ -11448,7 +11480,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3607576275",
@@ -11809,7 +11842,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5604422310",
@@ -12370,7 +12404,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6165512372",
@@ -12786,7 +12821,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "9171724297",
@@ -13030,7 +13066,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "6966687019",
@@ -13591,7 +13628,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5878916527",
@@ -14007,7 +14045,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2606611154",
@@ -14251,7 +14290,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5679835898",
@@ -14812,7 +14852,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "6746068374",
@@ -15228,7 +15269,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6230944688",
@@ -15472,7 +15514,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7953470585",
@@ -15802,7 +15845,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2266822406",
@@ -16218,7 +16262,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "11437951",
@@ -16579,7 +16624,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "9863263727",
@@ -16909,7 +16955,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2533069356",
@@ -17325,7 +17372,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8860398386",
@@ -17569,7 +17617,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6582803579",
@@ -18130,7 +18179,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2113901135",
@@ -18546,7 +18596,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1069767765",
@@ -18625,7 +18676,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "7437758737",
@@ -18955,7 +19007,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1665735093",
@@ -19371,7 +19424,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3100748311",
@@ -19732,7 +19786,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3280402896",
@@ -20293,7 +20348,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "9502108033",
@@ -21001,7 +21057,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4689484527",
@@ -21245,7 +21302,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "9949956302",
@@ -21575,7 +21633,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7116301114",
@@ -21991,7 +22050,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7179264924",
@@ -22235,7 +22295,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "8865137243",
@@ -22565,7 +22626,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3166229849",
@@ -23273,7 +23335,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8750944644",
@@ -23634,7 +23697,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4064851034",
@@ -23964,7 +24028,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4080167585",
@@ -24043,7 +24108,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "9201277819",
@@ -24122,7 +24188,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "8925208347",
@@ -24683,7 +24750,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9349766932",
@@ -25099,7 +25167,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4559799075",
@@ -25343,7 +25412,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6419825963",
@@ -25673,7 +25743,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5465445390",
@@ -25752,7 +25823,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "9328838095",
@@ -25996,7 +26068,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1097176208",
@@ -26075,7 +26148,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "9374296160",
@@ -26491,7 +26565,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6194047102",
@@ -26852,7 +26927,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3563029184",
@@ -27182,7 +27258,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3873682297",
@@ -27890,7 +27967,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3595363608",
@@ -27969,7 +28047,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "2493519888",
@@ -28299,7 +28378,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4859460676",
@@ -29007,7 +29087,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3414511001",
@@ -29368,7 +29449,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5037362803",
@@ -29929,7 +30011,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2334846074",
@@ -30637,7 +30720,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5306210369",
@@ -30998,7 +31082,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5167657161",
@@ -31077,7 +31162,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "6502607026",
@@ -31785,7 +31871,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9811205769",
@@ -32146,7 +32233,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "8994598835",
@@ -32707,7 +32795,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1409234301",
@@ -33123,7 +33212,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3122258349",
@@ -33367,7 +33457,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4496145807",
@@ -33928,7 +34019,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2153700353",
@@ -34636,7 +34728,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3158232922",
@@ -34997,7 +35090,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9352072926",
@@ -35558,7 +35652,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4297906122",
@@ -35974,7 +36069,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2843737634",
@@ -36335,7 +36431,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2572432491",
@@ -36896,7 +36993,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5238572662",
@@ -37604,7 +37702,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1419855594",
@@ -37848,7 +37947,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2775920612",
@@ -38409,7 +38509,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "706781934",
@@ -38488,7 +38589,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "4703770196",
@@ -38849,7 +38951,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5112340425",
@@ -39179,7 +39282,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4210318242",
@@ -39887,7 +39991,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5450957949",
@@ -40248,7 +40353,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3337594859",
@@ -40578,7 +40684,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5855619561",
@@ -40994,7 +41101,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4768356622",
@@ -41238,7 +41346,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1637459060",
@@ -41568,7 +41677,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8933937342",
@@ -41984,7 +42094,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4623571050",
@@ -42345,7 +42456,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3108874007",
@@ -42424,7 +42536,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "2468552307",
@@ -42840,7 +42953,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9586030126",
@@ -42919,7 +43033,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "5614774242",
@@ -43480,7 +43595,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4649652577",
@@ -43559,7 +43675,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "7770921107",
@@ -43920,7 +44037,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1539512862",
@@ -44250,7 +44368,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3532140800",
@@ -44329,7 +44448,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "8660700350",
@@ -44573,7 +44693,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1428256443",
@@ -44903,7 +45024,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1762830450",
@@ -45319,7 +45441,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6401113300",
@@ -45563,7 +45686,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8553223839",
@@ -45893,7 +46017,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5481775768",
@@ -46309,7 +46434,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2220470637",
@@ -46670,7 +46796,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "943746909",
@@ -47231,7 +47358,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8462162403",
@@ -47647,7 +47775,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6227644344",
@@ -48008,7 +48137,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1879104719",
@@ -48087,7 +48217,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "6026131992",
@@ -48795,7 +48926,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7730823053",
@@ -49039,7 +49171,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3507003473",
@@ -49600,7 +49733,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9917060411",
@@ -50016,7 +50150,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1218417788",
@@ -50260,7 +50395,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "182940393",
@@ -50821,7 +50957,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1914788095",
@@ -51237,7 +51374,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9243223514",
@@ -51598,7 +51736,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9655402487",
@@ -51677,7 +51816,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "9844657221",
@@ -52385,7 +52525,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5684065542",
@@ -52629,7 +52770,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2499494398",
@@ -53190,7 +53332,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2265297168",
@@ -53606,7 +53749,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9490353465",
@@ -53685,7 +53829,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "6308649289",
@@ -53764,7 +53909,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "7618402164",
@@ -53843,7 +53989,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "4520174551",
@@ -53922,7 +54069,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "1252046278",
@@ -54001,7 +54149,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "6956635493",
@@ -54417,7 +54566,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3790481336",
@@ -54778,7 +54928,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1900325983",
@@ -54857,7 +55008,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "4051900404",
@@ -55273,7 +55425,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4946920923",
@@ -55634,7 +55787,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8915399594",
@@ -55964,7 +56118,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8090109059",
@@ -56672,7 +56827,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5273111406",
@@ -56916,7 +57072,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "995486582",
@@ -57477,7 +57634,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8670464318",
@@ -58185,7 +58343,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1998159202",
@@ -58264,7 +58423,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "4013662891",
@@ -58594,7 +58754,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "9443543545",
@@ -59010,7 +59171,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1940322470",
@@ -59371,7 +59533,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "8542318010",
@@ -59701,7 +59864,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3769848177",
@@ -59780,7 +59944,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "1544793442",
@@ -60024,7 +60189,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4158562764",
@@ -60585,7 +60751,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5612103660",
@@ -61293,7 +61460,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6622244539",
@@ -61654,7 +61822,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "711105316",
@@ -61984,7 +62153,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2910467997",
@@ -62400,7 +62570,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4843798507",
@@ -62479,7 +62650,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "1025884368",
@@ -62558,7 +62730,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "467726392",
@@ -62974,7 +63147,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "778386022",
@@ -63335,7 +63509,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8583732851",
@@ -63896,7 +64071,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "8642969886",
@@ -63975,7 +64151,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "838374338",
@@ -64054,7 +64231,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "1236066614",
@@ -64384,7 +64562,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7767462719",
@@ -64463,7 +64642,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "2513523570",
@@ -64542,7 +64722,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "5356663175",
@@ -64872,7 +65053,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2037267140",
@@ -65580,7 +65762,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2855699176",
@@ -65659,7 +65842,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "7027314208",
@@ -66220,7 +66404,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3710612796",
@@ -66928,7 +67113,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5475192273",
@@ -67289,7 +67475,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1332734101",
@@ -67850,7 +68037,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2322552475",
@@ -67929,7 +68117,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "9670851877",
@@ -68290,7 +68479,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5166834453",
@@ -68620,7 +68810,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5155420709",
@@ -69036,7 +69227,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3893174892",
@@ -69280,7 +69472,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "8145683317",
@@ -69610,7 +69803,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7936725321",
@@ -69689,7 +69883,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "1550365467",
@@ -69933,7 +70128,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "6351036849",
@@ -70263,7 +70459,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5093766906",
@@ -70971,7 +71168,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2507812852",
@@ -71050,7 +71248,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "4788376439",
@@ -71380,7 +71579,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4805024724",
@@ -71459,7 +71659,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "7395640448",
@@ -71820,7 +72021,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4983840959",
@@ -72381,7 +72583,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9791976711",
@@ -73089,7 +73292,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4463544941",
@@ -73333,7 +73537,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7198192414",
@@ -73663,7 +73868,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5739453716",
@@ -74079,7 +74285,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "951517020",
@@ -74323,7 +74530,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "6523170566",
@@ -74884,7 +75092,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8775794735",
@@ -75300,7 +75509,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8499594464",
@@ -75544,7 +75754,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1422165008",
@@ -75623,7 +75834,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "3863736884",
@@ -76331,7 +76543,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8891810007",
@@ -76692,7 +76905,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8576957050",
@@ -77253,7 +77467,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4307701478",
@@ -77332,7 +77547,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "5740746349",
@@ -77576,7 +77792,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4467978957",
@@ -77906,7 +78123,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5731290459",
@@ -78614,7 +78832,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7358317906",
@@ -78975,7 +79194,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8875226276",
@@ -79536,7 +79756,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2924944288",
@@ -79952,7 +80173,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4976087442",
@@ -80196,7 +80418,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4463768102",
@@ -80275,7 +80498,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "4086726190",
@@ -80691,7 +80915,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5357615960",
@@ -81052,7 +81277,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4725623872",
@@ -81613,7 +81839,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1198213235",
@@ -82321,7 +82548,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2452037876",
@@ -82565,7 +82793,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3086140419",
@@ -83126,7 +83355,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1588603208",
@@ -83834,7 +84064,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3013040151",
@@ -84195,7 +84426,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2515839105",
@@ -84274,7 +84506,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "5728528232",
@@ -84982,7 +85215,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5053857085",
@@ -85226,7 +85460,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7069979030",
@@ -85556,7 +85791,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7473253708",
@@ -86264,7 +86500,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4485024393",
@@ -86625,7 +86862,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7971892019",
@@ -87186,7 +87424,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3841014381",
@@ -87602,7 +87841,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7835099804",
@@ -87846,7 +88086,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "90943711",
@@ -88176,7 +88417,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3780475438",
@@ -88884,7 +89126,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6591515631",
@@ -89128,7 +89371,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9618479097",
@@ -89207,7 +89451,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "9095204915",
@@ -89915,7 +90160,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "6403675789",
@@ -90159,7 +90405,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4883024388",
@@ -90720,7 +90967,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "322075990",
@@ -91136,7 +91384,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4570811434",
@@ -91215,7 +91464,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "6382983305",
@@ -91776,7 +92026,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4360612147",
@@ -91855,7 +92106,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "746628489",
@@ -92099,7 +92351,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5409168102",
@@ -92660,7 +92913,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8311396181",
@@ -93368,7 +93622,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9152751377",
@@ -93612,7 +93867,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "6662206199",
@@ -94173,7 +94429,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5042909317",
@@ -94589,7 +94846,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2847668734",
@@ -94833,7 +95091,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "974797353",
@@ -95394,7 +95653,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7788561025",
@@ -96102,7 +96362,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5617437305",
@@ -96463,7 +96724,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "8995926175",
@@ -96793,7 +97055,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1688152004",
@@ -97209,7 +97472,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4011604462",
@@ -97288,7 +97552,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "438335679",
@@ -97849,7 +98114,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1506627474",
@@ -98557,7 +98823,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4607379129",
@@ -98801,7 +99068,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1987017035",
@@ -98880,7 +99148,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "4284807949",
@@ -98959,7 +99228,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "7397584055",
@@ -99203,7 +99473,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1493808426",
@@ -99764,7 +100035,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7645920078",
@@ -100180,7 +100452,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4975317595",
@@ -100541,7 +100814,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "236558687",
@@ -100871,7 +101145,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5365188706",
@@ -101579,7 +101854,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4279320702",
@@ -101658,7 +101934,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "2675288526",
@@ -101988,7 +102265,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "528361814",
@@ -102404,7 +102682,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4682972339",
@@ -102765,7 +103044,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3347841842",
@@ -102844,7 +103124,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "6935520479",
@@ -103552,7 +103833,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1333008229",
@@ -103796,7 +104078,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "6224378045",
@@ -104126,7 +104409,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9852414049",
@@ -104834,7 +105118,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9978926160",
@@ -105195,7 +105480,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "8429273636",
@@ -105274,7 +105560,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "3643241941",
@@ -105353,7 +105640,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "1084244688",
@@ -105597,7 +105885,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9610404324",
@@ -105927,7 +106216,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9116540442",
@@ -106635,7 +106925,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3965585642",
@@ -106879,7 +107170,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "9468072563",
@@ -107440,7 +107732,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5403473863",
@@ -108148,7 +108441,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8070765832",
@@ -108227,7 +108521,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "2252407270",
@@ -108557,7 +108852,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7258037129",
@@ -109265,7 +109561,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2193974418",
@@ -109344,7 +109641,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "4572092338",
@@ -109674,7 +109972,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "921645747",
@@ -110382,7 +110681,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4522621674",
@@ -110743,7 +111043,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7182431996",
@@ -111073,7 +111374,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "9503930648",
@@ -111781,7 +112083,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2531411487",
@@ -112142,7 +112445,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4340571316",
@@ -112472,7 +112776,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6998675296",
@@ -112888,7 +113193,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "6002804220",
@@ -112967,7 +113273,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "7372106733",
@@ -113297,7 +113604,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1110177387",
@@ -113713,7 +114021,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7733285852",
@@ -113957,7 +114266,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7820988269",
@@ -114518,7 +114828,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "9169463668",
@@ -114934,7 +115245,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9630720719",
@@ -115178,7 +115490,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "233923794",
@@ -115739,7 +116052,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2436628677",
@@ -116447,7 +116761,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5399766303",
@@ -116808,7 +117123,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5513337128",
@@ -117138,7 +117454,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2699917268",
@@ -117554,7 +117871,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5147449150",
@@ -117915,7 +118233,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9676738053",
@@ -118476,7 +118795,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2589766103",
@@ -118892,7 +119212,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7242303666",
@@ -119253,7 +119574,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "407219647",
@@ -119332,7 +119654,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "9640184763",
@@ -119411,7 +119734,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "7107550200",
@@ -119655,7 +119979,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2185823725",
@@ -119734,7 +120059,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "7370648589",
@@ -120150,7 +120476,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8270924573",
@@ -120394,7 +120721,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "9723499068",
@@ -120724,7 +121052,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8842413883",
@@ -121432,7 +121761,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8362724758",
@@ -121793,7 +122123,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4235600837",
@@ -122123,7 +122454,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "8663060226",
@@ -122831,7 +123163,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1893684531",
@@ -123192,7 +123525,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7816636659",
@@ -123522,7 +123856,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6201870610",
@@ -123601,7 +123936,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "8415784184",
@@ -123962,7 +124298,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1812180338",
@@ -124292,7 +124629,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1445070522",
@@ -124371,7 +124709,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "4429900581",
@@ -124615,7 +124954,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2035796990",
@@ -125176,7 +125516,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7702149347",
@@ -125255,7 +125596,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "2867627995",
@@ -125499,7 +125841,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "6374751392",
@@ -126060,7 +126403,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9707578545",
@@ -126768,7 +127112,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4386973640",
@@ -126847,7 +127192,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "9374905504",
@@ -127177,7 +127523,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "6630255423",
@@ -127256,7 +127603,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "6794187667",
@@ -127500,7 +127848,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "401855456",
@@ -127830,7 +128179,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4614570612",
@@ -127909,7 +128259,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "2233788086",
@@ -127988,7 +128339,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "2380355838",
@@ -128067,7 +128419,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "1159935813",
@@ -128775,7 +129128,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2307814225",
@@ -129136,7 +129490,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6349327217",
@@ -129697,7 +130052,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7620343464",
@@ -130113,7 +130469,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "162625303",
@@ -130357,7 +130714,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1601871195",
@@ -130918,7 +131276,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6526162290",
@@ -131334,7 +131693,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5460934246",
@@ -131695,7 +132055,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4854389028",
@@ -132256,7 +132617,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "6231020709",
@@ -132672,7 +133034,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7601361760",
@@ -133033,7 +133396,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5736741523",
@@ -133594,7 +133958,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8225029419",
@@ -134302,7 +134667,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1148958518",
@@ -134381,7 +134747,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "6140106059",
@@ -134942,7 +135309,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3808497267",
@@ -135650,7 +136018,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1927958562",
@@ -135894,7 +136263,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1763785291",
@@ -136224,7 +136594,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7520586425",
@@ -136932,7 +137303,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8100195669",
@@ -137176,7 +137548,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3068819236",
@@ -137737,7 +138110,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7425729521",
@@ -138445,7 +138819,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9621416324",
@@ -138689,7 +139064,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "6477063620",
@@ -139019,7 +139395,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "8083733046",
@@ -139098,7 +139475,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "4316217759",
@@ -139177,7 +139555,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "7712560565",
@@ -139738,7 +140117,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4047884665",
@@ -140154,7 +140534,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "8054213512",
@@ -140233,7 +140614,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "375257676",
@@ -140563,7 +140945,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6587453136",
@@ -140642,7 +141025,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "4931236937",
@@ -140886,7 +141270,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9933214432",
@@ -141216,7 +141601,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "9449513534",
@@ -141632,7 +142018,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5054028115",
@@ -141876,7 +142263,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4356156453",
@@ -141955,7 +142343,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "4742338154",
@@ -142663,7 +143052,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7642706404",
@@ -142907,7 +143297,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "6698600765",
@@ -143237,7 +143628,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1317871190",
@@ -143945,7 +144337,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1811487228",
@@ -144306,7 +144699,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2542217340",
@@ -144385,7 +144779,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "2232887069",
@@ -144801,7 +145196,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "890231792",
@@ -145045,7 +145441,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2991579847",
@@ -145375,7 +145772,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1153238888",
@@ -145791,7 +146189,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6148880331",
@@ -146152,7 +146551,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1999310734",
@@ -146482,7 +146882,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5138669322",
@@ -146898,7 +147299,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3982993650",
@@ -147259,7 +147661,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "731455610",
@@ -147589,7 +147992,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5844168855",
@@ -148297,7 +148701,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8210353064",
@@ -148541,7 +148946,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "6868649901",
@@ -149102,7 +149508,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7093002536",
@@ -149181,7 +149588,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "5535609535",
@@ -149542,7 +149950,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3233146495",
@@ -150103,7 +150512,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6775036886",
@@ -150519,7 +150929,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7801935063",
@@ -150598,7 +151009,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "7894220033",
@@ -150677,7 +151089,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "3166196574",
@@ -151385,7 +151798,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "987302842",
@@ -151629,7 +152043,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5122755375",
@@ -152190,7 +152605,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5064339815",
@@ -152898,7 +153314,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5168515387",
@@ -153259,7 +153676,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4675079958",
@@ -153589,7 +154007,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9110195975",
@@ -153668,7 +154087,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "5481267797",
@@ -154029,7 +154449,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2655460947",
@@ -154590,7 +155011,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4987448832",
@@ -155298,7 +155720,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3424498662",
@@ -155659,7 +156082,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6517301446",
@@ -155989,7 +156413,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "951350974",
@@ -156405,7 +156830,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3866293347",
@@ -156649,7 +157075,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "6391681487",
@@ -156728,7 +157155,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "9766507672",
@@ -157436,7 +157864,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1339174961",
@@ -157797,7 +158226,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6046874332",
@@ -158358,7 +158788,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "9224296225",
@@ -158774,7 +159205,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1407193702",
@@ -158853,7 +159285,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "4652570310",
@@ -159414,7 +159847,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9320527657",
@@ -159830,7 +160264,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1242393496",
@@ -160074,7 +160509,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2256564156",
@@ -160404,7 +160840,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5476988379",
@@ -160820,7 +161257,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9324473157",
@@ -161064,7 +161502,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2644306463",
@@ -161625,7 +162064,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "952487164",
@@ -162333,7 +162773,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3500007668",
@@ -162577,7 +163018,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "8495445062",
@@ -162907,7 +163349,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4302840213",
@@ -163615,7 +164058,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4009261482",
@@ -163859,7 +164303,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9248462826",
@@ -164189,7 +164634,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2168697746",
@@ -164897,7 +165343,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7173624213",
@@ -165141,7 +165588,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "9900315770",
@@ -165702,7 +166150,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4933743552",
@@ -165781,7 +166230,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "5656422194",
@@ -166142,7 +166592,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4957947659",
@@ -166221,7 +166672,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "1904331796",
@@ -166929,7 +167381,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8212673541",
@@ -167008,7 +167461,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "6190799237",
@@ -167087,7 +167541,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "1587279208",
@@ -167795,7 +168250,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "8611748904",
@@ -168039,7 +168495,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "8058206352",
@@ -168369,7 +168826,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1884861926",
@@ -168785,7 +169243,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1015169618",
@@ -169029,7 +169488,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4036802016",
@@ -169359,7 +169819,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2161518089",
@@ -169775,7 +170236,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4728324436",
@@ -170019,7 +170481,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7322625344",
@@ -170349,7 +170812,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3777100066",
@@ -170765,7 +171229,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3024500210",
@@ -171009,7 +171474,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5438589230",
@@ -171339,7 +171805,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2639087950",
@@ -171418,7 +171885,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "5792218565",
@@ -171779,7 +172247,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7643173428",
@@ -171858,7 +172327,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "6180756752",
@@ -172566,7 +173036,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "8908476803",
@@ -172927,7 +173398,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "6233614591",
@@ -173257,7 +173729,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3208960191",
@@ -173336,7 +173809,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "5687420010",
@@ -173697,7 +174171,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4408732273",
@@ -174258,7 +174733,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7902224892",
@@ -174966,7 +175442,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4978369608",
@@ -175327,7 +175804,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3334446163",
@@ -175657,7 +176135,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2585228265",
@@ -176073,7 +176552,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4011213757",
@@ -176152,7 +176632,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "8992381364",
@@ -176231,7 +176712,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "1025825248",
@@ -176310,7 +176792,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "9571511795",
@@ -176389,7 +176872,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "2291398141",
@@ -176719,7 +177203,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6256639258",
@@ -177135,7 +177620,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1336872710",
@@ -177379,7 +177865,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4550608941",
@@ -177940,7 +178427,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7641683420",
@@ -178019,7 +178507,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "5772878476",
@@ -178380,7 +178869,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6739789583",
@@ -178941,7 +179431,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5727980414",
@@ -179649,7 +180140,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4919057255",
@@ -179893,7 +180385,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1582782980",
@@ -180454,7 +180947,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2968651529",
@@ -181162,7 +181656,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5958865276",
@@ -181241,7 +181736,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "9700541246",
@@ -181802,7 +182298,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4882398967",
@@ -182510,7 +183007,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2379414437",
@@ -182754,7 +183252,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1469709378",
@@ -183084,7 +183583,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7427884564",
@@ -183163,7 +183663,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "1663115736",
@@ -183524,7 +184025,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "9817173755",
@@ -183603,7 +184105,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "5705634374",
@@ -184311,7 +184814,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4317594817",
@@ -184555,7 +185059,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2202189537",
@@ -185116,7 +185621,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3670018864",
@@ -185532,7 +186038,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6095368181",
@@ -185893,7 +186400,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "8110828909",
@@ -186223,7 +186731,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6734260843",
@@ -186639,7 +187148,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2890926078",
@@ -186883,7 +187393,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7631902982",
@@ -186962,7 +187473,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "9210230142",
@@ -187670,7 +188182,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "820879509",
@@ -187914,7 +188427,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7263952573",
@@ -188475,7 +188989,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4728440408",
@@ -188554,7 +189069,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "5783185212",
@@ -188915,7 +189431,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3743678322",
@@ -189476,7 +189993,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4254620093",
@@ -189892,7 +190410,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "455679621",
@@ -190136,7 +190655,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8589111380",
@@ -190466,7 +190986,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4007204996",
@@ -190545,7 +191066,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "6469622969",
@@ -190789,7 +191311,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3511243300",
@@ -191350,7 +191873,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1197667248",
@@ -192058,7 +192582,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3805723943",
@@ -192137,7 +192662,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "6446651232",
@@ -192698,7 +193224,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4410819885",
@@ -193406,7 +193933,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5823483353",
@@ -193767,7 +194295,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2728527455",
@@ -194328,7 +194857,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5661548927",
@@ -195036,7 +195566,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "339724975",
@@ -195115,7 +195646,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "7226799501",
@@ -195445,7 +195977,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3661947304",
@@ -196153,7 +196686,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "828917808",
@@ -196397,7 +196931,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4833872276",
@@ -196476,7 +197011,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "2252350230",
@@ -197184,7 +197720,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7295164262",
@@ -197428,7 +197965,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2503757961",
@@ -197758,7 +198296,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4252673932",
@@ -198174,7 +198713,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7801414122",
@@ -198253,7 +198793,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "7783447811",
@@ -198583,7 +199124,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3405923024",
@@ -198999,7 +199541,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5791885400",
@@ -199360,7 +199903,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "961702628",
@@ -199921,7 +200465,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2421382251",
@@ -200337,7 +200882,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4910500139",
@@ -200581,7 +201127,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7077929992",
@@ -200911,7 +201458,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1571028976",
@@ -201327,7 +201875,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2944809437",
@@ -201688,7 +202237,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "574803813",
@@ -202249,7 +202799,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "9469341839",
@@ -202957,7 +203508,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2323947017",
@@ -203318,7 +203870,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5859885593",
@@ -203879,7 +204432,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1409657584",
@@ -204587,7 +205141,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5530238369",
@@ -204831,7 +205386,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "9790449742",
@@ -205392,7 +205948,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "6396794660",
@@ -206100,7 +206657,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1224616514",
@@ -206179,7 +206737,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "8246641391",
@@ -206509,7 +207068,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9554500942",
@@ -206925,7 +207485,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "719719833",
@@ -207169,7 +207730,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2326094847",
@@ -207499,7 +208061,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9146107541",
@@ -207915,7 +208478,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5832958261",
@@ -208159,7 +208723,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4420176434",
@@ -208720,7 +209285,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5522750357",
@@ -209136,7 +209702,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1116622172",
@@ -209215,7 +209782,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "9339931124",
@@ -209776,7 +210344,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7698274940",
@@ -210484,7 +211053,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6758150478",
@@ -210845,7 +211415,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1244341692",
@@ -211175,7 +211746,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "8741943007",
@@ -211254,7 +211826,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "6575846937",
@@ -211498,7 +212071,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1309412352",
@@ -212059,7 +212633,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5336655991",
@@ -212767,7 +213342,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1942097957",
@@ -213011,7 +213587,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7329548352",
@@ -213572,7 +214149,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8610996728",
@@ -214280,7 +214858,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6339475568",
@@ -214359,7 +214938,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "8622885219",
@@ -214689,7 +215269,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3703585343",
@@ -215105,7 +215686,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "246827126",
@@ -215349,7 +215931,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "9500753396",
@@ -215679,7 +216262,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7114488306",
@@ -215758,7 +216342,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "4443050839",
@@ -216002,7 +216587,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2451377472",
@@ -216081,7 +216667,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "1368398701",
@@ -216789,7 +217376,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4075386436",
@@ -217150,7 +217738,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2119968395",
@@ -217480,7 +218069,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "963708307",
@@ -217896,7 +218486,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7021918427",
@@ -218140,7 +218731,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "9956887069",
@@ -218219,7 +218811,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "5649084922",
@@ -218927,7 +219520,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1322168965",
@@ -219006,7 +219600,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "5507518871",
@@ -219336,7 +219931,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1426526070",
@@ -220044,7 +220640,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8652182815",
@@ -220405,7 +221002,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "604079700",
@@ -220966,7 +221564,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5947442755",
@@ -221382,7 +221981,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7110669635",
@@ -221626,7 +222226,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "8610997683",
@@ -221956,7 +222557,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4640574057",
@@ -222664,7 +223266,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2789062779",
@@ -223025,7 +223628,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2060949837",
@@ -223355,7 +223959,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6773582491",
@@ -223771,7 +224376,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "9997415449",
@@ -224132,7 +224738,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "742701197",
@@ -224211,7 +224818,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "7459109801",
@@ -224919,7 +225527,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2943723068",
@@ -225280,7 +225889,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5408956574",
@@ -225610,7 +226220,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3678184814",
@@ -226318,7 +226929,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3609771939",
@@ -226679,7 +227291,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "6856134094",
@@ -227240,7 +227853,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6041232200",
@@ -227948,7 +228562,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9538209086",
@@ -228027,7 +228642,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "5353594804",
@@ -228588,7 +229204,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7584238672",
@@ -229296,7 +229913,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6318373381",
@@ -229657,7 +230275,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5232075084",
@@ -229987,7 +230606,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4618402555",
@@ -230403,7 +231023,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3575893445",
@@ -230764,7 +231385,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4686594208",
@@ -231325,7 +231947,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1144755324",
@@ -231404,7 +232027,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "9377371304",
@@ -231765,7 +232389,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3892492830",
@@ -231844,7 +232469,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "30829679",
@@ -232552,7 +233178,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6460870291",
@@ -232796,7 +233423,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "6913564440",
@@ -233357,7 +233985,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1182744117",
@@ -233773,7 +234402,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2042335927",
@@ -234134,7 +234764,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1227810468",
@@ -234213,7 +234844,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "3751991634",
@@ -234292,7 +234924,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "7085381929",
@@ -234536,7 +235169,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1221701389",
@@ -235097,7 +235731,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4964560320",
@@ -235176,7 +235811,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "1776619384",
@@ -235537,7 +236173,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "995127494",
@@ -235867,7 +236504,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5169002967",
@@ -235946,7 +236584,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "4033432991",
@@ -236307,7 +236946,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4190132020",
@@ -236637,7 +237277,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "9794808841",
@@ -237053,7 +237694,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9819725001",
@@ -237132,7 +237774,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "1756666436",
@@ -237462,7 +238105,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6477111084",
@@ -238170,7 +238814,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4616458508",
@@ -238249,7 +238894,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "5830874935",
@@ -238810,7 +239456,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2855691289",
@@ -239226,7 +239873,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7837573122",
@@ -239587,7 +240235,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4572220594",
@@ -240148,7 +240797,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8429161947",
@@ -240856,7 +241506,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7836220775",
@@ -241217,7 +241868,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1953628610",
@@ -241547,7 +242199,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7540307211",
@@ -242255,7 +242908,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5852656022",
@@ -242499,7 +243153,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5389603718",
@@ -243060,7 +243715,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2363689347",
@@ -243139,7 +243795,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "6611845824",
@@ -243218,7 +243875,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "6511524926",
@@ -243548,7 +244206,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1224108382",
@@ -244256,7 +244915,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8488730166",
@@ -244500,7 +245160,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2387892260",
@@ -245061,7 +245722,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "6726957626",
@@ -245769,7 +246431,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8605666286",
@@ -246130,7 +246793,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7688662762",
@@ -246209,7 +246873,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "1091885114",
@@ -246917,7 +247582,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7632492676",
@@ -247278,7 +247944,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5036973321",
@@ -247608,7 +248275,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8972942365",
@@ -248024,7 +248692,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7031674864",
@@ -248103,7 +248772,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "2280338483",
@@ -248433,7 +249103,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "160570882",
@@ -248512,7 +249183,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "8597436418",
@@ -248756,7 +249428,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "8557475002",
@@ -248835,7 +249508,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "1370803022",
@@ -249251,7 +249925,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7580191904",
@@ -249495,7 +250170,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7441978045",
@@ -249574,7 +250250,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "4689828678",
@@ -249990,7 +250667,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6265547500",
@@ -250069,7 +250747,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "9084363714",
@@ -250630,7 +251309,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4835970558",
@@ -251046,7 +251726,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2667685367",
@@ -251407,7 +252088,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2053813236",
@@ -251737,7 +252419,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1969103521",
@@ -251816,7 +252499,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "251753905",
@@ -251895,7 +252579,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "9128584114",
@@ -251974,7 +252659,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "6814987492",
@@ -252682,7 +253368,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9337168914",
@@ -253043,7 +253730,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7672359686",
@@ -253604,7 +254292,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3435133197",
@@ -253683,7 +254372,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "4647496228",
@@ -253762,7 +254452,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "2573403826",
@@ -254092,7 +254783,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "6052620790",
@@ -254508,7 +255200,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5175631829",
@@ -254587,7 +255280,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "7053723205",
@@ -254917,7 +255611,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5698377026",
@@ -254996,7 +255691,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "9832813887",
@@ -255357,7 +256053,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "9699795226",
@@ -255918,7 +256615,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3164613346",
@@ -256334,7 +257032,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5811940193",
@@ -256413,7 +257112,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "5800317509",
@@ -256743,7 +257443,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "5770761397",
@@ -257451,7 +258152,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "9052305668",
@@ -257695,7 +258397,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "313725558",
@@ -258025,7 +258728,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2075260999",
@@ -258104,7 +258808,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "40015895",
@@ -258348,7 +259053,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7530576614",
@@ -258678,7 +259384,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3555984778",
@@ -259386,7 +260093,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "6062128789",
@@ -259747,7 +260455,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1144449517",
@@ -260308,7 +261017,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7018272001",
@@ -261016,7 +261726,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7754705194",
@@ -261377,7 +262088,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "9660511128",
@@ -261456,7 +262168,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "178168416",
@@ -261535,7 +262248,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "9249372073",
@@ -261896,7 +262610,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4792946393",
@@ -262226,7 +262941,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2659837629",
@@ -262642,7 +263358,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2168592363",
@@ -263003,7 +263720,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "2451955911",
@@ -263564,7 +264282,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4167710918",
@@ -263980,7 +264699,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "364725695",
@@ -264224,7 +264944,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "1573354044",
@@ -264303,7 +265024,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "923747988",
@@ -264719,7 +265441,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "4848334465",
@@ -264798,7 +265521,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "4561331574",
@@ -265128,7 +265852,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1714270320",
@@ -265836,7 +266561,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "7998908569",
@@ -266197,7 +266923,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "565797606",
@@ -266758,7 +267485,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "5097946948",
@@ -267174,7 +267902,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7040083261",
@@ -267418,7 +268147,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3820224203",
@@ -267497,7 +268227,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "9264211677",
@@ -268205,7 +268936,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "3762012288",
@@ -268449,7 +269181,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4787967904",
@@ -268779,7 +269512,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2921220331",
@@ -269487,7 +270221,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "608761054",
@@ -269566,7 +270301,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "9218614493",
@@ -269896,7 +270632,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "4731470270",
@@ -270312,7 +271049,8 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "2321019492",
@@ -270673,7 +271411,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "7108358900",
@@ -271003,7 +271742,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1790113407",
@@ -271711,7 +272451,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "9230525090",
@@ -272072,7 +272813,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "159445693",
@@ -272151,7 +272893,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "9395619643",
@@ -272230,7 +272973,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "6717571035",
@@ -272474,7 +273218,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "8031199455",
@@ -273035,7 +273780,8 @@
         "count": 1,
         "screens_count": 1
       }
-    ]
+    ],
+    "homologado": true
   },
   {
     "id": "3007711932",
@@ -273114,7 +273860,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "6800685823",
@@ -273193,7 +273940,8 @@
     "calculated_status": "NAO_IDENTIFICADO",
     "status_divergent": false,
     "parameter_summary": [],
-    "pattern_summary": []
+    "pattern_summary": [],
+    "homologado": false
   },
   {
     "id": "1984172387",
@@ -273523,7 +274271,8 @@
         "count": 2,
         "screens_count": 2
       }
-    ]
+    ],
+    "homologado": false
   },
   {
     "id": "1389760027",
@@ -273939,6 +274688,7 @@
         "count": 3,
         "screens_count": 3
       }
-    ]
+    ],
+    "homologado": false
   }
 ]

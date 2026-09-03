@@ -107,6 +107,7 @@ export interface Artifact {
   status_summary?: StatusSummary;
   declared_status?: string | null;
   calculated_status?: string;
+  homologado?: boolean;
   status_divergent?: boolean;
   parameter_summary?: ParameterSummaryItem[];
   pattern_summary?: PatternSummaryItem[];

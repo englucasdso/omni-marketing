@@ -673,7 +673,6 @@ export default function App() {
   
 
 
-  const [expandedInventoryRows, setExpandedInventoryRows] = useState<Set<string>>(new Set());
   const [insightFilters, setInsightFilters] = useState({ ga: 'all', produto: 'all', subproduto: 'all' });
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const resizingRef = useRef<{ key: string; startX: number; startWidth: number } | null>(null);
@@ -739,14 +738,15 @@ export default function App() {
     produto: [],
     subproduto: [],
     responsavel: [],
-    status_real: [],
     measurement_class: [],
     parametro: [],
     ano: []
   });
   const [onlyDivergent, setOnlyDivergent] = useState(false);
+  const [onlyWithoutResponsible, setOnlyWithoutResponsible] = useState(false);
+  const [onlyWithoutSubproduct, setOnlyWithoutSubproduct] = useState(false);
   const [inventorySort, setInventorySort] = useState<{
-    field: keyof Artifact | 'null';
+    field: keyof Artifact | string;
     direction: 'asc' | 'desc';
   }>({ field: 'null', direction: 'desc' });
 
@@ -900,7 +900,7 @@ export default function App() {
         setAppState("empty");
       } else if (data.total === 1) {
         setAppState("inventory_table");
-        setExpandedInventoryRows(new Set([data.resultados[0].id]));
+        setDetailModalItem(data.resultados[0]);
       } else {
         setAppState("results");
       }
@@ -973,12 +973,29 @@ export default function App() {
     }
 
     // Quick Chips (shortcuts)
-    if (activeChip === 'GA4') base = base.filter(i => (i.measurement_class === 'GA4' || normalizar(i.tipo_mapa) === 'ga4'));
-    if (activeChip === 'Universal Analytics') base = base.filter(i => (i.measurement_class === 'GA3' || normalizar(i.tipo_mapa) === 'universal analytics'));
-    if (activeChip === 'Doc') base = base.filter(i => (i.artifact_type === 'DOCUMENTACAO' || normalizar(i.tipo_mapa) === 'doc'));
-    if (activeChip === 'Sem responsável') base = base.filter(i => !i.responsavel || i.responsavel === '-');
-    if (activeChip === 'Sem subproduto') base = base.filter(i => !i.subproduto || i.subproduto === '-');
-    if (activeChip === 'Divergentes') base = base.filter(i => i.status_divergent === true);
+    if (activeChip === 'Mapas') {
+      base = base.filter(i => (i.artifact_type === 'MAPA' || (normalizar(i.tipo_mapa) !== 'doc' && i.artifact_type !== 'DOCUMENTACAO')));
+    }
+    if (activeChip === 'Documentações') {
+      base = base.filter(i => (i.artifact_type === 'DOCUMENTACAO' || normalizar(i.tipo_mapa) === 'doc'));
+    }
+    if (activeChip === 'GA4') {
+      base = base.filter(i => (i.measurement_class === 'GA4' || normalizar(i.tipo_mapa) === 'ga4'));
+    }
+    if (activeChip === 'GA3') {
+      base = base.filter(i => (i.measurement_class === 'GA3' || normalizar(i.tipo_mapa) === 'ga3' || normalizar(i.tipo_mapa) === 'universal analytics'));
+    }
+
+    // Secondary Detailed Filters
+    if (onlyWithoutResponsible) {
+      base = base.filter(i => !i.responsavel || i.responsavel === '-');
+    }
+    if (onlyWithoutSubproduct) {
+      base = base.filter(i => !i.subproduto || i.subproduto === '-');
+    }
+    if (onlyDivergent) {
+      base = base.filter(i => i.status_divergent === true);
+    }
 
     // Independent Multidimensional Filters
     if (inventoryFilters.tipo_mapa && inventoryFilters.tipo_mapa.length > 0) {
@@ -989,14 +1006,8 @@ export default function App() {
     }
     if (inventoryFilters.measurement_class && inventoryFilters.measurement_class.length > 0) {
       base = base.filter(i => {
-        const m = (i.measurement_class || (normalizar(i.tipo_mapa) === 'ga4' ? 'GA4' : 'GA3')).toUpperCase();
+        const m = (i.measurement_class || (normalizar(i.tipo_mapa) === 'ga4' ? 'GA4' : normalizar(i.tipo_mapa) === 'universal analytics' ? 'GA3' : 'NAO_CLASSIFICADO')).toUpperCase();
         return inventoryFilters.measurement_class.includes(m);
-      });
-    }
-    if (inventoryFilters.status_real && inventoryFilters.status_real.length > 0) {
-      base = base.filter(i => {
-        const st = (i.calculated_status || i.declared_status || 'NAO_IDENTIFICADO').toUpperCase();
-        return inventoryFilters.status_real.includes(st);
       });
     }
     if (inventoryFilters.produto && inventoryFilters.produto.length > 0) {
@@ -1017,15 +1028,22 @@ export default function App() {
         return inventoryFilters.ano.includes(date.getFullYear().toString());
       });
     }
-    if (onlyDivergent) {
-      base = base.filter(i => i.status_divergent === true);
-    }
 
     // Sorting
     if (inventorySort.field !== 'null') {
       base.sort((a, b) => {
-        const valA = String(a[inventorySort.field as keyof Artifact] || "");
-        const valB = String(b[inventorySort.field as keyof Artifact] || "");
+        let valA = '';
+        let valB = '';
+        if (inventorySort.field === 'artifact_type') {
+          valA = (a.artifact_type === 'DOCUMENTACAO' || normalizar(a.tipo_mapa) === 'doc') ? 'Documentação' : 'Mapa';
+          valB = (b.artifact_type === 'DOCUMENTACAO' || normalizar(b.tipo_mapa) === 'doc') ? 'Documentação' : 'Mapa';
+        } else if (inventorySort.field === 'measurement_class') {
+          valA = a.measurement_class || (normalizar(a.tipo_mapa) === 'ga4' ? 'GA4' : normalizar(a.tipo_mapa) === 'universal analytics' ? 'GA3' : '');
+          valB = b.measurement_class || (normalizar(b.tipo_mapa) === 'ga4' ? 'GA4' : normalizar(b.tipo_mapa) === 'universal analytics' ? 'GA3' : '');
+        } else {
+          valA = String(a[inventorySort.field as keyof Artifact] || "");
+          valB = String(b[inventorySort.field as keyof Artifact] || "");
+        }
         
         if (inventorySort.direction === 'asc') {
           return valA.localeCompare(valB, 'pt-BR', { numeric: true });
@@ -1036,7 +1054,7 @@ export default function App() {
     }
 
     return base;
-  }, [results, tableFilter, inventoryFilters, inventorySort, activeChip, onlyDivergent]);
+  }, [results, tableFilter, inventoryFilters, inventorySort, activeChip, onlyDivergent, onlyWithoutResponsible, onlyWithoutSubproduct]);
 
   const currentInventoryInsights = useMemo(() => {
     return getFilteredInsights(filteredInventory, tableFilter || query);
@@ -1053,13 +1071,6 @@ export default function App() {
       }).length
     };
   }, [filteredInventory]);
-
-  const toggleInventoryRow = (id: string) => {
-    const next = new Set(expandedInventoryRows);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setExpandedInventoryRows(next);
-  };
 
   const startResize = (e: React.MouseEvent, key: string) => {
     e.preventDefault();
@@ -1107,17 +1118,17 @@ export default function App() {
       produto: [],
       subproduto: [],
       responsavel: [],
-      status_real: [],
       measurement_class: [],
       parametro: [],
       ano: []
     });
     setOnlyDivergent(false);
+    setOnlyWithoutResponsible(false);
+    setOnlyWithoutSubproduct(false);
     
     setTimeout(() => {
-      if (!expandedInventoryRows.has(id)) {
-        toggleInventoryRow(id);
-      }
+      const art = results.find(r => r.id === id);
+      if (art) setDetailModalItem(art);
       const el = document.getElementById(`row-${id}`);
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 300);
@@ -1130,12 +1141,13 @@ export default function App() {
       produto: [],
       subproduto: [],
       responsavel: [],
-      status_real: [],
       measurement_class: [],
       parametro: [],
       ano: []
     });
     setOnlyDivergent(false);
+    setOnlyWithoutResponsible(false);
+    setOnlyWithoutSubproduct(false);
     setActiveChip('Todos');
     setInventorySort({ field: 'null', direction: 'desc' });
   };
@@ -1143,7 +1155,6 @@ export default function App() {
   const filterOptions = useMemo(() => {
     const prodCounts = new Map<string, number>();
     const subCounts = new Map<string, number>();
-    const statusCounts = new Map<string, number>();
     const measurementCounts = new Map<string, number>();
     const typeCounts = new Map<string, number>();
     const paramCounts = new Map<string, number>();
@@ -1153,10 +1164,7 @@ export default function App() {
       if (i.produto) prodCounts.set(i.produto, (prodCounts.get(i.produto) || 0) + 1);
       if (i.subproduto) subCounts.set(i.subproduto, (subCounts.get(i.subproduto) || 0) + 1);
 
-      const st = (i.calculated_status || i.declared_status || 'NAO_IDENTIFICADO').toUpperCase();
-      statusCounts.set(st, (statusCounts.get(st) || 0) + 1);
-
-      const mc = (i.measurement_class || (normalizar(i.tipo_mapa) === 'ga4' ? 'GA4' : 'GA3')).toUpperCase();
+      const mc = (i.measurement_class || (normalizar(i.tipo_mapa) === 'ga4' ? 'GA4' : normalizar(i.tipo_mapa) === 'universal analytics' ? 'GA3' : 'NAO_CLASSIFICADO')).toUpperCase();
       measurementCounts.set(mc, (measurementCounts.get(mc) || 0) + 1);
 
       const tp = (i.artifact_type || (normalizar(i.tipo_mapa) === 'doc' ? 'DOCUMENTACAO' : 'MAPA')).toUpperCase();
@@ -1178,46 +1186,37 @@ export default function App() {
 
     return {
       tipoArtefato: [
-        { v: 'all', l: `QUALQUER TIPO (${results.length})` },
-        { v: 'MAPA', l: `MAPA (${typeCounts.get('MAPA') || 0})` },
-        { v: 'DOCUMENTACAO', l: `DOCUMENTAÇÃO (${typeCounts.get('DOCUMENTACAO') || 0})` }
+        { v: 'all', l: 'Todos' },
+        { v: 'MAPA', l: `Mapas (${typeCounts.get('MAPA') || 0})` },
+        { v: 'DOCUMENTACAO', l: `Documentações (${typeCounts.get('DOCUMENTACAO') || 0})` }
       ],
-      mensuracao: [
-        { v: 'all', l: 'QUALQUER MENSURAÇÃO' },
+      classificacao: [
+        { v: 'all', l: 'Todos' },
         { v: 'GA4', l: `GA4 (${measurementCounts.get('GA4') || 0})` },
-        { v: 'GA3', l: `UNIVERSAL / GA3 (${measurementCounts.get('GA3') || 0})` },
-        { v: 'MISTO', l: `MISTO (${measurementCounts.get('MISTO') || 0})` },
-        { v: 'NAO_CLASSIFICADO', l: `NÃO CLASSIFICADO (${measurementCounts.get('NAO_CLASSIFICADO') || 0})` }
-      ],
-      statusReal: [
-        { v: 'all', l: 'QUALQUER STATUS' },
-        { v: 'VALIDADO', l: `VALIDADO (${statusCounts.get('VALIDADO') || 0})` },
-        { v: 'CORRECAO', l: `CORREÇÃO (${statusCounts.get('CORRECAO') || 0})` },
-        { v: 'NOVO', l: `NOVO (${statusCounts.get('NOVO') || 0})` },
-        { v: 'EXCLUIR', l: `EXCLUIR (${statusCounts.get('EXCLUIR') || 0})` },
-        { v: 'DESCONTINUAR', l: `DESCONTINUAR (${statusCounts.get('DESCONTINUAR') || 0})` },
-        { v: 'NAO_IDENTIFICADO', l: `NÃO IDENTIFICADO (${statusCounts.get('NAO_IDENTIFICADO') || 0})` }
+        { v: 'GA3', l: `GA3 (${measurementCounts.get('GA3') || 0})` },
+        { v: 'MISTO', l: `Misto (${measurementCounts.get('MISTO') || 0})` },
+        { v: 'NAO_CLASSIFICADO', l: `Não Classificado (${measurementCounts.get('NAO_CLASSIFICADO') || 0})` }
       ],
       produtos: [
-        { v: 'all', l: `TODOS OS PRODUTOS (${prodCounts.size})` },
-        ...Array.from(prodCounts.entries()).sort().map(([p, c]) => ({ v: p, l: `${p.toUpperCase()} (${c})` }))
+        { v: 'all', l: 'Todos' },
+        ...Array.from(prodCounts.entries()).sort().map(([p, c]) => ({ v: p, l: `${p} (${c})` }))
       ],
       subprodutos: [
-        { v: 'all', l: `TODOS OS SUBPRODUTOS (${subCounts.size})` },
-        ...Array.from(subCounts.entries()).sort().map(([s, c]) => ({ v: s, l: `${s.toUpperCase()} (${c})` }))
+        { v: 'all', l: 'Todos' },
+        ...Array.from(subCounts.entries()).sort().map(([s, c]) => ({ v: s, l: `${s} (${c})` }))
       ],
       parametros: [
-        { v: 'all', l: 'QUALQUER PARÂMETRO' },
+        { v: 'all', l: 'Todos' },
         ...topParams.map(([p, c]) => ({ v: p, l: `${p} (${c})` }))
       ],
       anos: [
-        { v: 'all', l: 'TODAS AS DATAS' },
+        { v: 'all', l: 'Todos' },
         ...Array.from(yearCounts.entries()).sort((a, b) => b[0].localeCompare(a[0])).map(([y, c]) => ({ v: y, l: `${y} (${c})` }))
       ]
     };
   }, [results]);
 
-  const handleSort = (field: keyof Artifact) => {
+  const handleSort = (field: keyof Artifact | string) => {
     setInventorySort(prev => {
       if (prev.field === field) {
         return { field, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
@@ -1246,7 +1245,6 @@ export default function App() {
     setResults([]);
     setInsights(null);
     setExpandedCards(new Set());
-    setExpandedInventoryRows(new Set());
     setShowGraph(false);
     setTableFilter("");
     setExecutiveSummaryResult(null);
@@ -2206,48 +2204,32 @@ export default function App() {
                   </div>
 
                   <div className="flex flex-wrap gap-2 justify-center items-center">
-                    {['Todos', 'GA4', 'Universal Analytics', 'Doc', 'Sem responsável', 'Sem subproduto'].map(chip => (
+                    {['Todos', 'Mapas', 'Documentações', 'GA4', 'GA3'].map(chip => (
                       <button 
                         key={chip}
-                        onClick={() => {
-                          setActiveChip(chip);
-                          if (onlyDivergent) setOnlyDivergent(false);
-                        }}
-                        className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all
-                          ${activeChip === chip && !onlyDivergent
-                            ? 'text-white shadow-lg dark:shadow-none shadow-red-200 scale-105' 
-                            : 'bg-white dark:bg-slate-900 dark:border-slate-800 border border-gray-100 dark:border-slate-700 text-gray-400 dark:text-slate-500 hover:border-gray-200 dark:border-slate-600 hover:text-gray-600 dark:text-slate-300'}
+                        onClick={() => setActiveChip(chip)}
+                        className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-wider transition-all
+                          ${activeChip === chip
+                            ? 'text-white shadow-md scale-105' 
+                            : 'bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-700 text-gray-500 dark:text-slate-400 hover:border-gray-300 dark:border-slate-600 hover:text-gray-700 dark:hover:text-slate-200'}
                         `}
-                        style={activeChip === chip && !onlyDivergent ? { background: 'linear-gradient(90deg, #7D046D 0%, #cc092f 100%)' } : {}}
+                        style={activeChip === chip ? { background: 'linear-gradient(90deg, #7D046D 0%, #cc092f 100%)' } : {}}
                       >
                         {chip}
                       </button>
                     ))}
-
-                    <button
-                      onClick={() => setOnlyDivergent(prev => !prev)}
-                      className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5
-                        ${onlyDivergent 
-                          ? 'bg-amber-500 text-white shadow-lg dark:shadow-none shadow-amber-200 scale-105' 
-                          : 'bg-white dark:bg-slate-900 dark:border-slate-800 border border-amber-200 text-amber-600 dark:text-amber-400 hover:bg-amber-50'}
-                      `}
-                    >
-                      <AlertTriangle className="w-3 h-3" />
-                      Apenas Divergentes
-                    </button>
                   </div>
                 </div>
 
                 {/* Grid of Independent Filters */}
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                   {[
                     { label: 'Artefato', key: 'tipo_mapa', options: filterOptions.tipoArtefato },
-                    { label: 'Mensuração', key: 'measurement_class', options: filterOptions.mensuracao },
-                    { label: 'Status Real', key: 'status_real', options: filterOptions.statusReal },
+                    { label: 'Classificação', key: 'measurement_class', options: filterOptions.classificacao },
                     { label: 'Produto', key: 'produto', options: filterOptions.produtos },
                     { label: 'Subproduto', key: 'subproduto', options: filterOptions.subprodutos },
                     { label: 'Parâmetro', key: 'parametro', options: filterOptions.parametros },
-                    { label: 'Ano Ref.', key: 'ano', options: filterOptions.anos }
+                    { label: 'Ano', key: 'ano', options: filterOptions.anos }
                   ].map(filter => (
                     <MultiSelect 
                       key={filter.key} 
@@ -2259,16 +2241,53 @@ export default function App() {
                   ))}
                 </div>
 
-                <div className="flex justify-between items-center mt-6 pt-6 border-t border-gray-50 dark:border-slate-800">
-                   <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2 px-3 py-1 bg-gray-50 dark:bg-slate-800 rounded-lg">
-                        <span className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase">Filtrados:</span>
-                        <span className="text-xs font-black text-gray-900 dark:text-slate-50">{inventorySummary.total} / {results.length}</span>
+                <div className="flex flex-wrap items-center justify-between gap-4 mt-6 pt-6 border-t border-gray-100 dark:border-slate-800">
+                   <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-slate-800 rounded-xl">
+                        <span className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase">Filtrados:</span>
+                        <span className="text-xs font-black text-gray-900 dark:text-slate-50">{filteredInventory.length} / {results.length}</span>
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setOnlyWithoutResponsible(prev => !prev)}
+                        className={`px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all ${
+                          onlyWithoutResponsible
+                            ? 'bg-amber-500 text-white shadow-sm'
+                            : 'bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+                        }`}
+                      >
+                        Sem responsável
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setOnlyWithoutSubproduct(prev => !prev)}
+                        className={`px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all ${
+                          onlyWithoutSubproduct
+                            ? 'bg-amber-500 text-white shadow-sm'
+                            : 'bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+                        }`}
+                      >
+                        Sem subproduto
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setOnlyDivergent(prev => !prev)}
+                        className={`px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center gap-1.5 ${
+                          onlyDivergent
+                            ? 'bg-amber-500 text-white shadow-sm'
+                            : 'bg-gray-50 dark:bg-slate-800 text-amber-600 dark:text-amber-400 hover:bg-amber-50'
+                        }`}
+                      >
+                        <AlertTriangle className="w-3 h-3" />
+                        Apenas divergentes
+                      </button>
                    </div>
                    <button 
                     onClick={resetInventoryFilters}
-                    className="flex items-center gap-2 text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest hover:text-red-500 transition-colors"
+                    className="flex items-center gap-2 text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest hover:text-red-500 transition-colors"
                    >
                      <X className="w-3 h-3" /> Limpar Filtros
                    </button>
@@ -2289,12 +2308,8 @@ export default function App() {
                       <table className="w-full text-left border-collapse min-w-[1200px] excel-table">
                         <thead className="sticky top-0 z-20">
                           <tr className="bg-gray-50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-700">
-                            <th style={{ width: columnWidths['status'] }} className="text-[10px] font-black text-gray-400 dark:text-slate-500 tracking-widest text-center uppercase relative">
-                              <div className="resizable-header justify-center">Status</div>
-                              <div className="column-resize-handle" onMouseDown={(e) => startResize(e, 'status')} />
-                            </th>
                             <th style={{ width: columnWidths['titulo'] }} className="text-[10px] font-black text-gray-400 dark:text-slate-500 tracking-widest group transition-colors relative">
-                              <div className="resizable-header min-w-[350px]">
+                              <div className="resizable-header min-w-[360px]">
                                 <span onClick={() => handleSort('titulo')} className="flex items-center gap-2 cursor-pointer hover:text-red-600 transition-colors w-max">
                                   TÍTULO / ID
                                   {inventorySort.field === 'titulo' && (inventorySort.direction === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
@@ -2302,11 +2317,17 @@ export default function App() {
                               </div>
                               <div className="column-resize-handle" onMouseDown={(e) => startResize(e, 'titulo')} />
                             </th>
-                            <th style={{ width: columnWidths['tipo_mapa'] }} className="text-[10px] font-black text-gray-400 dark:text-slate-500 tracking-widest group transition-colors relative">
-                              <div className="resizable-header">
-                                <span onClick={() => handleSort('tipo_mapa')} className="cursor-pointer hover:text-red-600 transition-colors">TIPO</span>
+                            <th style={{ width: columnWidths['artifact_type'] }} className="text-[10px] font-black text-gray-400 dark:text-slate-500 tracking-widest group transition-colors relative">
+                              <div className="resizable-header min-w-[120px]">
+                                <span onClick={() => handleSort('artifact_type')} className="cursor-pointer hover:text-red-600 transition-colors">ARTEFATO</span>
                               </div>
-                              <div className="column-resize-handle" onMouseDown={(e) => startResize(e, 'tipo_mapa')} />
+                              <div className="column-resize-handle" onMouseDown={(e) => startResize(e, 'artifact_type')} />
+                            </th>
+                            <th style={{ width: columnWidths['measurement_class'] }} className="text-[10px] font-black text-gray-400 dark:text-slate-500 tracking-widest group transition-colors relative">
+                              <div className="resizable-header min-w-[130px]">
+                                <span onClick={() => handleSort('measurement_class')} className="cursor-pointer hover:text-red-600 transition-colors">CLASSIFICAÇÃO</span>
+                              </div>
+                              <div className="column-resize-handle" onMouseDown={(e) => startResize(e, 'measurement_class')} />
                             </th>
                             <th style={{ width: columnWidths['produto'] }} className="text-[10px] font-black text-gray-400 dark:text-slate-500 tracking-widest group transition-colors relative">
                               <div className="resizable-header">
@@ -2334,7 +2355,7 @@ export default function App() {
                             </th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50">
+                        <tbody className="divide-y divide-gray-50 dark:divide-slate-800/50">
                           {filteredInventory.length === 0 ? (
                             <tr>
                               <td colSpan={7} className="p-32 text-center">
@@ -2350,158 +2371,98 @@ export default function App() {
                               </td>
                             </tr>
                           ) : (
-                            filteredInventory.map((item) => (
-                              <React.Fragment key={item.id}>
-                                <tr id={`row-${item.id}`} className={`group transition-all hover:bg-gray-50 dark:bg-slate-800/50 ${expandedInventoryRows.has(item.id) ? 'bg-red-50/10' : ''}`}>
-                                  <td className="p-6">
-                                    <div className="flex items-center justify-center gap-3">
-                                      <div className={`w-3 h-3 rounded-full ${normalizar(item.tipo_mapa) === 'ga4' ? 'bg-green-500 shadow-lg dark:shadow-none shadow-green-200' : normalizar(item.tipo_mapa) === 'universal analytics' ? 'bg-red-600 shadow-lg dark:shadow-none shadow-red-200' : 'bg-gray-300'}`} />
-                                      <button 
-                                        onClick={() => toggleInventoryRow(item.id)} 
-                                        className="p-1.5 hover:bg-gray-100 dark:bg-slate-700 rounded-lg text-gray-400 dark:text-slate-500 hover:text-gray-900 dark:text-slate-50 transition-colors"
-                                      >
-                                        {expandedInventoryRows.has(item.id) ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                                      </button>
-                                    </div>
-                                  </td>
-                                  <td className="p-6">
+                            filteredInventory.map((item) => {
+                              const isDoc = item.artifact_type === 'DOCUMENTACAO' || normalizar(item.tipo_mapa) === 'doc';
+                              const artifactLabel = isDoc ? 'Documentação' : 'Mapa';
+
+                              const mRaw = (item.measurement_class || '').toUpperCase();
+                              const tRaw = normalizar(item.tipo_mapa || '');
+                              let classLabel = '—';
+                              let classStyle = 'text-gray-400 dark:text-slate-500';
+
+                              if (mRaw === 'GA4' || tRaw === 'ga4') {
+                                classLabel = 'GA4';
+                                classStyle = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300';
+                              } else if (mRaw === 'GA3' || tRaw === 'ga3' || tRaw === 'universal analytics') {
+                                classLabel = 'GA3';
+                                classStyle = 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300';
+                              } else if (mRaw === 'MISTO' || tRaw === 'misto') {
+                                classLabel = 'Misto';
+                                classStyle = 'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300';
+                              }
+
+                              return (
+                                <tr 
+                                  key={item.id} 
+                                  id={`row-${item.id}`} 
+                                  onClick={() => setDetailModalItem(item)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                      e.preventDefault();
+                                      setDetailModalItem(item);
+                                    }
+                                  }}
+                                  tabIndex={0}
+                                  role="button"
+                                  className="group transition-all hover:bg-gray-50/80 dark:hover:bg-slate-800/60 cursor-pointer focus:outline-none focus:bg-red-50/20 dark:focus:bg-slate-800"
+                                >
+                                  <td className="p-5">
                                     <div className="flex flex-col items-start w-full overflow-hidden">
-                                      <div className="flex items-center gap-2 max-w-full">
-                                        <a 
-                                          href={item.link} 
-                                          target="_blank" 
-                                          rel="noreferrer"
-                                          className="block text-sm font-bold text-gray-900 dark:text-slate-50 leading-tight mb-1 truncate hover:text-red-600 transition-colors"
-                                        >
-                                          {highlightText(item.titulo, tableFilter)}
-                                        </a>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setDetailModalItem(item);
-                                          }}
-                                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300 text-[9px] font-bold border border-purple-200 dark:border-purple-800 transition-colors shrink-0"
-                                          title="Inspecionar Telas, Snippets e Parâmetros"
-                                        >
-                                          <FileText className="w-2.5 h-2.5" />
-                                          Telas ({item.screens?.length || 0})
-                                        </button>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <span className="block text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest truncate">{item.id}</span>
-                                        {item.calculated_status && (
-                                          <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full ${
-                                            item.calculated_status === 'VALIDADO' ? 'bg-green-100 text-green-800' :
-                                            item.calculated_status === 'CORRECAO' ? 'bg-amber-100 text-amber-800' :
-                                            item.calculated_status === 'NOVO' ? 'bg-blue-100 text-blue-800' :
-                                            item.calculated_status === 'EXCLUIR' || item.calculated_status === 'DESCONTINUAR' ? 'bg-red-100 text-red-800' :
-                                            'bg-gray-100 text-gray-600'
-                                          }`}>
-                                            {item.calculated_status}
-                                          </span>
+                                      <span className="block text-sm font-bold text-gray-900 dark:text-slate-50 leading-snug truncate group-hover:text-red-600 transition-colors">
+                                        {highlightText(item.titulo, tableFilter)}
+                                      </span>
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <span className="block text-[10px] font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider truncate">
+                                          {item.id}
+                                        </span>
+                                        {item.link && (
+                                          <a 
+                                            href={item.link} 
+                                            target="_blank" 
+                                            rel="noreferrer"
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="text-gray-400 hover:text-red-600 transition-colors p-0.5 rounded"
+                                            title="Abrir no Confluence"
+                                          >
+                                            <ExternalLink className="w-3 h-3" />
+                                          </a>
                                         )}
                                       </div>
                                     </div>
                                   </td>
-                                  <td className="p-6">
-                                    <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter truncate max-w-full
-                                      ${normalizar(item.tipo_mapa) === 'ga4' ? 'bg-green-100 text-green-700' : 
-                                        normalizar(item.tipo_mapa) === 'universal analytics' ? 'bg-red-100 text-red-700' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300'}
-                                    `}>
-                                      {item.tipo_mapa || "DOC"}
+                                  <td className="p-5">
+                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold tracking-tight ${
+                                      isDoc 
+                                        ? 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' 
+                                        : 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300'
+                                    }`}>
+                                      {artifactLabel}
                                     </span>
                                   </td>
-                                  <td className="p-6 text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-tighter">
+                                  <td className="p-5">
+                                    {classLabel === '—' ? (
+                                      <span className="text-gray-400 dark:text-slate-500 text-xs font-semibold">—</span>
+                                    ) : (
+                                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold tracking-tight ${classStyle}`}>
+                                        {classLabel}
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="p-5 text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-tighter">
                                     <div className="block truncate w-full">{highlightText(item.produto || "-", tableFilter)}</div>
                                   </td>
-                                  <td className="p-6 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-tighter">
+                                  <td className="p-5 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-tighter">
                                     <div className="block truncate w-full">{highlightText(item.subproduto || "-", tableFilter)}</div>
                                   </td>
-                                  <td className="p-6 text-xs font-bold text-gray-800 dark:text-slate-200 uppercase tracking-tighter">
+                                  <td className="p-5 text-xs font-bold text-gray-800 dark:text-slate-200 uppercase tracking-tighter">
                                     <div className="block truncate w-full">{highlightText(item.responsavel || "-", tableFilter)}</div>
                                   </td>
-                                  <td className="p-6 text-[10px] font-black text-gray-400 dark:text-slate-500">
+                                  <td className="p-5 text-[10px] font-black text-gray-400 dark:text-slate-500">
                                     {formatDataBR(item.ultima_atualizacao)}
                                   </td>
                                 </tr>
-                                
-                                <AnimatePresence>
-                                  {expandedInventoryRows.has(item.id) && (
-                                    <tr>
-                                      <td colSpan={7} className="p-0 border-none bg-gray-50 dark:bg-slate-800/30">
-                                        <motion.div 
-                                          initial={{ height: 0, opacity: 0 }}
-                                          animate={{ height: 'auto', opacity: 1 }}
-                                          exit={{ height: 0, opacity: 0 }}
-                                          className="p-10 border-x-4 border-red-600"
-                                        >
-                                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-                                            <div className="space-y-4">
-                                              <p className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">Metadata Técnica</p>
-                                              <div className="space-y-2">
-                                                <div className="flex justify-between border-b pb-1">
-                                                  <span className="text-[9px] font-bold text-gray-500 dark:text-slate-400">VERSÃO</span>
-                                                  <span className="text-[9px] font-black text-gray-900 dark:text-slate-50">{item.versao || "-"}</span>
-                                                </div>
-                                                <div className="flex justify-between border-b pb-1">
-                                                  <span className="text-[9px] font-bold text-gray-500 dark:text-slate-400">NÍVEL</span>
-                                                  <span className="text-[9px] font-black text-gray-900 dark:text-slate-50">{item.nivel || "-"}</span>
-                                                </div>
-                                              </div>
-                                            </div>
-
-                                            <div className="space-y-4">
-                                              <p className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">IDs de Mensuração</p>
-                                              <div className="space-y-2">
-                                                <div className="flex justify-between border-b pb-1">
-                                                  <span className="text-[9px] font-bold text-gray-500 dark:text-slate-400">GTM ID</span>
-                                                  <span className="text-[9px] font-black text-red-600 font-mono tracking-tighter">{item.gtm_id || "-"}</span>
-                                                </div>
-                                                <div className="flex justify-between border-b pb-1">
-                                                  <span className="text-[9px] font-bold text-gray-500 dark:text-slate-400">GA4 STREAM</span>
-                                                  <span className="text-[9px] font-black text-gray-900 dark:text-slate-50 font-mono tracking-tighter">{item.propriedade_ga4_stream_id || "-"}</span>
-                                                </div>
-                                              </div>
-                                            </div>
-
-                                            <div className="space-y-4">
-                                              <p className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">Operacional</p>
-                                              <div className="space-y-2">
-                                                <div className="flex justify-between border-b pb-1">
-                                                  <span className="text-[9px] font-bold text-gray-500 dark:text-slate-400">Nº DA TASK</span>
-                                                  <span className="text-[9px] font-black text-blue-600">{item.numero_da_task || "-"}</span>
-                                                </div>
-                                                <div className="flex justify-between border-b pb-1">
-                                                  <span className="text-[9px] font-bold text-gray-500 dark:text-slate-400">FIREBASE</span>
-                                                  <span className="text-[9px] font-black text-gray-900 dark:text-slate-50">{item.firebase || "-"}</span>
-                                                </div>
-                                              </div>
-                                            </div>
-
-                                            <div className="space-y-4">
-                                              <p className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">Ativos Externos</p>
-                                              <div className="space-y-2">
-                                                {item.figma_xd && item.figma_xd !== "-" ? (
-                                                  <div className="flex justify-between border-b pb-1">
-                                                    <span className="text-[9px] font-bold text-gray-500 dark:text-slate-400">PROTO/FIGMA</span>
-                                                    <a href={item.figma_xd} target="_blank" rel="noreferrer" className="text-[9px] font-black text-red-600 hover:underline">VER LINK</a>
-                                                  </div>
-                                                ) : (
-                                                  <div className="flex justify-between border-b pb-1">
-                                                    <span className="text-[9px] font-bold text-gray-500 dark:text-slate-400">PROTO/FIGMA</span>
-                                                    <span className="text-[9px] font-black text-gray-900 dark:text-slate-50">-</span>
-                                                  </div>
-                                                )}
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </motion.div>
-                                      </td>
-                                    </tr>
-                                  )}
-                                </AnimatePresence>
-                              </React.Fragment>
-                            ))
+                              );
+                            })
                           )}
                         </tbody>
                       </table>

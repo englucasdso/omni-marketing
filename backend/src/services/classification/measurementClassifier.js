@@ -61,14 +61,21 @@ export class MeasurementClassifier {
       measurement_class = 'GA3';
     }
 
-    // Status calculado do mapa
+    // Status calculado e homologação do mapa:
+    // Um mapa será considerado homologado somente quando:
+    // - possuir pelo menos uma tela detectada;
+    // - todas as telas detectadas estiverem com status VALIDADO.
+    // Nos demais casos, homologado deve ser false. Não utilizar saudável ou crítico.
     const totalScreens = screens.length;
     let calculated_status = 'NAO_IDENTIFICADO';
+    let homologado = false;
     if (totalScreens > 0) {
       if (statusSummary.VALIDADO === totalScreens) {
         calculated_status = 'VALIDADO';
+        homologado = true;
       } else {
         calculated_status = 'PARCIAL';
+        homologado = false;
       }
     }
 
@@ -85,6 +92,7 @@ export class MeasurementClassifier {
       status_summary: statusSummary,
       declared_status: normDeclared || null,
       calculated_status,
+      homologado,
       status_divergent
     };
   }

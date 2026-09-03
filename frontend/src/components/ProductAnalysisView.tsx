@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { 
-  Layers, Search, CheckCircle2, AlertTriangle, AlertCircle, 
-  ChevronRight, BarChart3, Tag, FileText, ArrowUpRight
+  Search, ChevronRight, ArrowUpRight, Filter
 } from 'lucide-react';
 import { Artifact } from '../types';
 
@@ -18,15 +17,26 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProductKey, setSelectedProductKey] = useState<string | null>(null);
+  const [selectedSubproduto, setSelectedSubproduto] = useState<string>('TODOS');
 
-  // Aggregation per product
+  // Consolidação por produto
   const productsSummary = useMemo(() => {
     const map = new Map<string, {
       produto: string;
       subprodutos: Set<string>;
       mapas: Artifact[];
       totalTelas: number;
-      statusCounts: Record<string, number>;
+      mapasComTelas: number;
+      mapasHomologados: number;
+      mapasSemTelas: number;
+      screenStatusCounts: {
+        VALIDADO: number;
+        CORRECAO: number;
+        NOVO: number;
+        EXCLUIR: number;
+        DESCONTINUAR: number;
+        NAO_IDENTIFICADO: number;
+      };
       measurementCounts: Record<string, number>;
       parametersMap: Map<string, number>;
     }>();
@@ -39,7 +49,17 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
           subprodutos: new Set(),
           mapas: [],
           totalTelas: 0,
-          statusCounts: { VALIDADO: 0, CORRECAO: 0, NOVO: 0, EXCLUIR: 0, DESCONTINUAR: 0, NAO_IDENTIFICADO: 0 },
+          mapasComTelas: 0,
+          mapasHomologados: 0,
+          mapasSemTelas: 0,
+          screenStatusCounts: {
+            VALIDADO: 0,
+            CORRECAO: 0,
+            NOVO: 0,
+            EXCLUIR: 0,
+            DESCONTINUAR: 0,
+            NAO_IDENTIFICADO: 0
+          },
           measurementCounts: { GA4: 0, GA3: 0, MISTO: 0, NAO_CLASSIFICADO: 0 },
           parametersMap: new Map()
         });
@@ -50,15 +70,41 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
       if (art.subproduto) pEntry.subprodutos.add(art.subproduto);
 
       const screens = art.screens || [];
-      pEntry.totalTelas += screens.length;
-
-      const calcStatus = art.calculated_status || art.declared_status || 'NAO_IDENTIFICADO';
-      pEntry.statusCounts[calcStatus] = (pEntry.statusCounts[calcStatus] || 0) + 1;
+      if (screens.length > 0) {
+        pEntry.mapasComTelas++;
+        pEntry.totalTelas += screens.length;
+        let allValidado = true;
+        screens.forEach(s => {
+          const st = s.status || 'NAO_IDENTIFICADO';
+          if (pEntry.screenStatusCounts.hasOwnProperty(st)) {
+            pEntry.screenStatusCounts[st as keyof typeof pEntry.screenStatusCounts]++;
+          } else {
+            pEntry.screenStatusCounts.NAO_IDENTIFICADO++;
+          }
+          if (st !== 'VALIDADO') {
+            allValidado = false;
+          }
+        });
+        if (allValidado) {
+          pEntry.mapasHomologados++;
+        }
+      } else {
+        pEntry.mapasSemTelas++;
+        // Fallback para status_summary se screens vier vazio
+        if (art.status_summary && Object.keys(art.status_summary).length > 0) {
+          for (const [k, v] of Object.entries(art.status_summary)) {
+            if (pEntry.screenStatusCounts.hasOwnProperty(k)) {
+              pEntry.screenStatusCounts[k as keyof typeof pEntry.screenStatusCounts] += Number(v) || 0;
+              pEntry.totalTelas += Number(v) || 0;
+            }
+          }
+        }
+      }
 
       const mClass = art.measurement_class || (art.tipo_mapa?.toLowerCase().includes('ga4') ? 'GA4' : 'GA3');
       pEntry.measurementCounts[mClass] = (pEntry.measurementCounts[mClass] || 0) + 1;
 
-      // Extract parameter frequency
+      // Frequência de parâmetros
       (art.parameter_summary || []).forEach(param => {
         pEntry.parametersMap.set(param.name, (pEntry.parametersMap.get(param.name) || 0) + param.occurrences);
       });
@@ -66,8 +112,10 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
 
     return Array.from(map.values()).map(p => {
       const totalMaps = p.mapas.length;
-      const validados = p.statusCounts.VALIDADO || 0;
-      const taxaHomologacao = totalMaps > 0 ? Math.round((validados / totalMaps) * 100) : 0;
+      // Taxa de homologação: mapas com 100% das telas validadas / mapas com ao menos uma tela
+      const taxaHomologacao = p.mapasComTelas > 0 
+        ? Math.round((p.mapasHomologados / p.mapasComTelas) * 100) 
+        : 0;
 
       const topParameters = Array.from(p.parametersMap.entries())
         .sort((a, b) => b[1] - a[1])
@@ -77,7 +125,7 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
       return {
         ...p,
         totalMaps,
-        subprodutosList: Array.from(p.subprodutos),
+        subprodutosList: Array.from(p.subprodutos).sort(),
         taxaHomologacao,
         topParameters
       };
@@ -94,8 +142,92 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
   }, [productsSummary, searchTerm]);
 
   const activeProduct = selectedProductKey 
-    ? productsSummary.find(p => p.produto === selectedProductKey) 
+    ? productsSummary.find(p => p.produto === selectedProductKey) || filteredProducts[0] || null
     : filteredProducts[0] || null;
+
+  // Filtro por subproduto dentro do produto ativo
+  const selectedMaps = useMemo(() => {
+    if (!activeProduct) return [];
+    if (selectedSubproduto === 'TODOS') return activeProduct.mapas;
+    return activeProduct.mapas.filter(m => (m.subproduto || 'Sem subproduto') === selectedSubproduto);
+  }, [activeProduct, selectedSubproduto]);
+
+  // Métricas dinâmicas do produto / subproduto selecionado
+  const selectedMetrics = useMemo(() => {
+    let totalTelas = 0;
+    const statusCounts = {
+      VALIDADO: 0,
+      CORRECAO: 0,
+      NOVO: 0,
+      EXCLUIR: 0,
+      DESCONTINUAR: 0,
+      NAO_IDENTIFICADO: 0
+    };
+    const measurementCounts: Record<string, number> = {
+      GA4: 0,
+      GA3: 0,
+      MISTO: 0,
+      NAO_CLASSIFICADO: 0
+    };
+    let mapasComTelas = 0;
+    let mapasHomologados = 0;
+    let mapasSemTelas = 0;
+
+    selectedMaps.forEach(art => {
+      const screens = art.screens || [];
+      if (screens.length > 0) {
+        mapasComTelas++;
+        totalTelas += screens.length;
+        let allValidado = true;
+        screens.forEach(s => {
+          const st = s.status || 'NAO_IDENTIFICADO';
+          if (statusCounts.hasOwnProperty(st)) {
+            statusCounts[st as keyof typeof statusCounts]++;
+          } else {
+            statusCounts.NAO_IDENTIFICADO++;
+          }
+          if (st !== 'VALIDADO') {
+            allValidado = false;
+          }
+        });
+        if (allValidado) {
+          mapasHomologados++;
+        }
+      } else {
+        mapasSemTelas++;
+        if (art.status_summary && Object.keys(art.status_summary).length > 0) {
+          for (const [k, v] of Object.entries(art.status_summary)) {
+            if (statusCounts.hasOwnProperty(k)) {
+              statusCounts[k as keyof typeof statusCounts] += Number(v) || 0;
+              totalTelas += Number(v) || 0;
+            }
+          }
+        }
+      }
+
+      const mClass = art.measurement_class || (art.tipo_mapa?.toLowerCase().includes('ga4') ? 'GA4' : 'GA3');
+      measurementCounts[mClass] = (measurementCounts[mClass] || 0) + 1;
+    });
+
+    const taxaHomologacao = mapasComTelas > 0 
+      ? Math.round((mapasHomologados / mapasComTelas) * 100) 
+      : 0;
+
+    return {
+      totalTelas,
+      statusCounts,
+      measurementCounts,
+      mapasComTelas,
+      mapasHomologados,
+      mapasSemTelas,
+      taxaHomologacao
+    };
+  }, [selectedMaps]);
+
+  const handleSelectProduct = (prodName: string) => {
+    setSelectedProductKey(prodName);
+    setSelectedSubproduto('TODOS');
+  };
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -131,7 +263,7 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
             return (
               <div 
                 key={prod.produto}
-                onClick={() => setSelectedProductKey(prod.produto)}
+                onClick={() => handleSelectProduct(prod.produto)}
                 className={`p-5 rounded-2xl border transition-all cursor-pointer ${
                   isSelected 
                     ? 'bg-white dark:bg-slate-800 border-red-200 dark:border-red-900/60 shadow-lg dark:shadow-none shadow-red-500/5 -translate-y-0.5' 
@@ -194,24 +326,116 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
                 </button>
               </div>
 
-              {/* Status breakdown */}
+              {/* Subproduto Selector (se houver subprodutos) */}
+              {activeProduct.subprodutosList.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Filter className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="text-xs font-bold text-gray-600 dark:text-slate-400">
+                      Filtrar por Subproduto:
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSubproduto('TODOS')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+                        selectedSubproduto === 'TODOS'
+                          ? 'bg-red-600 text-white'
+                          : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      Todos ({activeProduct.mapas.length})
+                    </button>
+                    {activeProduct.subprodutosList.map(sub => {
+                      const countMaps = activeProduct.mapas.filter(m => m.subproduto === sub).length;
+                      return (
+                        <button
+                          key={sub}
+                          type="button"
+                          onClick={() => setSelectedSubproduto(sub)}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+                            selectedSubproduto === sub
+                              ? 'bg-red-600 text-white'
+                              : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700'
+                          }`}
+                        >
+                          {sub} ({countMaps})
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Distribuição de status das telas */}
               <div>
-                <h4 className="text-xs font-black uppercase text-gray-400 tracking-wider mb-3">
-                  Distribuição de Status dos Mapas
-                </h4>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-xs font-black uppercase text-gray-400 tracking-wider">
+                    Distribuição de status das telas
+                  </h4>
+                  <span className="text-xs font-bold text-gray-500 dark:text-slate-400">
+                    Total: {selectedMetrics.totalTelas} telas
+                  </span>
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                  {[
-                    { label: 'Validado', count: activeProduct.statusCounts.VALIDADO || 0, color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
-                    { label: 'Correção', count: activeProduct.statusCounts.CORRECAO || 0, color: 'text-orange-700 bg-orange-50 border-orange-200' },
-                    { label: 'Novo', count: activeProduct.statusCounts.NOVO || 0, color: 'text-blue-700 bg-blue-50 border-blue-200' },
-                    { label: 'Excluir', count: activeProduct.statusCounts.EXCLUIR || 0, color: 'text-rose-700 bg-rose-50 border-rose-200' },
-                    { label: 'Descontinuar', count: activeProduct.statusCounts.DESCONTINUAR || 0, color: 'text-gray-700 bg-gray-100 border-gray-200' },
-                  ].map(st => (
-                    <div key={st.label} className={`p-3 rounded-xl border text-center ${st.color}`}>
-                      <span className="text-lg font-black block">{st.count}</span>
-                      <span className="text-[10px] font-bold uppercase">{st.label}</span>
-                    </div>
-                  ))}
+                  <div className="p-3 rounded-xl border text-center text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800">
+                    <span className="text-lg font-black block">{selectedMetrics.statusCounts.VALIDADO}</span>
+                    <span className="text-[10px] font-bold uppercase">Validado</span>
+                  </div>
+                  <div className="p-3 rounded-xl border text-center text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800">
+                    <span className="text-lg font-black block">{selectedMetrics.statusCounts.CORRECAO}</span>
+                    <span className="text-[10px] font-bold uppercase">Correção</span>
+                  </div>
+                  <div className="p-3 rounded-xl border text-center text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800">
+                    <span className="text-lg font-black block">{selectedMetrics.statusCounts.NOVO}</span>
+                    <span className="text-[10px] font-bold uppercase">Novo</span>
+                  </div>
+                  <div className="p-3 rounded-xl border text-center text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800">
+                    <span className="text-lg font-black block">{selectedMetrics.statusCounts.EXCLUIR}</span>
+                    <span className="text-[10px] font-bold uppercase">Excluir</span>
+                  </div>
+                  <div className="p-3 rounded-xl border text-center text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-slate-800 border-gray-200 dark:border-slate-700">
+                    <span className="text-lg font-black block">{selectedMetrics.statusCounts.DESCONTINUAR}</span>
+                    <span className="text-[10px] font-bold uppercase">Descontinuar</span>
+                  </div>
+                </div>
+
+                {/* Se existirem telas sem status lido, mostrar separadamente como Sem status */}
+                {selectedMetrics.statusCounts.NAO_IDENTIFICADO > 0 && (
+                  <div className="mt-2 p-2.5 rounded-xl border text-center text-amber-800 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 flex items-center justify-between text-xs font-bold px-4">
+                    <span>Sem status</span>
+                    <span className="text-sm font-black">{selectedMetrics.statusCounts.NAO_IDENTIFICADO}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Métrica de Homologação dos Mapas */}
+              <div className="p-4 bg-gray-50 dark:bg-slate-800/70 rounded-2xl border border-gray-100 dark:border-slate-700 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase text-gray-500 dark:text-slate-400 tracking-wider">
+                    Mapas Homologados
+                  </span>
+                  <span className="text-base font-black text-emerald-600 dark:text-emerald-400">
+                    {selectedMetrics.taxaHomologacao}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-emerald-500 h-full transition-all duration-300 rounded-full" 
+                    style={{ width: `${selectedMetrics.taxaHomologacao}%` }} 
+                  />
+                </div>
+                <div className="flex flex-wrap items-center justify-between text-[11px] text-gray-500 dark:text-slate-400 pt-1 gap-2">
+                  <span>
+                    <strong className="text-gray-900 dark:text-slate-100 font-bold">{selectedMetrics.mapasHomologados}</strong> de{' '}
+                    <strong className="text-gray-900 dark:text-slate-100 font-bold">{selectedMetrics.mapasComTelas}</strong> mapas com telas detectadas (100% validados)
+                  </span>
+                  {selectedMetrics.mapasSemTelas > 0 && (
+                    <span className="text-gray-400 dark:text-slate-500">
+                      {selectedMetrics.mapasSemTelas} sem telas (não computados)
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -223,19 +447,19 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
                 <div className="grid grid-cols-4 gap-2">
                   <div className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 text-center">
                     <span className="text-xs font-bold text-gray-400 block">GA4 Puro</span>
-                    <span className="text-base font-black text-emerald-600">{activeProduct.measurementCounts.GA4 || 0}</span>
+                    <span className="text-base font-black text-emerald-600">{selectedMetrics.measurementCounts.GA4 || 0}</span>
                   </div>
                   <div className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 text-center">
                     <span className="text-xs font-bold text-gray-400 block">Universal/GA3</span>
-                    <span className="text-base font-black text-rose-600">{activeProduct.measurementCounts.GA3 || 0}</span>
+                    <span className="text-base font-black text-rose-600">{selectedMetrics.measurementCounts.GA3 || 0}</span>
                   </div>
                   <div className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 text-center">
                     <span className="text-xs font-bold text-gray-400 block">Misto</span>
-                    <span className="text-base font-black text-amber-600">{activeProduct.measurementCounts.MISTO || 0}</span>
+                    <span className="text-base font-black text-amber-600">{selectedMetrics.measurementCounts.MISTO || 0}</span>
                   </div>
                   <div className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 text-center">
                     <span className="text-xs font-bold text-gray-400 block">Não Classif.</span>
-                    <span className="text-base font-black text-gray-600">{activeProduct.measurementCounts.NAO_CLASSIFICADO || 0}</span>
+                    <span className="text-base font-black text-gray-600">{selectedMetrics.measurementCounts.NAO_CLASSIFICADO || 0}</span>
                   </div>
                 </div>
               </div>
@@ -265,10 +489,10 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
               {/* Map items list */}
               <div>
                 <h4 className="text-xs font-black uppercase text-gray-400 tracking-wider mb-3">
-                  Mapas Vinculados ({activeProduct.mapas.length})
+                  Mapas Vinculados ({selectedMaps.length})
                 </h4>
                 <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
-                  {activeProduct.mapas.map(mapItem => (
+                  {selectedMaps.map(mapItem => (
                     <div 
                       key={mapItem.id}
                       onClick={() => onOpenMap(mapItem)}
