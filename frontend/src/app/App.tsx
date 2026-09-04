@@ -27,8 +27,8 @@ import { ProductAnalysisView } from "../components/ProductAnalysisView";
 import { ParameterAnalysisView } from "../components/ParameterAnalysisView";
 import { CanonicalInsightsDashboard } from "../components/CanonicalInsightsDashboard";
 
-// Container estrutural desktop global compartilhado pelo cabeçalho, conteúdo e rodapé
-const GLOBAL_CONTAINER_CLASS = "w-full max-w-[1560px] mx-auto px-6 sm:px-10 lg:px-12";
+// Espaçamento lateral global reutilizado no cabeçalho e rodapé para alinhamento no mesmo eixo vertical
+const GLOBAL_SCREEN_PADDING = "px-6 sm:px-8";
 
 const INITIAL_USERS: UserType[] = [
   {
@@ -171,7 +171,7 @@ const GraphView = ({ data, isEmbedded = false, onClose }: { data: Artifact[], is
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[80] bg-white dark:bg-slate-900 dark:border-slate-800 backdrop-blur-3xl p-12 flex flex-col"
     >
-      <div className={`flex justify-between items-center mb-12 ${GLOBAL_CONTAINER_CLASS}`}>
+      <div className="flex justify-between items-center mb-12 px-4 max-w-7xl mx-auto w-full">
          <div className="flex items-center gap-4">
             <h1 className="brand-text text-2xl font-black tracking-tight text-gray-900 dark:text-slate-50 transition-colors">
               Hub de Artefatos
@@ -181,7 +181,7 @@ const GraphView = ({ data, isEmbedded = false, onClose }: { data: Artifact[], is
             <X className="w-6 h-6 text-gray-400 dark:text-slate-500" />
          </button>
       </div>
-      <div className={`${GLOBAL_CONTAINER_CLASS} flex-1 flex flex-col`}>
+      <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col">
         {content}
       </div>
     </motion.div>
@@ -1346,7 +1346,7 @@ export default function App() {
   const hasPermission = true;
 
   return (
-    <div className="app flex flex-col min-h-screen bg-gray-50 w-full h-full relative overflow-x-hidden">
+    <main className="app flex flex-col min-h-screen bg-gray-50 w-full h-full relative">
       <AIReveal isLoading={loading}>
         <AnimatePresence>
         {appState === 'auth' && (
@@ -1376,46 +1376,44 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Header estruturado com container desktop global compartilhado */}
-      <header className={`w-full pt-8 mb-8 z-40 transition-all ${appState === 'auth' ? 'opacity-0 pointer-events-none absolute' : 'opacity-100 relative'}`}>
-        <div className={`${GLOBAL_CONTAINER_CLASS} flex justify-between items-center`}>
-          <div className="flex items-center gap-8">
-            <div className="flex flex-col cursor-pointer group" onClick={() => { setAppState('initial'); setQuery(''); setTableFilter(''); }}>
-              <div className="flex items-center gap-3">
-                <h1 className="brand-text text-2xl font-black tracking-tight text-gray-900 group-hover:text-red-600 transition-colors">
-                  Omni Marketing
-                </h1>
-              </div>
+      {/* Header com margem global da tela (fora do container central) */}
+      <header className={`w-full ${GLOBAL_SCREEN_PADDING} pt-8 mb-8 flex justify-between items-center relative z-40 transition-all ${appState === 'auth' ? 'opacity-0 pointer-events-none absolute' : 'opacity-100 relative'}`}>
+        <div className="flex items-center gap-8 flex-1">
+          <div className="flex flex-col cursor-pointer group" onClick={() => { setAppState('initial'); setQuery(''); setTableFilter(''); }}>
+            <div className="flex items-center gap-3">
+              <h1 className="brand-text text-2xl font-black tracking-tight text-gray-900 group-hover:text-red-600 transition-colors">
+                Omni Marketing
+              </h1>
             </div>
           </div>
+        </div>
 
-          <div className="flex items-center gap-4 text-sm font-medium text-gray-500 shrink-0">
-            <div className="flex items-center gap-2">
-              {appState !== 'home' && appState !== 'initial' && appState !== 'events_capture' && (
-                <button 
-                  onClick={handleBack}
-                  className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-100 shadow-sm hover:border-gray-300 hover:text-gray-900 transition-all font-bold text-[10px] uppercase tracking-wider h-10"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                  Voltar
-                </button>
-              )}
-            </div>
-
-            {!loading && appState === "inventory_table" && (
+        <div className="flex items-center gap-4 text-sm font-medium text-gray-500 shrink-0">
+          <div className="flex items-center gap-2">
+            {appState !== 'home' && appState !== 'initial' && appState !== 'events_capture' && (
               <button 
-                onClick={() => setShowExportModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-100 shadow-sm hover:border-bradesco-red hover:text-bradesco-red transition-all font-bold text-xs uppercase tracking-wider h-10"
+                onClick={handleBack}
+                className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-100 shadow-sm hover:border-gray-300 hover:text-gray-900 transition-all font-bold text-[10px] uppercase tracking-wider h-10"
               >
-                <Download className="w-3.5 h-3.5" />
-                Extrair Dados
+                <ChevronLeft className="w-3.5 h-3.5" />
+                Voltar
               </button>
             )}
           </div>
+
+          {!loading && appState === "inventory_table" && (
+            <button 
+              onClick={() => setShowExportModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-100 shadow-sm hover:border-bradesco-red hover:text-bradesco-red transition-all font-bold text-xs uppercase tracking-wider h-10"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Extrair Dados
+            </button>
+          )}
         </div>
       </header>
 
-      <main className={`flex flex-col flex-1 ${GLOBAL_CONTAINER_CLASS} pb-32 transition-all relative ${appState === 'auth' ? 'opacity-0 pointer-events-none absolute' : 'opacity-100 relative'}`}>
+      <div className={`flex flex-col flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 pb-32 transition-all relative ${appState === 'auth' ? 'opacity-0 pointer-events-none absolute' : 'opacity-100 relative'}`}>
 
         {!hasPermission ? (
           <div className="flex flex-col items-center justify-center flex-1 py-32 text-center mt-32">
@@ -1517,7 +1515,7 @@ export default function App() {
 
         {/* Level 2: Insights Dashboard (Operational) */}
         {appState === "operational_insights" && (
-          <section className="w-full pt-8 pb-12">
+          <section className="w-full max-w-5xl mx-auto pt-8 pb-12">
             <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
               <div>
                 <h2 className="text-3xl font-black text-gray-900 dark:text-slate-50 tracking-tight flex items-center gap-3">
@@ -1978,7 +1976,7 @@ export default function App() {
           </AnimatePresence>
 
           {/* Results Area */}
-          <section className={`results ${appState === "results" && !loading ? "grid grid-cols-1 xl:grid-cols-2 gap-6" : "hidden"}`}>
+          <section className={`results space-y-6 ${appState === "results" && !loading ? "" : "hidden"}`}>
             <AnimatePresence>
               {results.map((item, index) => {
                 // Real Confluence status mapping
@@ -2592,21 +2590,19 @@ export default function App() {
         
         </>
         )}
-      </main>
+      </div>
 
-      {/* Static Footer estruturado com container desktop global compartilhado */}
-      <footer className="fixed bottom-0 left-0 w-full py-4 bg-white/95 dark:bg-slate-900/95 dark:border-slate-800/90 backdrop-blur-sm border-t border-gray-100 dark:border-slate-700 z-30">
-        <div className={`${GLOBAL_CONTAINER_CLASS} flex justify-between items-center text-[10px] uppercase font-black tracking-widest text-gray-400 dark:text-slate-500`}>
-          <div className="flex flex-col gap-1 text-left">
-            <div className="normal-case">Desenvolvido por: <strong className="lowercase">lucas.doliveira@bradesco.com.br</strong></div>
-            {lastSync && (
-              <div className="text-[9px] font-medium text-gray-400 dark:text-slate-500 normal-case">
-                Última sincronização: {lastSync}
-              </div>
-            )}
-          </div>
-          <div className="uppercase">Salla.MKT V1.0.0</div>
+      {/* Static Footer */}
+      <footer className={`fixed bottom-0 left-0 w-full ${GLOBAL_SCREEN_PADDING} py-4 bg-white dark:bg-slate-900 dark:border-slate-800/90 backdrop-blur-sm border-t border-gray-100 dark:border-slate-700 flex justify-between items-center text-[10px] uppercase font-black tracking-widest text-gray-400 dark:text-slate-500 z-30`}>
+        <div className="flex flex-col gap-1 text-left">
+          <div className="normal-case">Desenvolvido por: <strong className="lowercase">lucas.doliveira@bradesco.com.br</strong></div>
+          {lastSync && (
+            <div className="text-[9px] font-medium text-gray-400 dark:text-slate-500 normal-case">
+              Última sincronização: {lastSync}
+            </div>
+          )}
         </div>
+        <div className="uppercase">Salla.MKT V1.0.0</div>
       </footer>
 
       {/* Export Modal */}
@@ -2739,6 +2735,6 @@ export default function App() {
       />
 
       </AIReveal>
-    </div>
+    </main>
   );
 }
