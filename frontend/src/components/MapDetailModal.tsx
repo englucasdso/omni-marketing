@@ -81,20 +81,20 @@ export const MapDetailModal: React.FC<MapDetailModalProps> = ({ item, onClose })
         initial={{ opacity: 0, scale: 0.96, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 15 }}
-        className="bg-white dark:bg-slate-900 w-full max-w-5xl max-h-[90vh] rounded-[32px] shadow-2xl border border-gray-100 dark:border-slate-800 flex flex-col overflow-hidden"
+        className="flat-card w-full max-w-5xl max-h-[90vh] rounded-2xl shadow-neu-card border border-gray-200 dark:border-slate-800 flex flex-col overflow-hidden"
       >
         {/* Header Modal */}
-        <div className="p-6 sm:p-8 border-b border-gray-100 dark:border-slate-800 bg-gradient-to-r from-gray-50/50 to-white dark:from-slate-900 dark:to-slate-850">
+        <div className="p-6 sm:p-8 border-b border-gray-200 dark:border-slate-800 bg-gray-50/70 dark:bg-slate-900/90">
           <div className="flex items-start justify-between gap-4 mb-4">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 bg-red-50 dark:bg-red-950/40 text-bradesco-red text-[10px] font-black uppercase tracking-wider rounded-full border border-red-100 dark:border-red-900/50">
+              <span className="px-3 py-1 bg-red-50 dark:bg-red-950/40 text-bradesco-red text-[10px] font-ui font-semibold uppercase tracking-wider rounded-full border border-red-100 dark:border-red-900/50">
                 {isDoc ? 'DOCUMENTAÇÃO' : (item.measurement_class || item.tipo_mapa || 'MAPA')}
               </span>
-              <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-full border ${getStatusBadge(realStatus).bg} ${getStatusBadge(realStatus).text} ${getStatusBadge(realStatus).border}`}>
+              <span className={`px-3 py-1 text-[10px] font-ui font-semibold uppercase tracking-wider rounded-full border ${getStatusBadge(realStatus).bg} ${getStatusBadge(realStatus).text} ${getStatusBadge(realStatus).border}`}>
                 {getStatusBadge(realStatus).label}
               </span>
               {item.status_divergent && (
-                <span className="px-3 py-1 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[10px] font-black uppercase tracking-wider rounded-full border border-amber-200 dark:border-amber-800 flex items-center gap-1">
+                <span className="px-3 py-1 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[10px] font-ui font-semibold uppercase tracking-wider rounded-full border border-amber-200 dark:border-amber-800 flex items-center gap-1">
                   <AlertTriangle className="w-3 h-3" /> Status Divergente
                 </span>
               )}
@@ -106,7 +106,7 @@ export const MapDetailModal: React.FC<MapDetailModalProps> = ({ item, onClose })
                   href={item.link} 
                   target="_blank" 
                   rel="noreferrer" 
-                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
+                  className="btn-neu px-3 py-1.5 text-gray-700 dark:text-slate-300 rounded-xl text-xs font-ui font-semibold transition-all flex items-center gap-1.5 cursor-pointer hover:text-bradesco-red"
                   title="Abrir no Confluence"
                 >
                   Confluence <ExternalLink className="w-3.5 h-3.5" />
@@ -114,37 +114,37 @@ export const MapDetailModal: React.FC<MapDetailModalProps> = ({ item, onClose })
               )}
               <button 
                 onClick={onClose}
-                className="p-2 text-gray-400 hover:text-gray-700 dark:hover:text-slate-200 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                className="btn-neu p-2 text-gray-400 hover:text-gray-700 dark:hover:text-slate-200 rounded-xl transition-all cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-slate-50 tracking-tight mb-2">
+          <h2 className="text-xl sm:text-2xl brand-title font-heading tracking-tight mb-2">
             {item.titulo}
           </h2>
 
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-gray-500 dark:text-slate-400">
-            <span><strong>ID:</strong> {item.id}</span>
-            <span><strong>Produto:</strong> {item.produto || 'N/A'}</span>
-            <span><strong>Subproduto:</strong> {item.subproduto || 'N/A'}</span>
-            <span><strong>Responsável:</strong> {item.responsavel || 'N/A'}</span>
-            <span><strong>Versão:</strong> {item.versao || 1}</span>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-ui text-gray-500 dark:text-slate-400">
+            <span><strong className="text-gray-700 dark:text-slate-300">ID:</strong> {item.id}</span>
+            <span><strong className="text-gray-700 dark:text-slate-300">Produto:</strong> {item.produto || 'N/A'}</span>
+            <span><strong className="text-gray-700 dark:text-slate-300">Subproduto:</strong> {item.subproduto || 'N/A'}</span>
+            <span><strong className="text-gray-700 dark:text-slate-300">Responsável:</strong> {item.responsavel || 'N/A'}</span>
+            <span><strong className="text-gray-700 dark:text-slate-300">Versão:</strong> {item.versao || 1}</span>
           </div>
 
           {/* Divergence Warning Banner */}
           {item.status_divergent && (
-            <div className="mt-4 p-3 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-2xl flex items-start gap-3">
+            <div className="mt-4 p-3 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-2xl flex items-start gap-3 shadow-neu-card">
               <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-              <div className="text-xs text-amber-800 dark:text-amber-200">
+              <div className="text-xs font-ui text-amber-800 dark:text-amber-200">
                 <strong>Atenção à governança:</strong> O status declarado no cabeçalho do mapa ({item.declared_status || 'Nenhum'}) difere do status apurado a partir das telas ({item.calculated_status}). Verifique as telas pendentes de correção ou validação abaixo.
               </div>
             </div>
           )}
 
           {/* Tab Navigation */}
-          <div className="flex items-center gap-2 mt-6 pt-4 border-t border-gray-100 dark:border-slate-800">
+          <div className="flex items-center gap-2 mt-6 pt-4 border-t border-gray-100 dark:border-slate-800 flex-wrap">
             {[
               { id: 'telas', label: `Telas (${screens.length})`, icon: Layers },
               { id: 'parametros', label: `Parâmetros (${parameters.length})`, icon: Tag },
@@ -157,10 +157,10 @@ export const MapDetailModal: React.FC<MapDetailModalProps> = ({ item, onClose })
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-ui font-semibold transition-all cursor-pointer ${
                     isActive 
-                      ? 'bg-red-50 text-bradesco-red border border-red-200 dark:bg-red-950/40 dark:border-red-800' 
-                      : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800'
+                      ? 'bg-red-50 text-bradesco-red border border-red-200 dark:bg-red-950/40 dark:border-red-800 shadow-neu-raised' 
+                      : 'btn-neu text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -448,13 +448,13 @@ export const MapDetailModal: React.FC<MapDetailModalProps> = ({ item, onClose })
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 sm:p-6 border-t border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-850 flex items-center justify-between">
-          <div className="text-xs text-gray-400 dark:text-slate-500">
+        <div className="p-4 sm:p-6 border-t border-gray-200 dark:border-slate-800 bg-gray-50/80 dark:bg-slate-900/80 flex items-center justify-between">
+          <div className="text-xs font-ui text-gray-400 dark:text-slate-500">
             Última sincronização no Confluence: {item.ultima_atualizacao || 'N/A'}
           </div>
           <button 
             onClick={onClose}
-            className="px-6 py-2 bg-gray-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-full font-bold text-xs hover:opacity-90 transition-opacity"
+            className="btn-neu px-6 py-2 text-gray-800 dark:text-slate-100 rounded-xl font-ui font-semibold text-xs hover:text-bradesco-red transition-all cursor-pointer"
           >
             Fechar
           </button>

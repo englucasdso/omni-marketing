@@ -1319,26 +1319,29 @@ export default function App() {
     ];
 
     return (
-      <div className="flex flex-col items-center mb-12">
-        <div className="bg-gray-100 dark:bg-slate-700/50 p-1.5 rounded-[24px] border border-gray-100 dark:border-slate-700 shadow-sm dark:shadow-none flex flex-wrap justify-center gap-2">
+      <div className="flex flex-col items-center mb-10">
+        <nav 
+          aria-label="Modos de visualização"
+          className="bg-white/90 dark:bg-slate-900/90 p-1.5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card flex flex-wrap justify-center gap-1.5"
+        >
           {modes.map(mode => {
             const isActive = appState === mode.id;
             return (
               <button
                 key={mode.id}
                 onClick={() => setAppState(mode.id as any)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all duration-300
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-ui font-semibold text-xs tracking-wider transition-all duration-200 cursor-pointer
                   ${isActive 
-                    ? "bg-white dark:bg-slate-900 dark:border-slate-800 shadow-md dark:shadow-none text-bradesco-red scale-105" 
-                    : "text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:text-slate-300 hover:bg-white dark:bg-slate-900 dark:border-slate-800/50"
-                  }`}
+                    ? "bg-white dark:bg-slate-800 text-bradesco-red border border-gray-200 dark:border-slate-700 shadow-neu-raised" 
+                    : "text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-800/60"
+                  } active:shadow-neu-pressed active:translate-y-px`}
               >
-                <mode.icon className={`w-3.5 h-3.5 ${isActive ? 'text-bradesco-red' : 'text-gray-400 dark:text-slate-500'}`} />
+                <mode.icon className={`w-4 h-4 ${isActive ? 'text-bradesco-red' : 'text-gray-400 dark:text-slate-500'}`} />
                 {mode.label}
               </button>
             );
           })}
-        </div>
+        </nav>
       </div>
     );
   };
@@ -1346,7 +1349,7 @@ export default function App() {
   const hasPermission = true;
 
   return (
-    <main className="app flex flex-col min-h-screen bg-gray-50 w-full h-full relative">
+    <main className="app flex flex-col min-h-screen bg-[#f4f5f8] dark:bg-[#0b0f19] w-full h-full relative">
       <AIReveal isLoading={loading}>
         <AnimatePresence>
         {appState === 'auth' && (
@@ -1381,39 +1384,39 @@ export default function App() {
         <div className="flex items-center gap-8 flex-1">
           <div className="flex flex-col cursor-pointer group" onClick={() => { setAppState('initial'); setQuery(''); setTableFilter(''); }}>
             <div className="flex items-center gap-3">
-              <h1 className="brand-text text-2xl font-black tracking-tight text-gray-900 group-hover:text-red-600 transition-colors">
+              <h1 className="brand-text font-heading text-2xl font-bold tracking-tight text-gray-900 dark:text-slate-50 group-hover:opacity-85 transition-opacity">
                 Omni Marketing
               </h1>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 text-sm font-medium text-gray-500 shrink-0">
+        <div className="flex items-center gap-3 text-sm font-medium text-gray-500 shrink-0">
           <div className="flex items-center gap-2">
             {appState !== 'home' && appState !== 'initial' && appState !== 'events_capture' && (
               <button 
                 onClick={handleBack}
-                className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-100 shadow-sm hover:border-gray-300 hover:text-gray-900 transition-all font-bold text-[10px] uppercase tracking-wider h-10"
+                className="btn-neu flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-ui font-semibold text-gray-700 dark:text-slate-200 h-10 cursor-pointer"
               >
-                <ChevronLeft className="w-3.5 h-3.5" />
+                <ChevronLeft className="w-4 h-4" />
                 Voltar
               </button>
             )}
           </div>
 
-          {!loading && appState === "inventory_table" && (
+          {!loading && (appState === "inventory_table" || appState === "results") && (
             <button 
               onClick={() => setShowExportModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-100 shadow-sm hover:border-bradesco-red hover:text-bradesco-red transition-all font-bold text-xs uppercase tracking-wider h-10"
+              className="btn-neu flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-ui font-semibold text-bradesco-red hover:text-bradesco-red-hover h-10 cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5" />
+              <Download className="w-4 h-4 text-bradesco-red" />
               Extrair Dados
             </button>
           )}
         </div>
       </header>
 
-      <div className={`flex flex-col flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 pb-32 transition-all relative ${appState === 'auth' ? 'opacity-0 pointer-events-none absolute' : 'opacity-100 relative'}`}>
+      <div className={`flex flex-col flex-1 w-full max-w-5xl mx-auto px-4 sm:px-8 pb-32 transition-all relative ${appState === 'auth' ? 'opacity-0 pointer-events-none absolute' : 'opacity-100 relative'}`}>
 
         {!hasPermission ? (
           <div className="flex flex-col items-center justify-center flex-1 py-32 text-center mt-32">
@@ -2055,76 +2058,90 @@ export default function App() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="glass-card rounded-[40px] pt-10 px-10 pb-5 group transition-all relative overflow-hidden hover:shadow-xl dark:shadow-none hover:shadow-red-500/5 hover:-translate-y-1"
+                  className="flat-card border border-gray-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-neu-card group transition-all relative overflow-hidden"
                 >
-                  <div className="absolute top-6 right-8 flex items-center gap-2">
-                    {item.status_divergent && (
-                      <span className="flex items-center gap-1 px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-wider bg-amber-50 dark:bg-amber-950/50 border-amber-200 text-amber-700 dark:text-amber-300">
-                        <AlertTriangle className="w-2.5 h-2.5" /> Divergente
+                  <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="red-badge font-ui">
+                        {item.artifact_type === 'DOCUMENTACAO' || (item.tipo_mapa && normalizar(item.tipo_mapa) === 'doc')
+                          ? "DOCUMENTO" 
+                          : (item.measurement_class || item.tipo_mapa || "MAPA").toUpperCase()}
                       </span>
-                    )}
-                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-sm dark:shadow-none text-[10px] font-black uppercase tracking-widest cursor-default ${statusBadge.bg} ${statusBadge.border} ${statusBadge.color}`}>
-                      {statusBadge.icon} {statusBadge.label}
+                      {item.produto && <span className="red-badge font-ui">{item.produto}</span>}
+                      {item.subproduto && <span className="red-badge font-ui">{item.subproduto}</span>}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {item.status_divergent && (
+                        <span className="flex items-center gap-1 px-2.5 py-1 rounded-full border text-[9px] font-ui font-semibold uppercase tracking-wider bg-amber-50 dark:bg-amber-950/50 border-amber-200 text-amber-700 dark:text-amber-300">
+                          <AlertTriangle className="w-2.5 h-2.5" /> Divergente
+                        </span>
+                      )}
+                      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-neu-raised text-[10px] font-ui font-semibold uppercase tracking-widest cursor-default ${statusBadge.bg} ${statusBadge.border} ${statusBadge.color}`}>
+                        {statusBadge.icon} {statusBadge.label}
+                      </div>
                     </div>
                   </div>
+
                   <div className="mb-6">
                     <a
-                      className="text-[28px] brand-title group-hover:opacity-80 transition-opacity inline-flex items-center gap-2 mb-4"
+                      className="text-2xl sm:text-[28px] brand-title font-heading group-hover:opacity-80 transition-opacity inline-flex items-center gap-2 mb-2"
                       href={item.link}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
                       {item.titulo}
                     </a>
-                    
-                    <div className="flex flex-wrap gap-3">
-                      <span className="red-badge">
-                        {item.artifact_type === 'DOCUMENTACAO' || (item.tipo_mapa && normalizar(item.tipo_mapa) === 'doc')
-                          ? "DOCUMENTO" 
-                          : (item.measurement_class || item.tipo_mapa || "MAPA").toUpperCase()}
-                      </span>
-                      {item.produto && <span className="red-badge">{item.produto}</span>}
-                      {item.subproduto && <span className="red-badge">{item.subproduto}</span>}
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6 p-4 rounded-xl bg-gray-50/50 dark:bg-slate-800/30 border border-gray-100 dark:border-slate-800">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] font-ui font-semibold uppercase text-gray-400 dark:text-slate-500 tracking-wider">Identificador</span>
+                      <span className="text-sm font-heading font-bold text-gray-800 dark:text-slate-200 tabular-nums">{item.id}</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] font-ui font-semibold uppercase text-gray-400 dark:text-slate-500 tracking-wider">Responsável</span>
+                      <span className="text-sm font-ui font-semibold text-gray-800 dark:text-slate-200">{item.responsavel || "N/A"}</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] font-ui font-semibold uppercase text-gray-400 dark:text-slate-500 tracking-wider">Versão</span>
+                      <span className="text-sm font-heading font-bold text-gray-800 dark:text-slate-200 tabular-nums">{item.versao || "1"}</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] font-ui font-semibold uppercase text-gray-400 dark:text-slate-500 tracking-wider">Nível de Taxonomia</span>
+                      <span className="text-sm font-heading font-bold text-gray-800 dark:text-slate-200 tabular-nums">{item.taxonomy_depth || item.nivel || "1"}</span>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8 mt-6">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest">Identificador</span>
-                      <span className="text-sm font-bold text-gray-800 dark:text-slate-200">{item.id}</span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest">Responsável</span>
-                      <span className="text-sm font-bold text-gray-800 dark:text-slate-200">{item.responsavel || "N/A"}</span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest">Versão</span>
-                      <span className="text-sm font-bold text-gray-800 dark:text-slate-200">{item.versao || "1"}</span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] font-black uppercase text-gray-400 dark:text-slate-500 tracking-widest">Nível de Taxonomia</span>
-                      <span className="text-sm font-bold text-gray-800 dark:text-slate-200">{item.taxonomy_depth || item.nivel || "1"}</span>
-                    </div>
-                  </div>
+                  <div className="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-gray-100 dark:border-slate-800">
+                    <div className="flex items-center gap-3">
+                      <button 
+                        className="btn-neu px-3 py-1.5 rounded-xl font-ui font-semibold text-xs text-gray-700 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer hover:text-bradesco-red" 
+                        onClick={() => toggleDetails(item.id)}
+                      >
+                        {expandedCards.has(item.id) ? (
+                          <>
+                            <ChevronUp className="w-3.5 h-3.5" />
+                            Ocultar metadados
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="w-3.5 h-3.5" />
+                            Ver metadados
+                          </>
+                        )}
+                      </button>
 
-                  <div className="flex justify-between items-center mt-2 border-t border-gray-100 dark:border-slate-700 pt-4">
-                    <button 
-                      className="font-bold text-[14px] text-gray-900 dark:text-slate-50 h-auto p-0 flex items-center gap-2 hover:text-bradesco-red transition-colors" 
-                      onClick={() => toggleDetails(item.id)}
-                    >
-                      {expandedCards.has(item.id) ? (
-                        <>
-                          <ChevronUp className="w-4 h-4" />
-                          Ocultar detalhes
-                        </>
-                      ) : (
-                        <>
-                          <ChevronDown className="w-4 h-4" />
-                          Ver detalhes
-                        </>
-                      )}
-                    </button>
-                    <p className="text-[13px] text-gray-500 dark:text-slate-400">
+                      <button
+                        onClick={() => setDetailModalItem(item)}
+                        className="btn-neu px-3 py-1.5 rounded-xl font-ui font-semibold text-xs text-gray-700 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer hover:text-bradesco-red"
+                      >
+                        <Layers className="w-3.5 h-3.5" />
+                        Inspecionar Telas
+                      </button>
+                    </div>
+
+                    <p className="text-xs font-ui text-gray-400 dark:text-slate-500 tabular-nums">
                       Atualizado em: {formatDataBR(item.ultima_atualizacao)}
                     </p>
                   </div>
@@ -2191,17 +2208,33 @@ export default function App() {
               animate={{ opacity: 1 }}
               className="inventory-table-container pb-20"
             >
+              {/* Header Padronizado no Estilo da Página de Cards */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div>
+                  <h2 className="text-2xl brand-title font-heading tracking-tight mb-1">
+                    Inventário de Artefatos e Especificações
+                  </h2>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 font-ui">
+                    Visualização técnica de todos os mapas, especificações de tags e fluxos catalogados.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-ui font-semibold px-3.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 border border-gray-200 dark:border-slate-700 shadow-neu-raised tabular-nums">
+                    {filteredInventory.length} de {results.length} artefatos
+                  </span>
+                </div>
+              </div>
 
               {/* Advanced Filter Architecture */}
-              <div className="glass-card rounded-[32px] border border-gray-100 dark:border-slate-700 p-8 mb-8 shadow-sm dark:shadow-none bg-white dark:bg-slate-900 dark:border-slate-800/50 backdrop-blur-xl">
+              <div className="glass-card rounded-2xl border border-gray-200 dark:border-slate-800 p-6 mb-8 shadow-neu-card">
                 {/* Search & Main Chips */}
-                <div className="flex flex-col md:flex-row gap-6 mb-8 items-center justify-between border-b border-gray-100 dark:border-slate-700 pb-8">
+                <div className="flex flex-col md:flex-row gap-4 mb-6 items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-6">
                   <div className="w-full md:max-w-md relative group">
-                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-slate-500 group-focus-within:text-bradesco-red transition-colors" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-500 group-focus-within:text-bradesco-red transition-colors" />
                     <input 
                       type="text" 
                       placeholder="Busca global em toda a base..." 
-                      className="w-full pl-14 pr-6 py-3.5 bg-gray-50 dark:bg-slate-800/50 group-hover:bg-gray-100 dark:bg-slate-700 group-focus:bg-white dark:bg-slate-900 dark:border-slate-800 border border-gray-100 dark:border-slate-700 focus:border-red-200 rounded-3xl outline-none text-sm font-medium text-gray-800 dark:text-slate-200 transition-all"
+                      className="neu-input w-full pl-11 pr-4 py-2.5 rounded-xl text-xs font-ui font-medium text-gray-800 dark:text-slate-200 outline-none"
                       value={tableFilter}
                       onChange={(e) => setTableFilter(e.target.value)}
                     />
@@ -2212,10 +2245,10 @@ export default function App() {
                       <button 
                         key={chip}
                         onClick={() => setActiveChip(chip)}
-                        className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-wider transition-all
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-ui font-semibold transition-all cursor-pointer
                           ${activeChip === chip
-                            ? 'text-white shadow-md scale-105' 
-                            : 'bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-700 text-gray-500 dark:text-slate-400 hover:border-gray-300 dark:border-slate-600 hover:text-gray-700 dark:hover:text-slate-200'}
+                            ? 'text-white shadow-neu-raised' 
+                            : 'btn-neu text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-slate-100'}
                         `}
                         style={activeChip === chip ? { background: 'linear-gradient(90deg, #7D046D 0%, #cc092f 100%)' } : {}}
                       >
@@ -2245,20 +2278,20 @@ export default function App() {
                   ))}
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-4 mt-6 pt-6 border-t border-gray-100 dark:border-slate-800">
+                <div className="flex flex-wrap items-center justify-between gap-4 mt-6 pt-5 border-t border-gray-100 dark:border-slate-800">
                    <div className="flex flex-wrap items-center gap-3">
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-slate-800 rounded-xl">
-                        <span className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase">Filtrados:</span>
-                        <span className="text-xs font-black text-gray-900 dark:text-slate-50">{filteredInventory.length} / {results.length}</span>
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-slate-800/80 rounded-xl border border-gray-100 dark:border-slate-700/60">
+                        <span className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase">Filtrados:</span>
+                        <span className="text-xs font-heading font-bold text-gray-900 dark:text-slate-50 tabular-nums">{filteredInventory.length} / {results.length}</span>
                       </div>
 
                       <button
                         type="button"
                         onClick={() => setOnlyWithoutResponsible(prev => !prev)}
-                        className={`px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all ${
+                        className={`px-3 py-1.5 rounded-xl text-xs font-ui font-semibold transition-all cursor-pointer ${
                           onlyWithoutResponsible
-                            ? 'bg-amber-500 text-white shadow-sm'
-                            : 'bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+                            ? 'bg-amber-500 text-white shadow-neu-raised'
+                            : 'btn-neu text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'
                         }`}
                       >
                         Sem responsável
@@ -2267,10 +2300,10 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setOnlyWithoutSubproduct(prev => !prev)}
-                        className={`px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all ${
+                        className={`px-3 py-1.5 rounded-xl text-xs font-ui font-semibold transition-all cursor-pointer ${
                           onlyWithoutSubproduct
-                            ? 'bg-amber-500 text-white shadow-sm'
-                            : 'bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+                            ? 'bg-amber-500 text-white shadow-neu-raised'
+                            : 'btn-neu text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'
                         }`}
                       >
                         Sem subproduto

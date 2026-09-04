@@ -160,23 +160,23 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header and Quick Filters */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 glass-card p-6 rounded-[28px] border border-gray-100 dark:border-slate-800">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 flat-card p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card">
         <div>
-          <h2 className="text-xl font-black text-gray-900 dark:text-slate-50 tracking-tight">
+          <h2 className="text-2xl brand-title font-heading tracking-tight">
             Indicadores e Governança Analítica
           </h2>
-          <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+          <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 font-ui">
             Métricas canônicas da esteira de tagueamento, telas mapeadas e conformidade técnica.
           </p>
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800 px-3 py-1.5 rounded-2xl border border-gray-200 dark:border-slate-700">
+          <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-neu-raised">
             <Filter className="w-3.5 h-3.5 text-gray-400" />
             <select
               value={selectedProductFilter}
               onChange={(e) => setSelectedProductFilter(e.target.value)}
-              className="bg-transparent text-xs font-bold text-gray-800 dark:text-slate-200 outline-none cursor-pointer"
+              className="bg-transparent text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 outline-none cursor-pointer"
             >
               <option value="all">TODOS OS PRODUTOS</option>
               {uniqueProducts.map(p => (
@@ -185,11 +185,11 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
             </select>
           </div>
 
-          <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800 px-3 py-1.5 rounded-2xl border border-gray-200 dark:border-slate-700">
+          <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-neu-raised">
             <select
               value={selectedMeasurementFilter}
               onChange={(e) => setSelectedMeasurementFilter(e.target.value)}
-              className="bg-transparent text-xs font-bold text-gray-800 dark:text-slate-200 outline-none cursor-pointer"
+              className="bg-transparent text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 outline-none cursor-pointer"
             >
               <option value="all">QUALQUER MENSURAÇÃO</option>
               <option value="GA4">APENAS GA4</option>
@@ -203,69 +203,69 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
       {/* Top 4 Primary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Card 1: Total Artefatos */}
-        <div className="glass-card p-6 rounded-[28px] border border-gray-100 dark:border-slate-800 shadow-sm relative overflow-hidden">
-          <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-3">
+        <div className="flat-card p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card relative overflow-hidden">
+          <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-3">
             <Target className="w-5 h-5" />
           </div>
-          <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Artefatos Catalogados</p>
+          <p className="text-[10px] font-ui font-semibold uppercase text-gray-400 tracking-wider">Artefatos Catalogados</p>
           <div className="flex items-baseline gap-2 mt-1">
-            <p className="text-3xl font-black text-gray-900 dark:text-slate-50">{stats.totalArtifacts}</p>
-            <span className="text-xs font-bold text-gray-400">
+            <p className="kpi-number text-3xl font-bold text-gray-900 dark:text-slate-50 tabular-nums">{stats.totalArtifacts}</p>
+            <span className="text-xs font-ui text-gray-400">
               ({stats.totalMaps} Mapas • {stats.totalDocs} Docs)
             </span>
           </div>
           {/* Progress bar map vs doc */}
           <div className="w-full bg-gray-100 dark:bg-slate-800 h-2 rounded-full mt-4 overflow-hidden flex">
-            <div style={{ width: `${stats.percentMaps}%` }} className="bg-red-500 h-full" title={`Mapas: ${stats.percentMaps}%`} />
+            <div style={{ width: `${stats.percentMaps}%` }} className="bg-bradesco-red h-full" title={`Mapas: ${stats.percentMaps}%`} />
             <div style={{ width: `${stats.percentDocs}%` }} className="bg-gray-400 h-full" title={`Docs: ${stats.percentDocs}%`} />
           </div>
         </div>
 
         {/* Card 2: Telas & Snippets */}
-        <div className="glass-card p-6 rounded-[28px] border border-gray-100 dark:border-slate-800 shadow-sm relative overflow-hidden">
-          <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-3">
+        <div className="flat-card p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card relative overflow-hidden">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-3">
             <Layers className="w-5 h-5" />
           </div>
-          <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Telas & Snippets</p>
+          <p className="text-[10px] font-ui font-semibold uppercase text-gray-400 tracking-wider">Telas & Snippets</p>
           <div className="flex items-baseline gap-2 mt-1">
-            <p className="text-3xl font-black text-gray-900 dark:text-slate-50">{stats.totalScreens}</p>
-            <span className="text-xs font-bold text-blue-600">
+            <p className="kpi-number text-3xl font-bold text-gray-900 dark:text-slate-50 tabular-nums">{stats.totalScreens}</p>
+            <span className="text-xs font-ui font-semibold text-blue-600 dark:text-blue-400">
               telas estruturadas
             </span>
           </div>
-          <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-2">
+          <p className="text-[11px] font-ui text-gray-500 dark:text-slate-400 mt-2">
             {stats.totalSnippets} snippets dataLayer associados
           </p>
         </div>
 
         {/* Card 3: Taxa de Homologação */}
-        <div className="glass-card p-6 rounded-[28px] border border-gray-100 dark:border-slate-800 shadow-sm relative overflow-hidden">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-3">
+        <div className="flat-card p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card relative overflow-hidden">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-3">
             <ShieldCheck className="w-5 h-5" />
           </div>
-          <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Taxa de Homologação</p>
+          <p className="text-[10px] font-ui font-semibold uppercase text-gray-400 tracking-wider">Taxa de Homologação</p>
           <div className="flex items-baseline gap-2 mt-1">
-            <p className="text-3xl font-black text-emerald-600">{stats.taxaHomologacao}%</p>
-            <span className="text-xs font-bold text-gray-400">
+            <p className="kpi-number text-3xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{stats.taxaHomologacao}%</p>
+            <span className="text-xs font-ui text-gray-400">
               ({stats.statusCounts.VALIDADO} validados)
             </span>
           </div>
-          <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-2">
+          <p className="text-[11px] font-ui text-gray-500 dark:text-slate-400 mt-2">
             {stats.statusCounts.CORRECAO} mapas requerem correção
           </p>
         </div>
 
         {/* Card 4: Parâmetros Distintos */}
-        <div className="glass-card p-6 rounded-[28px] border border-gray-100 dark:border-slate-800 shadow-sm relative overflow-hidden">
-          <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-3">
+        <div className="flat-card p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card relative overflow-hidden">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-3">
             <Tag className="w-5 h-5" />
           </div>
-          <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Parâmetros Mapeados</p>
+          <p className="text-[10px] font-ui font-semibold uppercase text-gray-400 tracking-wider">Parâmetros Mapeados</p>
           <div className="flex items-baseline gap-2 mt-1">
-            <p className="text-3xl font-black text-gray-900 dark:text-slate-50">{stats.totalParamsCount}</p>
-            <span className="text-xs font-bold text-gray-400">distintos</span>
+            <p className="kpi-number text-3xl font-bold text-gray-900 dark:text-slate-50 tabular-nums">{stats.totalParamsCount}</p>
+            <span className="text-xs font-ui text-gray-400">distintos</span>
           </div>
-          <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-2">
+          <p className="text-[11px] font-ui text-gray-500 dark:text-slate-400 mt-2">
             Taxa de divergência: <strong className={stats.taxaDivergencia > 0 ? 'text-amber-600' : 'text-emerald-600'}>{stats.taxaDivergencia}%</strong>
           </p>
         </div>
@@ -274,15 +274,15 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
       {/* Row 2: Distribuição de Status Real + Classificação de Mensuração */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Status Reais breakdown */}
-        <div className="lg:col-span-7 glass-card p-8 rounded-[32px] border border-gray-100 dark:border-slate-800 space-y-5">
+        <div className="lg:col-span-7 flat-card p-6 md:p-8 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card space-y-5">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider">
+            <h3 className="text-sm font-heading font-bold text-gray-900 dark:text-slate-50 uppercase tracking-wider">
               Distribuição de Status Reais da Base
             </h3>
-            <span className="text-xs text-gray-400">Apurados por telas</span>
+            <span className="text-xs font-ui text-gray-400">Apurados por telas</span>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 font-ui">
             {[
               { label: 'VALIDADO', count: stats.statusCounts.VALIDADO || 0, color: 'bg-emerald-500', text: 'text-emerald-700' },
               { label: 'CORREÇÃO', count: stats.statusCounts.CORRECAO || 0, color: 'bg-orange-500', text: 'text-orange-700' },
@@ -293,9 +293,9 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
               const pct = stats.totalArtifacts > 0 ? Math.round((st.count / stats.totalArtifacts) * 100) : 0;
               return (
                 <div key={st.label} className="space-y-1">
-                  <div className="flex justify-between text-xs font-bold">
+                  <div className="flex justify-between text-xs font-semibold">
                     <span className="text-gray-700 dark:text-slate-300">{st.label}</span>
-                    <span className="text-gray-500">{st.count} mapas ({pct}%)</span>
+                    <span className="text-gray-500 tabular-nums">{st.count} mapas ({pct}%)</span>
                   </div>
                   <div className="w-full bg-gray-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
                     <div style={{ width: `${pct}%` }} className={`h-full ${st.color} rounded-full transition-all duration-500`} />
@@ -307,33 +307,33 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
         </div>
 
         {/* Mensuração breakdown */}
-        <div className="lg:col-span-5 glass-card p-8 rounded-[32px] border border-gray-100 dark:border-slate-800 space-y-5">
+        <div className="lg:col-span-5 flat-card p-6 md:p-8 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card space-y-5">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider">
+            <h3 className="text-sm font-heading font-bold text-gray-900 dark:text-slate-50 uppercase tracking-wider">
               Maturidade da Mensuração
             </h3>
-            <span className="text-xs text-gray-400">GA4 vs GA3</span>
+            <span className="text-xs font-ui text-gray-400">GA4 vs GA3</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-2">
-            <div className="p-4 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 text-center">
-              <span className="text-[10px] font-black uppercase text-emerald-600 block">GA4 Puro</span>
-              <span className="text-2xl font-black text-emerald-700 dark:text-emerald-300">{stats.measurementCounts.GA4 || 0}</span>
+          <div className="grid grid-cols-2 gap-3 pt-2 font-ui">
+            <div className="p-4 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 text-center shadow-neu-raised">
+              <span className="text-[10px] font-semibold uppercase text-emerald-600 dark:text-emerald-400 block">GA4 Puro</span>
+              <span className="text-2xl font-heading font-bold text-emerald-700 dark:text-emerald-300 tabular-nums">{stats.measurementCounts.GA4 || 0}</span>
               <span className="text-[10px] text-gray-400 block mt-1">100% compliant</span>
             </div>
-            <div className="p-4 rounded-2xl bg-rose-50/50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 text-center">
-              <span className="text-[10px] font-black uppercase text-rose-600 block">Universal (GA3)</span>
-              <span className="text-2xl font-black text-rose-700 dark:text-rose-300">{stats.measurementCounts.GA3 || 0}</span>
+            <div className="p-4 rounded-xl bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900 text-center shadow-neu-raised">
+              <span className="text-[10px] font-semibold uppercase text-rose-600 dark:text-rose-400 block">Universal (GA3)</span>
+              <span className="text-2xl font-heading font-bold text-rose-700 dark:text-rose-300 tabular-nums">{stats.measurementCounts.GA3 || 0}</span>
               <span className="text-[10px] text-gray-400 block mt-1">Legado</span>
             </div>
-            <div className="p-4 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900 text-center">
-              <span className="text-[10px] font-black uppercase text-amber-600 block">Misto</span>
-              <span className="text-2xl font-black text-amber-700 dark:text-amber-300">{stats.measurementCounts.MISTO || 0}</span>
+            <div className="p-4 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 text-center shadow-neu-raised">
+              <span className="text-[10px] font-semibold uppercase text-amber-600 dark:text-amber-400 block">Misto</span>
+              <span className="text-2xl font-heading font-bold text-amber-700 dark:text-amber-300 tabular-nums">{stats.measurementCounts.MISTO || 0}</span>
               <span className="text-[10px] text-gray-400 block mt-1">Híbrido</span>
             </div>
-            <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-center">
-              <span className="text-[10px] font-black uppercase text-gray-500 block">Não Classificado</span>
-              <span className="text-2xl font-black text-gray-700 dark:text-slate-300">{stats.measurementCounts.NAO_CLASSIFICADO || 0}</span>
+            <div className="p-4 rounded-xl bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-center shadow-neu-raised">
+              <span className="text-[10px] font-semibold uppercase text-gray-500 block">Não Classificado</span>
+              <span className="text-2xl font-heading font-bold text-gray-700 dark:text-slate-300 tabular-nums">{stats.measurementCounts.NAO_CLASSIFICADO || 0}</span>
               <span className="text-[10px] text-gray-400 block mt-1">Docs / Outros</span>
             </div>
           </div>
@@ -343,30 +343,30 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
       {/* Row 3: Top Parâmetros + Top Padrões de Eventos */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Top 10 Parâmetros */}
-        <div className="lg:col-span-7 glass-card p-8 rounded-[32px] border border-gray-100 dark:border-slate-800 space-y-4">
+        <div className="lg:col-span-7 flat-card p-6 md:p-8 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card space-y-4">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider flex items-center gap-2">
+            <h3 className="text-sm font-heading font-bold text-gray-900 dark:text-slate-50 uppercase tracking-wider flex items-center gap-2">
               <Tag className="w-4 h-4 text-purple-600" />
               Top 10 Parâmetros Mais Utilizados
             </h3>
-            <span className="text-xs text-gray-400">Frequência em snippets</span>
+            <span className="text-xs font-ui text-gray-400">Frequência em snippets</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {stats.topParameters.map((param, idx) => (
               <div 
                 key={param.name}
-                className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 flex items-center justify-between"
+                className="p-3 bg-gray-50 dark:bg-slate-800/80 rounded-xl border border-gray-200 dark:border-slate-700 flex items-center justify-between"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-xs font-black text-purple-600 w-5">#{idx + 1}</span>
-                  <span className="font-mono text-xs font-bold text-gray-900 dark:text-slate-100 truncate">
+                  <span className="text-xs font-heading font-bold text-purple-600 w-5">#{idx + 1}</span>
+                  <span className="font-mono text-xs font-semibold text-gray-900 dark:text-slate-100 truncate">
                     {param.name}
                   </span>
                 </div>
-                <div className="text-right shrink-0">
-                  <span className="text-xs font-black text-gray-900 dark:text-slate-50">{param.count}x</span>
-                  <span className="text-[10px] text-gray-400 block">{param.screens} telas</span>
+                <div className="text-right shrink-0 font-ui">
+                  <span className="text-xs font-heading font-bold text-gray-900 dark:text-slate-50 tabular-nums">{param.count}x</span>
+                  <span className="text-[10px] text-gray-400 block tabular-nums">{param.screens} telas</span>
                 </div>
               </div>
             ))}
@@ -374,9 +374,9 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
         </div>
 
         {/* Top 5 Padrões de Eventos */}
-        <div className="lg:col-span-5 glass-card p-8 rounded-[32px] border border-gray-100 dark:border-slate-800 space-y-4">
+        <div className="lg:col-span-5 flat-card p-6 md:p-8 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card space-y-4">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider flex items-center gap-2">
+            <h3 className="text-sm font-heading font-bold text-gray-900 dark:text-slate-50 uppercase tracking-wider flex items-center gap-2">
               <Code2 className="w-4 h-4 text-blue-600" />
               Padrões de Eventos Recorrentes
             </h3>
@@ -384,22 +384,22 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
 
           <div className="space-y-3">
             {stats.topPatterns.length === 0 ? (
-              <p className="text-xs text-gray-400 italic">Nenhum padrão estrutural catalogado.</p>
+              <p className="text-xs font-ui text-gray-400 italic">Nenhum padrão estrutural catalogado.</p>
             ) : (
               stats.topPatterns.map((pat, idx) => (
                 <div 
                   key={pat.id}
-                  className="p-3.5 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 flex items-center justify-between"
+                  className="p-3.5 bg-gray-50 dark:bg-slate-800/80 rounded-xl border border-gray-200 dark:border-slate-700 flex items-center justify-between"
                 >
                   <div>
                     <span className="font-mono text-xs font-bold text-gray-900 dark:text-slate-100 block">
                       {pat.event || pat.id}
                     </span>
-                    <span className="text-[10px] font-bold text-purple-600">
+                    <span className="text-[10px] font-ui font-semibold text-purple-600">
                       ID: {pat.id}
                     </span>
                   </div>
-                  <span className="px-2.5 py-1 bg-white dark:bg-slate-700 text-xs font-black rounded-lg border border-gray-200 dark:border-slate-600">
+                  <span className="px-2.5 py-1 bg-white dark:bg-slate-700 text-xs font-heading font-bold rounded-lg border border-gray-200 dark:border-slate-600 shadow-neu-raised tabular-nums">
                     {pat.count}x
                   </span>
                 </div>
@@ -411,8 +411,8 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
 
       {/* Row 4: Ranking de Produtos por Mapas e por Telas */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="glass-card p-8 rounded-[32px] border border-gray-100 dark:border-slate-800 space-y-4">
-          <h3 className="text-sm font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider">
+        <div className="flat-card p-6 md:p-8 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card space-y-4">
+          <h3 className="text-sm font-heading font-bold text-gray-900 dark:text-slate-50 uppercase tracking-wider">
             Ranking de Produtos por Quantidade de Mapas
           </h3>
           <div className="space-y-2">
@@ -420,14 +420,14 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
               <div 
                 key={p.name}
                 onClick={() => onFilterByProduct(p.name)}
-                className="p-3 bg-gray-50 dark:bg-slate-800 hover:bg-red-50/50 dark:hover:bg-slate-750 rounded-xl border border-gray-100 dark:border-slate-700 flex items-center justify-between cursor-pointer transition-colors"
+                className="p-3 bg-gray-50 dark:bg-slate-800/80 hover:bg-red-50/50 dark:hover:bg-slate-750 rounded-xl border border-gray-200 dark:border-slate-700 flex items-center justify-between cursor-pointer transition-all shadow-neu-card hover:shadow-neu-raised"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-black text-gray-400 w-5">#{idx + 1}</span>
-                  <span className="text-xs font-bold text-gray-900 dark:text-slate-100">{p.name}</span>
+                  <span className="text-xs font-heading font-bold text-gray-400 w-5">#{idx + 1}</span>
+                  <span className="text-xs font-ui font-bold text-gray-900 dark:text-slate-100">{p.name}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-black text-red-600">{p.maps} mapas</span>
+                <div className="flex items-center gap-2 font-ui">
+                  <span className="text-xs font-heading font-bold text-bradesco-red tabular-nums">{p.maps} mapas</span>
                   <ArrowUpRight className="w-3.5 h-3.5 text-gray-400" />
                 </div>
               </div>
@@ -435,8 +435,8 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
           </div>
         </div>
 
-        <div className="glass-card p-8 rounded-[32px] border border-gray-100 dark:border-slate-800 space-y-4">
-          <h3 className="text-sm font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider">
+        <div className="flat-card p-6 md:p-8 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card space-y-4">
+          <h3 className="text-sm font-heading font-bold text-gray-900 dark:text-slate-50 uppercase tracking-wider">
             Ranking de Produtos por Quantidade de Telas
           </h3>
           <div className="space-y-2">
@@ -444,14 +444,14 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
               <div 
                 key={p.name}
                 onClick={() => onFilterByProduct(p.name)}
-                className="p-3 bg-gray-50 dark:bg-slate-800 hover:bg-red-50/50 dark:hover:bg-slate-750 rounded-xl border border-gray-100 dark:border-slate-700 flex items-center justify-between cursor-pointer transition-colors"
+                className="p-3 bg-gray-50 dark:bg-slate-800/80 hover:bg-red-50/50 dark:hover:bg-slate-750 rounded-xl border border-gray-200 dark:border-slate-700 flex items-center justify-between cursor-pointer transition-all shadow-neu-card hover:shadow-neu-raised"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-black text-gray-400 w-5">#{idx + 1}</span>
-                  <span className="text-xs font-bold text-gray-900 dark:text-slate-100">{p.name}</span>
+                  <span className="text-xs font-heading font-bold text-gray-400 w-5">#{idx + 1}</span>
+                  <span className="text-xs font-ui font-bold text-gray-900 dark:text-slate-100">{p.name}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-black text-blue-600">{p.screens} telas</span>
+                <div className="flex items-center gap-2 font-ui">
+                  <span className="text-xs font-heading font-bold text-blue-600 dark:text-blue-400 tabular-nums">{p.screens} telas</span>
                   <ArrowUpRight className="w-3.5 h-3.5 text-gray-400" />
                 </div>
               </div>
