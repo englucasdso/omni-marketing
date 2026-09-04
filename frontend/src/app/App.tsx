@@ -14,7 +14,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useNavigate, useLocation, Routes, Route } from "react-router-dom";
-import { X, AlertTriangle, Target, Network, Filter, CheckCircle2, AlertCircle, Clock, User, Info, Shield, LogOut, Trash2, Plus, Settings, Landmark, LayoutList, RefreshCw, Check, Loader2, KeyRound, Activity, ArrowRight, Search, ChevronDown, ChevronUp, ChevronLeft, ExternalLink, Download, Sparkles, FileText, Layers, Tag, Code2, Eye } from "lucide-react";
+import { X, AlertTriangle, Target, Network, Filter, CheckCircle2, AlertCircle, Clock, User, Info, Shield, LogOut, Trash2, Plus, Settings, Landmark, LayoutList, RefreshCw, Check, Loader2, KeyRound, Activity, ArrowRight, Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ExternalLink, Download, Sparkles, FileText, Layers, Tag, Code2, Eye, ArrowUpDown, Calendar, RotateCcw } from "lucide-react";
 import { ConexoesCanvas } from "../components/ConexoesCanvas";
 import { getOperationalInsights } from "../utils/inventoryHelpers";
 import { fetchInventory, searchContent, fetchUsers, createUser, updateUser, deleteUser } from "../services/api";
@@ -655,10 +655,167 @@ export default function App() {
   }, [appState, fullInventory.length]);
 
   useEffect(() => {
-    if (appState === "inventory_table" && results.length === 0 && !loading && !isSearchingRef.current && (query === "" || query === "inventario")) {
+    if ((appState === "inventory_table" || appState === "results") && results.length === 0 && !loading && !isSearchingRef.current && (query === "" || query === "inventario")) {
       executeSearch("inventario");
     }
   }, [appState, results.length, loading]);
+
+  // Estados e controle exclusivos da tela de Cards
+  const [cardSearch, setCardSearch] = useState("");
+  const [cardSort, setCardSort] = useState<"recentes" | "antigos" | "az" | "za">("recentes");
+  const [cardArtifactType, setCardArtifactType] = useState<"todos" | "mapas" | "docs">("todos");
+  const [cardResponsible, setCardResponsible] = useState<string>("todos");
+  const [cardYear, setCardYear] = useState<string>("todas");
+  const [cardPage, setCardPage] = useState<number>(1);
+  const cardsPerPage = 20;
+  const cardsListRef = useRef<HTMLDivElement>(null);
+
+  // Fonte de dados para a página de Cards
+  const cardSource = useMemo(() => {
+    return results.length > 0 ? results : fullInventory;
+  }, [results, fullInventory]);
+
+  // Lista dinâmica de responsáveis únicos, ordenados alfabeticamente
+  const availableResponsibles = useMemo(() => {
+    const list = Array.from(new Set(
+      cardSource
+        .map(i => i.responsavel?.trim())
+        .filter(r => Boolean(r) && r !== "N/A" && r !== "-" && r !== "Não informado")
+    )) as string[];
+    return list.sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [cardSource]);
+
+  // Lista dinâmica de anos disponíveis a partir da última atualização
+  const availableYears = useMemo(() => {
+    const years = Array.from(new Set(
+      cardSource.map(i => {
+        if (!i.ultima_atualizacao) return null;
+        const d = new Date(i.ultima_atualizacao);
+        return isNaN(d.getTime()) ? null : d.getFullYear().toString();
+      }).filter(Boolean) as string[]
+    ));
+    return years.sort((a, b) => Number(b) - Number(a));
+  }, [cardSource]);
+
+  // Filtragem e ordenação combinadas para a tela de Cards
+  const filteredAndSortedCards = useMemo(() => {
+    let list = [...cardSource];
+
+    // 1. Busca textual ampla (título, ID, produto, subproduto, responsável)
+    const term = normalizar(cardSearch);
+    if (term) {
+      list = list.filter(item => {
+        const matchTitulo = normalizar(item.titulo).includes(term);
+        const matchId = normalizar(item.id).includes(term);
+        const matchProduto = normalizar(item.produto || "").includes(term);
+        const matchSubproduto = normalizar(item.subproduto || "").includes(term);
+        const matchResponsavel = normalizar(item.responsavel || "").includes(term);
+        return matchTitulo || matchId || matchProduto || matchSubproduto || matchResponsavel;
+      });
+    }
+
+    // 2. Filtro de Artefato (Todos, Mapas, Documentações)
+    if (cardArtifactType === "mapas") {
+      list = list.filter(i => (i.artifact_type === 'MAPA' || (normalizar(i.tipo_mapa || '') !== 'doc' && i.artifact_type !== 'DOCUMENTACAO')));
+    } else if (cardArtifactType === "docs") {
+      list = list.filter(i => (i.artifact_type === 'DOCUMENTACAO' || normalizar(i.tipo_mapa || '') === 'doc'));
+    }
+
+    // 3. Filtro de Responsável
+    if (cardResponsible !== "todos") {
+      list = list.filter(i => (i.responsavel || "").trim() === cardResponsible);
+    }
+
+    // 4. Filtro de Data (Ano)
+    if (cardYear !== "todas") {
+      list = list.filter(i => {
+        if (!i.ultima_atualizacao) return false;
+        const d = new Date(i.ultima_atualizacao);
+        return !isNaN(d.getTime()) && d.getFullYear().toString() === cardYear;
+      });
+    }
+
+    // 5. Ordenação
+    list.sort((a, b) => {
+      if (cardSort === "recentes") {
+        const timeA = a.ultima_atualizacao ? new Date(a.ultima_atualizacao).getTime() : 0;
+        const timeB = b.ultima_atualizacao ? new Date(b.ultima_atualizacao).getTime() : 0;
+        return timeB - timeA;
+      }
+      if (cardSort === "antigos") {
+        const timeA = a.ultima_atualizacao ? new Date(a.ultima_atualizacao).getTime() : 0;
+        const timeB = b.ultima_atualizacao ? new Date(b.ultima_atualizacao).getTime() : 0;
+        return timeA - timeB;
+      }
+      if (cardSort === "az") {
+        return (a.titulo || "").localeCompare(b.titulo || "", "pt-BR");
+      }
+      if (cardSort === "za") {
+        return (b.titulo || "").localeCompare(a.titulo || "", "pt-BR");
+      }
+      return 0;
+    });
+
+    return list;
+  }, [cardSource, cardSearch, cardArtifactType, cardResponsible, cardYear, cardSort]);
+
+  const totalCardsCount = filteredAndSortedCards.length;
+  const totalCardPages = Math.max(1, Math.ceil(totalCardsCount / cardsPerPage));
+
+  // Reajustar a página atual quando a quantidade de resultados diminuir
+  useEffect(() => {
+    if (cardPage > totalCardPages) {
+      setCardPage(1);
+    }
+  }, [cardPage, totalCardPages]);
+
+  // Paginação: fatia no máximo 20 cards por página
+  const paginatedCards = useMemo(() => {
+    const start = (cardPage - 1) * cardsPerPage;
+    return filteredAndSortedCards.slice(start, start + cardsPerPage);
+  }, [filteredAndSortedCards, cardPage]);
+
+  // Indicador de filtro ativo
+  const isCardFilterActive = useMemo(() => {
+    return (
+      cardSearch.trim() !== "" ||
+      cardSort !== "recentes" ||
+      cardArtifactType !== "todos" ||
+      cardResponsible !== "todos" ||
+      cardYear !== "todas"
+    );
+  }, [cardSearch, cardSort, cardArtifactType, cardResponsible, cardYear]);
+
+  const resetCardFilters = () => {
+    setCardSearch("");
+    setCardSort("recentes");
+    setCardArtifactType("todos");
+    setCardResponsible("todos");
+    setCardYear("todas");
+    setCardPage(1);
+  };
+
+  // Cálculo da janela de até 3 números de página visíveis
+  const visiblePageNumbers = useMemo(() => {
+    if (totalCardPages <= 3) {
+      return Array.from({ length: totalCardPages }, (_, i) => i + 1);
+    }
+    if (cardPage <= 2) {
+      return [1, 2, 3];
+    }
+    if (cardPage >= totalCardPages - 1) {
+      return [totalCardPages - 2, totalCardPages - 1, totalCardPages];
+    }
+    return [cardPage - 1, cardPage, cardPage + 1];
+  }, [cardPage, totalCardPages]);
+
+  const handleCardPageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalCardPages || newPage === cardPage) return;
+    setCardPage(newPage);
+    if (cardsListRef.current) {
+      cardsListRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
 
   const { recentActivities, chartData } = useMemo(() => getOperationalInsights(fullInventory), [fullInventory]);
@@ -898,7 +1055,7 @@ export default function App() {
       setInsights(getFilteredInsights(data.resultados, q) || null);
 
       if (isInventory) {
-        setAppState("inventory_table");
+        setAppState(appState === "results" ? "results" : "inventory_table");
       } else if (data.total === 0) {
         setAppState("empty");
       } else if (data.total === 1) {
@@ -1416,7 +1573,7 @@ export default function App() {
         </div>
       </header>
 
-      <div className={`flex flex-col flex-1 w-full max-w-5xl mx-auto px-4 sm:px-8 pb-32 transition-all relative ${appState === 'auth' ? 'opacity-0 pointer-events-none absolute' : 'opacity-100 relative'}`}>
+      <div className={`flex flex-col flex-1 w-full max-w-5xl mx-auto px-4 sm:px-8 pb-12 transition-all relative ${appState === 'auth' ? 'opacity-0 pointer-events-none absolute' : 'opacity-100 relative'}`}>
 
         {!hasPermission ? (
           <div className="flex flex-col items-center justify-center flex-1 py-32 text-center mt-32">
@@ -1978,10 +2135,174 @@ export default function App() {
             )}
           </AnimatePresence>
 
-          {/* Results Area */}
+          {/* Results Area (Tela de Cards) */}
           <section className={`results space-y-6 ${appState === "results" && !loading ? "" : "hidden"}`}>
-            <AnimatePresence>
-              {results.map((item, index) => {
+            {/* Âncora para rolagem suave ao trocar de página */}
+            <div ref={cardsListRef} className="scroll-mt-6" />
+
+            {/* 3. Barra de Busca Larga */}
+            <div className="w-full relative">
+              <Search className="w-5 h-5 text-gray-400 dark:text-slate-500 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Buscar por título, ID, produto, subproduto ou responsável..."
+                value={cardSearch}
+                onChange={(e) => {
+                  setCardSearch(e.target.value);
+                  setCardPage(1);
+                }}
+                className="neu-input w-full pl-12 pr-10 py-3.5 rounded-2xl text-sm font-ui font-medium text-gray-800 dark:text-slate-100 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-neu-input focus:outline-none focus:border-bradesco-red/50 transition-all placeholder:text-gray-400 dark:placeholder:text-slate-500"
+              />
+              {cardSearch && (
+                <button
+                  onClick={() => {
+                    setCardSearch("");
+                    setCardPage(1);
+                  }}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 p-1 cursor-pointer"
+                  title="Limpar busca"
+                  aria-label="Limpar busca"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* 4. Barra Horizontal de Filtros */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 flex-1">
+                {/* 1. Ordenação */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-ui font-bold uppercase tracking-wider text-gray-400 dark:text-slate-400 flex items-center gap-1.5">
+                    <ArrowUpDown className="w-3 h-3 text-bradesco-red" /> Ordenação
+                  </label>
+                  <select
+                    value={cardSort}
+                    onChange={(e) => {
+                      setCardSort(e.target.value as any);
+                      setCardPage(1);
+                    }}
+                    className="neu-input w-full px-3 py-2 rounded-xl text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 bg-gray-50/80 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 outline-none cursor-pointer focus:border-bradesco-red"
+                  >
+                    <option value="recentes">Mais recentes</option>
+                    <option value="antigos">Mais antigos</option>
+                    <option value="az">Título de A a Z</option>
+                    <option value="za">Título de Z a A</option>
+                  </select>
+                </div>
+
+                {/* 2. Artefato */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-ui font-bold uppercase tracking-wider text-gray-400 dark:text-slate-400 flex items-center gap-1.5">
+                    <FileText className="w-3 h-3 text-bradesco-red" /> Artefato
+                  </label>
+                  <select
+                    value={cardArtifactType}
+                    onChange={(e) => {
+                      setCardArtifactType(e.target.value as any);
+                      setCardPage(1);
+                    }}
+                    className="neu-input w-full px-3 py-2 rounded-xl text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 bg-gray-50/80 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 outline-none cursor-pointer focus:border-bradesco-red"
+                  >
+                    <option value="todos">Todos</option>
+                    <option value="mapas">Mapas</option>
+                    <option value="docs">Documentações</option>
+                  </select>
+                </div>
+
+                {/* 3. Responsável */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-ui font-bold uppercase tracking-wider text-gray-400 dark:text-slate-400 flex items-center gap-1.5">
+                    <User className="w-3 h-3 text-bradesco-red" /> Responsável
+                  </label>
+                  <select
+                    value={cardResponsible}
+                    onChange={(e) => {
+                      setCardResponsible(e.target.value);
+                      setCardPage(1);
+                    }}
+                    className="neu-input w-full px-3 py-2 rounded-xl text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 bg-gray-50/80 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 outline-none cursor-pointer focus:border-bradesco-red truncate"
+                  >
+                    <option value="todos">Todos</option>
+                    {availableResponsibles.map((resp) => (
+                      <option key={resp} value={resp}>{resp}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 4. Data (Ano) */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-ui font-bold uppercase tracking-wider text-gray-400 dark:text-slate-400 flex items-center gap-1.5">
+                    <Calendar className="w-3 h-3 text-bradesco-red" /> Data (Ano)
+                  </label>
+                  <select
+                    value={cardYear}
+                    onChange={(e) => {
+                      setCardYear(e.target.value);
+                      setCardPage(1);
+                    }}
+                    className="neu-input w-full px-3 py-2 rounded-xl text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 bg-gray-50/80 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 outline-none cursor-pointer focus:border-bradesco-red"
+                  >
+                    <option value="todas">Todas</option>
+                    {availableYears.map((yr) => (
+                      <option key={yr} value={yr}>{yr}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Ação discreta: Limpar filtros */}
+              {isCardFilterActive && (
+                <div className="flex items-end self-end lg:self-center pt-1 lg:pt-3">
+                  <button
+                    onClick={resetCardFilters}
+                    className="btn-neu px-3.5 py-2 rounded-xl text-xs font-ui font-semibold text-gray-600 dark:text-slate-300 hover:text-bradesco-red flex items-center gap-1.5 cursor-pointer transition-colors"
+                    title="Limpar todos os filtros e busca"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-bradesco-red" />
+                    Limpar filtros
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Contador de Resultados */}
+            <div className="flex items-center justify-between px-1 text-xs font-ui text-gray-500 dark:text-slate-400">
+              <span className="tabular-nums">
+                {totalCardsCount > 0 ? (
+                  <>Exibindo <strong className="font-semibold text-gray-800 dark:text-slate-200">{(cardPage - 1) * cardsPerPage + 1}–{Math.min(cardPage * cardsPerPage, totalCardsCount)}</strong> de <strong className="font-semibold text-gray-800 dark:text-slate-200">{totalCardsCount}</strong> resultados</>
+                ) : (
+                  <>Nenhum resultado encontrado</>
+                )}
+              </span>
+            </div>
+
+            {/* Mensagem quando não houver resultado */}
+            {totalCardsCount === 0 && (
+              <div className="flat-card border border-gray-200 dark:border-slate-800 rounded-2xl p-10 text-center shadow-neu-card">
+                <div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-950/30 text-bradesco-red flex items-center justify-center mx-auto mb-4">
+                  <Search className="w-7 h-7" />
+                </div>
+                <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-slate-100 mb-2">
+                  Nenhum artefato encontrado
+                </h3>
+                <p className="text-sm font-ui text-gray-500 dark:text-slate-400 max-w-md mx-auto mb-6">
+                  Não encontramos nenhum card com os critérios de busca e filtros selecionados.
+                </p>
+                <button
+                  onClick={resetCardFilters}
+                  className="btn-neu inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-ui font-semibold text-bradesco-red hover:text-bradesco-red-hover cursor-pointer"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Limpar filtros e busca
+                </button>
+              </div>
+            )}
+
+            {/* 5. Lista de Cards (Coluna única, máximo 20 por página) */}
+            <div className="space-y-6">
+              <AnimatePresence>
+                {paginatedCards.map((item, index) => {
                 // Real Confluence status mapping
                 const realStatus = item.calculated_status || item.declared_status || 'NAO_IDENTIFICADO';
                 const isDoc = item.artifact_type === 'DOCUMENTACAO';
@@ -2198,7 +2519,84 @@ export default function App() {
                 </motion.article>
                 );
               })}
-            </AnimatePresence>
+              </AnimatePresence>
+            </div>
+
+            {/* 6. Paginação (Apenas no final natural do scroll, após o último card) */}
+            {totalCardPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 pb-4 mt-6 border-t border-gray-200 dark:border-slate-800">
+                <div className="text-xs font-ui text-gray-500 dark:text-slate-400 tabular-nums">
+                  Exibindo <strong className="font-semibold text-gray-800 dark:text-slate-200">{(cardPage - 1) * cardsPerPage + 1}–{Math.min(cardPage * cardsPerPage, totalCardsCount)}</strong> de <strong className="font-semibold text-gray-800 dark:text-slate-200">{totalCardsCount}</strong> resultados
+                </div>
+
+                <nav aria-label="Paginação da lista de cards" className="flex items-center gap-1.5">
+                  {/* Primeira página << */}
+                  {cardPage > 1 && (
+                    <>
+                      <button
+                        onClick={() => handleCardPageChange(1)}
+                        title="Primeira página"
+                        aria-label="Primeira página"
+                        className="btn-neu px-3 h-9 flex items-center justify-center rounded-xl text-xs font-ui font-bold text-gray-700 dark:text-slate-200 hover:text-bradesco-red cursor-pointer"
+                      >
+                        <ChevronsLeft className="w-4 h-4" />
+                      </button>
+                      {/* Página anterior < */}
+                      <button
+                        onClick={() => handleCardPageChange(cardPage - 1)}
+                        title="Página anterior"
+                        aria-label="Página anterior"
+                        className="btn-neu px-3 h-9 flex items-center justify-center rounded-xl text-xs font-ui font-bold text-gray-700 dark:text-slate-200 hover:text-bradesco-red cursor-pointer"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
+
+                  {/* Até 3 números de página visíveis */}
+                  {visiblePageNumbers.map((pageNum) => {
+                    const isActive = pageNum === cardPage;
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handleCardPageChange(pageNum)}
+                        aria-current={isActive ? "page" : undefined}
+                        className={`min-w-9 h-9 px-3 flex items-center justify-center rounded-xl text-xs font-ui font-bold transition-all cursor-pointer ${
+                          isActive
+                            ? "bg-bradesco-red text-white shadow-neu-raised border border-bradesco-red font-extrabold"
+                            : "btn-neu text-gray-700 dark:text-slate-300 hover:text-bradesco-red"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+
+                  {/* Próxima página > */}
+                  {cardPage < totalCardPages && (
+                    <>
+                      <button
+                        onClick={() => handleCardPageChange(cardPage + 1)}
+                        title="Próxima página"
+                        aria-label="Próxima página"
+                        className="btn-neu px-3 h-9 flex items-center justify-center rounded-xl text-xs font-ui font-bold text-gray-700 dark:text-slate-200 hover:text-bradesco-red cursor-pointer"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                      {/* Última página >> */}
+                      <button
+                        onClick={() => handleCardPageChange(totalCardPages)}
+                        title="Última página"
+                        aria-label="Última página"
+                        className="btn-neu px-3 h-9 flex items-center justify-center rounded-xl text-xs font-ui font-bold text-gray-700 dark:text-slate-200 hover:text-bradesco-red cursor-pointer"
+                      >
+                        <ChevronsRight className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
+                </nav>
+              </div>
+            )}
           </section>
 
           {/* Inventory Table View (Functional Explorer Interface) */}
@@ -2626,16 +3024,16 @@ export default function App() {
       </div>
 
       {/* Static Footer */}
-      <footer className={`fixed bottom-0 left-0 w-full ${GLOBAL_SCREEN_PADDING} py-4 bg-white dark:bg-slate-900 dark:border-slate-800/90 backdrop-blur-sm border-t border-gray-100 dark:border-slate-700 flex justify-between items-center text-[10px] uppercase font-black tracking-widest text-gray-400 dark:text-slate-500 z-30`}>
+      <footer className={`mt-auto w-full ${GLOBAL_SCREEN_PADDING} py-4 bg-white dark:bg-slate-900 dark:border-slate-800/90 backdrop-blur-sm border-t border-gray-100 dark:border-slate-700 flex justify-between items-center text-[10px] uppercase font-black tracking-widest text-gray-400 dark:text-slate-500 z-30`}>
         <div className="flex flex-col gap-1 text-left">
-          <div className="normal-case">Desenvolvido por: <strong className="lowercase">lucas.doliveira@bradesco.com.br</strong></div>
+          <div className="normal-case font-ui">Desenvolvido por: <strong className="lowercase">lucas.doliveira@bradesco.com.br</strong></div>
           {lastSync && (
-            <div className="text-[9px] font-medium text-gray-400 dark:text-slate-500 normal-case">
+            <div className="text-[9px] font-medium text-gray-400 dark:text-slate-500 normal-case font-ui">
               Última sincronização: {lastSync}
             </div>
           )}
         </div>
-        <div className="uppercase">Salla.MKT V1.0.0</div>
+        <div className="uppercase font-ui tracking-wider">Salla.MKT V1.0.0</div>
       </footer>
 
       {/* Export Modal */}
