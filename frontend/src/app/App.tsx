@@ -2260,11 +2260,11 @@ export default function App() {
               <AnimatePresence>
                 {paginatedCards.map((item, index) => {
                 // Real Confluence status mapping
-                const realStatus = item.calculated_status || item.declared_status || 'NAO_IDENTIFICADO';
+                const realStatus = item.calculated_status || item.declared_status || null;
                 const isDoc = item.artifact_type === 'DOCUMENTACAO';
                 
                 let statusBadge = {
-                  label: realStatus,
+                  label: realStatus || 'Não Classificado',
                   bg: 'bg-slate-50 dark:bg-slate-800',
                   border: 'border-slate-200 dark:border-slate-700',
                   color: 'text-slate-700 dark:text-slate-300',
@@ -2287,45 +2287,45 @@ export default function App() {
                     color: 'text-emerald-700 dark:text-emerald-300',
                     icon: <CheckCircle2 className="w-3 h-3" />
                   };
-                } else if (realStatus === 'PARCIAL') {
-                  statusBadge = {
-                    label: 'Parcial',
-                    bg: 'bg-amber-50 dark:bg-amber-950/40',
-                    border: 'border-amber-200 dark:border-amber-800',
-                    color: 'text-amber-700 dark:text-amber-300',
-                    icon: <AlertTriangle className="w-3 h-3" />
-                  };
-                } else if (realStatus === 'CORRECAO') {
+                } else if (realStatus === 'CORRECAO' || realStatus === 'CORREÇÃO') {
                   statusBadge = {
                     label: 'Correção',
-                    bg: 'bg-orange-50 dark:bg-orange-950/40',
-                    border: 'border-orange-200 dark:border-orange-800',
-                    color: 'text-orange-700 dark:text-orange-300',
+                    bg: 'bg-rose-50 dark:bg-rose-950/40',
+                    border: 'border-rose-200 dark:border-rose-800',
+                    color: 'text-rose-700 dark:text-rose-300',
                     icon: <AlertTriangle className="w-3 h-3" />
                   };
                 } else if (realStatus === 'NOVO') {
                   statusBadge = {
                     label: 'Novo',
-                    bg: 'bg-blue-50 dark:bg-blue-950/40',
-                    border: 'border-blue-200 dark:border-blue-800',
-                    color: 'text-blue-700 dark:text-blue-300',
+                    bg: 'bg-amber-50 dark:bg-amber-950/40',
+                    border: 'border-amber-200 dark:border-amber-800',
+                    color: 'text-amber-800 dark:text-amber-300',
                     icon: <Sparkles className="w-3 h-3" />
                   };
                 } else if (realStatus === 'EXCLUIR') {
                   statusBadge = {
                     label: 'Excluir',
-                    bg: 'bg-rose-50 dark:bg-rose-950/40',
-                    border: 'border-rose-200 dark:border-rose-800',
-                    color: 'text-rose-700 dark:text-rose-300',
+                    bg: 'bg-slate-100 dark:bg-slate-800',
+                    border: 'border-slate-300 dark:border-slate-700',
+                    color: 'text-slate-700 dark:text-slate-300',
                     icon: <AlertCircle className="w-3 h-3" />
                   };
                 } else if (realStatus === 'DESCONTINUAR') {
                   statusBadge = {
                     label: 'Descontinuar',
-                    bg: 'bg-gray-100 dark:bg-slate-800',
-                    border: 'border-gray-300 dark:border-slate-700',
-                    color: 'text-gray-600 dark:text-slate-400',
+                    bg: 'bg-blue-50 dark:bg-blue-950/40',
+                    border: 'border-blue-200 dark:border-blue-800',
+                    color: 'text-blue-700 dark:text-blue-300',
                     icon: <Info className="w-3 h-3" />
+                  };
+                } else if (realStatus === 'PARCIAL') {
+                  statusBadge = {
+                    label: 'Parcial',
+                    bg: 'bg-purple-50 dark:bg-purple-950/40',
+                    border: 'border-purple-200 dark:border-purple-800',
+                    color: 'text-purple-700 dark:text-purple-300',
+                    icon: <AlertTriangle className="w-3 h-3" />
                   };
                 }
 

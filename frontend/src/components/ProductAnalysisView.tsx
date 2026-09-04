@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { 
-  Search, ChevronRight, ArrowUpRight, Filter
+  Search, ChevronRight, ArrowUpRight, Filter, AlertTriangle
 } from 'lucide-react';
 import { Artifact } from '../types';
 import { PageHeader } from './PageHeader';
+import { normalizarStatus, OfficialStatus, STATUS_CONFIGS } from '../utils/statusUtils';
 
 interface ProductAnalysisViewProps {
   artifacts: Artifact[];
@@ -32,14 +33,7 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
       mapasComTelas: number;
       mapasHomologados: number;
       mapasSemTelas: number;
-      screenStatusCounts: {
-        VALIDADO: number;
-        CORRECAO: number;
-        NOVO: number;
-        EXCLUIR: number;
-        DESCONTINUAR: number;
-        NAO_IDENTIFICADO: number;
-      };
+      screenStatusCounts: Record<OfficialStatus, number>;
       measurementCounts: Record<string, number>;
       parametersMap: Map<string, number>;
     }>();
@@ -57,11 +51,10 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
           mapasSemTelas: 0,
           screenStatusCounts: {
             VALIDADO: 0,
-            CORRECAO: 0,
+            'CORREÇÃO': 0,
             NOVO: 0,
             EXCLUIR: 0,
-            DESCONTINUAR: 0,
-            NAO_IDENTIFICADO: 0
+            DESCONTINUAR: 0
           },
           measurementCounts: { GA4: 0, GA3: 0, MISTO: 0, NAO_CLASSIFICADO: 0 },
           parametersMap: new Map()
@@ -75,14 +68,12 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
       const screens = art.screens || [];
       if (screens.length > 0) {
         pEntry.mapasComTelas++;
-        pEntry.totalTelas += screens.length;
         let allValidado = true;
         screens.forEach(s => {
-          const st = s.status || 'NAO_IDENTIFICADO';
-          if (pEntry.screenStatusCounts.hasOwnProperty(st)) {
-            pEntry.screenStatusCounts[st as keyof typeof pEntry.screenStatusCounts]++;
-          } else {
-            pEntry.screenStatusCounts.NAO_IDENTIFICADO++;
+          const st = normalizarStatus(s.status);
+          if (st) {
+            pEntry.screenStatusCounts[st]++;
+            pEntry.totalTelas++;
           }
           if (st !== 'VALIDADO') {
             allValidado = false;
@@ -93,15 +84,6 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
         }
       } else {
         pEntry.mapasSemTelas++;
-        // Fallback para status_summary se screens vier vazio
-        if (art.status_summary && Object.keys(art.status_summary).length > 0) {
-          for (const [k, v] of Object.entries(art.status_summary)) {
-            if (pEntry.screenStatusCounts.hasOwnProperty(k)) {
-              pEntry.screenStatusCounts[k as keyof typeof pEntry.screenStatusCounts] += Number(v) || 0;
-              pEntry.totalTelas += Number(v) || 0;
-            }
-          }
-        }
       }
 
       const mClass = art.measurement_class || (art.tipo_mapa?.toLowerCase().includes('ga4') ? 'GA4' : 'GA3');
@@ -158,13 +140,13 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
   // Métricas dinâmicas do produto / subproduto selecionado
   const selectedMetrics = useMemo(() => {
     let totalTelas = 0;
-    const statusCounts = {
+    let extractionErrorsCount = 0;
+    const statusCounts: Record<OfficialStatus, number> = {
       VALIDADO: 0,
-      CORRECAO: 0,
+      'CORREÇÃO': 0,
       NOVO: 0,
       EXCLUIR: 0,
-      DESCONTINUAR: 0,
-      NAO_IDENTIFICADO: 0
+      DESCONTINUAR: 0
     };
     const measurementCounts: Record<string, number> = {
       GA4: 0,
@@ -180,14 +162,14 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
       const screens = art.screens || [];
       if (screens.length > 0) {
         mapasComTelas++;
-        totalTelas += screens.length;
         let allValidado = true;
         screens.forEach(s => {
-          const st = s.status || 'NAO_IDENTIFICADO';
-          if (statusCounts.hasOwnProperty(st)) {
-            statusCounts[st as keyof typeof statusCounts]++;
+          const st = normalizarStatus(s.status);
+          if (st) {
+            statusCounts[st]++;
+            totalTelas++;
           } else {
-            statusCounts.NAO_IDENTIFICADO++;
+            extractionErrorsCount++;
           }
           if (st !== 'VALIDADO') {
             allValidado = false;
@@ -198,14 +180,6 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
         }
       } else {
         mapasSemTelas++;
-        if (art.status_summary && Object.keys(art.status_summary).length > 0) {
-          for (const [k, v] of Object.entries(art.status_summary)) {
-            if (statusCounts.hasOwnProperty(k)) {
-              statusCounts[k as keyof typeof statusCounts] += Number(v) || 0;
-              totalTelas += Number(v) || 0;
-            }
-          }
-        }
       }
 
       const mClass = art.measurement_class || (art.tipo_mapa?.toLowerCase().includes('ga4') ? 'GA4' : 'GA3');
@@ -223,7 +197,8 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
       mapasComTelas,
       mapasHomologados,
       mapasSemTelas,
-      taxaHomologacao
+      taxaHomologacao,
+      extractionErrorsCount
     };
   }, [selectedMaps]);
 
@@ -367,7 +342,7 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
                 </div>
               )}
 
-              {/* Distribuição de status das telas */}
+              {/* Distribuição de status das telas (5 status oficiais) */}
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-xs font-ui font-semibold uppercase text-gray-500 dark:text-slate-400 tracking-wider">
@@ -378,33 +353,41 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
                   </span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                  <div className="p-3 rounded-xl border text-center text-emerald-700 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800">
-                    <span className="text-lg font-heading font-bold block">{selectedMetrics.statusCounts.VALIDADO}</span>
+                  {/* VALIDADO: verde */}
+                  <div className="p-3 rounded-xl border text-center text-emerald-700 dark:text-emerald-400 bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800">
+                    <span className="text-lg font-heading font-bold block tabular-nums">{selectedMetrics.statusCounts.VALIDADO}</span>
                     <span className="text-[10px] font-medium uppercase tracking-wider">Validado</span>
                   </div>
-                  <div className="p-3 rounded-xl border text-center text-orange-700 dark:text-orange-400 bg-orange-50/60 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800">
-                    <span className="text-lg font-heading font-bold block">{selectedMetrics.statusCounts.CORRECAO}</span>
+                  {/* CORREÇÃO: vermelho */}
+                  <div className="p-3 rounded-xl border text-center text-rose-700 dark:text-rose-400 bg-rose-50/70 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800">
+                    <span className="text-lg font-heading font-bold block tabular-nums">{selectedMetrics.statusCounts['CORREÇÃO']}</span>
                     <span className="text-[10px] font-medium uppercase tracking-wider">Correção</span>
                   </div>
-                  <div className="p-3 rounded-xl border text-center text-blue-700 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800">
-                    <span className="text-lg font-heading font-bold block">{selectedMetrics.statusCounts.NOVO}</span>
+                  {/* NOVO: amarelo */}
+                  <div className="p-3 rounded-xl border text-center text-amber-800 dark:text-amber-300 bg-amber-50/70 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800">
+                    <span className="text-lg font-heading font-bold block tabular-nums">{selectedMetrics.statusCounts.NOVO}</span>
                     <span className="text-[10px] font-medium uppercase tracking-wider">Novo</span>
                   </div>
-                  <div className="p-3 rounded-xl border text-center text-rose-700 dark:text-rose-400 bg-rose-50/60 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800">
-                    <span className="text-lg font-heading font-bold block">{selectedMetrics.statusCounts.EXCLUIR}</span>
+                  {/* EXCLUIR: cinza */}
+                  <div className="p-3 rounded-xl border text-center text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700">
+                    <span className="text-lg font-heading font-bold block tabular-nums">{selectedMetrics.statusCounts.EXCLUIR}</span>
                     <span className="text-[10px] font-medium uppercase tracking-wider">Excluir</span>
                   </div>
-                  <div className="p-3 rounded-xl border text-center text-gray-700 dark:text-gray-400 bg-gray-100/80 dark:bg-slate-800 border-gray-200 dark:border-slate-700">
-                    <span className="text-lg font-heading font-bold block">{selectedMetrics.statusCounts.DESCONTINUAR}</span>
+                  {/* DESCONTINUAR: azul */}
+                  <div className="p-3 rounded-xl border text-center text-blue-700 dark:text-blue-400 bg-blue-50/70 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800">
+                    <span className="text-lg font-heading font-bold block tabular-nums">{selectedMetrics.statusCounts.DESCONTINUAR}</span>
                     <span className="text-[10px] font-medium uppercase tracking-wider">Descontinuar</span>
                   </div>
                 </div>
 
-                {/* Se existirem telas sem status lido, mostrar separadamente como Sem status */}
-                {selectedMetrics.statusCounts.NAO_IDENTIFICADO > 0 && (
-                  <div className="mt-2 p-2.5 rounded-xl border text-center text-amber-800 dark:text-amber-400 bg-amber-50/60 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 flex items-center justify-between text-xs font-medium px-4">
-                    <span>Sem status</span>
-                    <span className="text-sm font-heading font-bold">{selectedMetrics.statusCounts.NAO_IDENTIFICADO}</span>
+                {/* Diagnóstico técnico exclusivo em caso de falha de extração na fonte */}
+                {selectedMetrics.extractionErrorsCount > 0 && (
+                  <div className="mt-2 p-2.5 rounded-xl border border-amber-300 bg-amber-50/80 dark:bg-amber-950/30 text-amber-900 dark:text-amber-300 text-xs flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <span>{selectedMetrics.extractionErrorsCount} tela(s) com estrutura de status não reconhecida no Confluence.</span>
+                    </div>
+                    <span className="text-[11px] font-medium opacity-80">Falha de extração</span>
                   </div>
                 )}
               </div>

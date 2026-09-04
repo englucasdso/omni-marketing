@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Artifact } from '../types';
 import { PageHeader } from './PageHeader';
+import { normalizarStatus, OfficialStatus } from '../utils/statusUtils';
 
 interface CanonicalInsightsDashboardProps {
   artifacts: Artifact[];
@@ -41,13 +42,12 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
     let totalSnippets = 0;
     let divergentCount = 0;
 
-    const statusCounts: Record<string, number> = {
+    const screenStatusCounts: Record<OfficialStatus, number> = {
       VALIDADO: 0,
-      CORRECAO: 0,
+      'CORREÇÃO': 0,
       NOVO: 0,
       EXCLUIR: 0,
-      DESCONTINUAR: 0,
-      NAO_IDENTIFICADO: 0
+      DESCONTINUAR: 0
     };
 
     const measurementCounts: Record<string, number> = {
@@ -73,10 +73,15 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
       }
 
       const screens = art.screens || [];
-      totalScreens += screens.length;
-
-      const calcStatus = art.calculated_status || art.declared_status || 'NAO_IDENTIFICADO';
-      statusCounts[calcStatus] = (statusCounts[calcStatus] || 0) + 1;
+      // Contagem de status feita estritamente por tela
+      screens.forEach(sc => {
+        const norm = normalizarStatus(sc.status);
+        if (norm) {
+          screenStatusCounts[norm]++;
+          totalScreens++;
+        }
+        totalSnippets += (sc.snippets || []).length;
+      });
 
       const mClass = art.measurement_class || (art.tipo_mapa?.toLowerCase().includes('ga4') ? 'GA4' : 'GA3');
       measurementCounts[mClass] = (measurementCounts[mClass] || 0) + 1;
@@ -104,15 +109,11 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
         cur.count += pat.count;
         patternMap.set(pat.pattern_id, cur);
       });
-
-      screens.forEach(sc => {
-        totalSnippets += (sc.snippets || []).length;
-      });
     });
 
     const totalArtifacts = filteredArtifacts.length;
-    const validatedMaps = statusCounts.VALIDADO || 0;
-    const taxaHomologacao = totalArtifacts > 0 ? Math.round((validatedMaps / totalArtifacts) * 100) : 0;
+    const validatedScreens = screenStatusCounts.VALIDADO || 0;
+    const taxaHomologacao = totalScreens > 0 ? Math.round((validatedScreens / totalScreens) * 100) : 0;
     const taxaDivergencia = totalArtifacts > 0 ? Math.round((divergentCount / totalArtifacts) * 100) : 0;
 
     const topParameters = Array.from(paramMap.entries())
@@ -144,7 +145,7 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
       totalScreens,
       totalSnippets,
       totalParamsCount: paramMap.size,
-      statusCounts,
+      screenStatusCounts,
       measurementCounts,
       taxaHomologacao,
       divergentCount,
@@ -246,11 +247,11 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
           <div className="flex items-baseline gap-2 mt-1">
             <p className="kpi-number text-3xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{stats.taxaHomologacao}%</p>
             <span className="text-xs font-ui text-gray-400">
-              ({stats.statusCounts.VALIDADO} validados)
+              ({stats.screenStatusCounts.VALIDADO} validadas)
             </span>
           </div>
           <p className="text-[11px] font-ui text-gray-500 dark:text-slate-400 mt-2">
-            {stats.statusCounts.CORRECAO} mapas requerem correção
+            {stats.screenStatusCounts['CORREÇÃO']} telas requerem correção
           </p>
         </div>
 
@@ -270,31 +271,31 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
         </div>
       </div>
 
-      {/* Row 2: Distribuição de Status Real + Classificação de Mensuração */}
+      {/* Row 2: Distribuição de Status Real das Telas + Classificação de Mensuração */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Status Reais breakdown */}
         <div className="lg:col-span-7 flat-card p-6 md:p-8 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card space-y-5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-heading font-bold text-gray-900 dark:text-slate-50 uppercase tracking-wider">
-              Distribuição de Status Reais da Base
+              Distribuição de Status das Telas
             </h3>
-            <span className="text-xs font-ui text-gray-400">Apurados por telas</span>
+            <span className="text-xs font-ui text-gray-400">Apurados tela a tela</span>
           </div>
 
           <div className="space-y-3 font-ui">
             {[
-              { label: 'VALIDADO', count: stats.statusCounts.VALIDADO || 0, color: 'bg-emerald-500', text: 'text-emerald-700' },
-              { label: 'CORREÇÃO', count: stats.statusCounts.CORRECAO || 0, color: 'bg-orange-500', text: 'text-orange-700' },
-              { label: 'NOVO', count: stats.statusCounts.NOVO || 0, color: 'bg-blue-500', text: 'text-blue-700' },
-              { label: 'EXCLUIR', count: stats.statusCounts.EXCLUIR || 0, color: 'bg-rose-500', text: 'text-rose-700' },
-              { label: 'DESCONTINUAR', count: stats.statusCounts.DESCONTINUAR || 0, color: 'bg-gray-400', text: 'text-gray-600' },
+              { label: 'VALIDADO', count: stats.screenStatusCounts.VALIDADO || 0, color: 'bg-emerald-500', text: 'text-emerald-700 dark:text-emerald-400' },
+              { label: 'CORREÇÃO', count: stats.screenStatusCounts['CORREÇÃO'] || 0, color: 'bg-rose-500', text: 'text-rose-700 dark:text-rose-400' },
+              { label: 'NOVO', count: stats.screenStatusCounts.NOVO || 0, color: 'bg-amber-500', text: 'text-amber-800 dark:text-amber-400' },
+              { label: 'EXCLUIR', count: stats.screenStatusCounts.EXCLUIR || 0, color: 'bg-slate-400', text: 'text-slate-600 dark:text-slate-400' },
+              { label: 'DESCONTINUAR', count: stats.screenStatusCounts.DESCONTINUAR || 0, color: 'bg-blue-500', text: 'text-blue-700 dark:text-blue-400' },
             ].map(st => {
-              const pct = stats.totalArtifacts > 0 ? Math.round((st.count / stats.totalArtifacts) * 100) : 0;
+              const pct = stats.totalScreens > 0 ? Math.round((st.count / stats.totalScreens) * 100) : 0;
               return (
                 <div key={st.label} className="space-y-1">
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-gray-700 dark:text-slate-300">{st.label}</span>
-                    <span className="text-gray-500 tabular-nums">{st.count} mapas ({pct}%)</span>
+                    <span className="text-gray-500 tabular-nums">{st.count} telas ({pct}%)</span>
                   </div>
                   <div className="w-full bg-gray-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
                     <div style={{ width: `${pct}%` }} className={`h-full ${st.color} rounded-full transition-all duration-500`} />

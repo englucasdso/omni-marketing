@@ -3,35 +3,72 @@
  * Classifica artefatos em:
  * - artifact_type: MAPA | DOCUMENTACAO
  * - measurement_class: GA4 | GA3 | MISTO | NAO_CLASSIFICADO
- * Calcula distribuição dos 5 status reais:
- * NOVO, VALIDADO, CORRECAO, EXCLUIR, DESCONTINUAR (e NAO_IDENTIFICADO)
+ * Calcula distribuição dos 5 status reais oficiais:
+ * VALIDADO, CORREÇÃO, NOVO, EXCLUIR, DESCONTINUAR
+ * Regra de integridade: total_telas = VALIDADO + CORREÇÃO + NOVO + EXCLUIR + DESCONTINUAR
  */
 
 export class MeasurementClassifier {
+  /**
+   * Valida a regra de integridade para qualquer agrupamento:
+   * total de telas = VALIDADO + CORREÇÃO + NOVO + EXCLUIR + DESCONTINUAR
+   */
+  validateIntegrity(totalScreens, statusSummary = {}) {
+    const validado = Number(statusSummary.VALIDADO) || 0;
+    const correcao = Number(statusSummary['CORREÇÃO'] ?? statusSummary.CORRECAO) || 0;
+    const novo = Number(statusSummary.NOVO) || 0;
+    const excluir = Number(statusSummary.EXCLUIR) || 0;
+    const descontinuar = Number(statusSummary.DESCONTINUAR) || 0;
+
+    const sum = validado + correcao + novo + excluir + descontinuar;
+    return {
+      valid: totalScreens === sum,
+      totalScreens,
+      sum,
+      difference: totalScreens - sum
+    };
+  }
+
   /**
    * Determina a classificação de mensuração e sumários a partir das telas do mapa
    */
   classifyMap(screens = [], declaredStatus = '', context = {}) {
     const statusSummary = {
-      NOVO: 0,
       VALIDADO: 0,
-      CORRECAO: 0,
+      'CORREÇÃO': 0,
+      NOVO: 0,
       EXCLUIR: 0,
-      DESCONTINUAR: 0,
-      NAO_IDENTIFICADO: 0
+      DESCONTINUAR: 0
     };
 
     let hasGa3 = false;
     let hasGa4 = false;
     let totalSnippets = 0;
+    const extractionErrors = [];
 
     for (const screen of screens) {
-      // Contagem de status da tela
-      const normStatus = (screen.status || 'NAO_IDENTIFICADO').toUpperCase();
-      if (statusSummary.hasOwnProperty(normStatus)) {
+      // Contagem de status por tela individual (não por mapa)
+      const rawStatus = screen.status;
+      let normStatus = null;
+      if (typeof rawStatus === 'string') {
+        const clean = rawStatus.replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase();
+        if (clean === 'VALIDADO') normStatus = 'VALIDADO';
+        else if (clean === 'CORREÇÃO' || clean === 'CORRECAO') normStatus = 'CORREÇÃO';
+        else if (clean === 'NOVO') normStatus = 'NOVO';
+        else if (clean === 'EXCLUIR') normStatus = 'EXCLUIR';
+        else if (clean === 'DESCONTINUAR') normStatus = 'DESCONTINUAR';
+      }
+
+      if (normStatus && statusSummary.hasOwnProperty(normStatus)) {
         statusSummary[normStatus]++;
       } else {
-        statusSummary.NAO_IDENTIFICADO++;
+        // Falha de extração ou associação: registrar erro técnico, nunca adicionar a uma 6ª categoria
+        extractionErrors.push({
+          map_id: screen.map_id,
+          screen_id: screen.screen_id,
+          screen_index: screen.screen_index,
+          status_raw: screen.status_raw || screen.status || ''
+        });
       }
 
       // Avaliação de snippets
@@ -66,7 +103,6 @@ export class MeasurementClassifier {
     }
 
     // Classificação de mensuração:
-    // Quando não houver evidência suficiente de GA4 ou GA3, manter NAO_CLASSIFICADO
     let measurement_class = 'NAO_CLASSIFICADO';
     if (hasGa4 && hasGa3) {
       measurement_class = 'MISTO';
@@ -80,9 +116,8 @@ export class MeasurementClassifier {
     // Um mapa será considerado homologado somente quando:
     // - possuir pelo menos uma tela detectada;
     // - todas as telas detectadas estiverem com status VALIDADO.
-    // Nos demais casos, homologado deve ser false. Não utilizar saudável ou crítico.
     const totalScreens = screens.length;
-    let calculated_status = 'NAO_IDENTIFICADO';
+    let calculated_status = null;
     let homologado = false;
     if (totalScreens > 0) {
       if (statusSummary.VALIDADO === totalScreens) {
@@ -97,9 +132,14 @@ export class MeasurementClassifier {
     const normDeclared = this.normalizeDeclaredStatus(declaredStatus);
     const status_divergent = Boolean(
       normDeclared && 
-      calculated_status !== 'NAO_IDENTIFICADO' && 
+      calculated_status && 
       normDeclared !== calculated_status
     );
+
+    // Compatibilidade com acesso legados por 'CORRECAO' sem acento
+    statusSummary.CORRECAO = statusSummary['CORREÇÃO'];
+
+    const integrity = this.validateIntegrity(totalScreens, statusSummary);
 
     return {
       artifact_type,
@@ -108,7 +148,9 @@ export class MeasurementClassifier {
       declared_status: normDeclared || null,
       calculated_status,
       homologado,
-      status_divergent
+      status_divergent,
+      extraction_errors: extractionErrors,
+      integrity
     };
   }
 

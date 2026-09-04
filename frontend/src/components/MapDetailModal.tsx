@@ -6,6 +6,7 @@ import {
   Image as ImageIcon, HelpCircle
 } from 'lucide-react';
 import { Artifact, ScreenItem, SnippetItem, ParameterItem } from '../types';
+import { getStatusStyle, normalizarStatus } from '../utils/statusUtils';
 
 interface MapDetailModalProps {
   item: Artifact | null;
@@ -24,7 +25,7 @@ export const MapDetailModal: React.FC<MapDetailModalProps> = ({ item, onClose })
   const patterns = item.pattern_summary || [];
   const header = item.header || {};
 
-  const realStatus = item.calculated_status || item.declared_status || 'NAO_IDENTIFICADO';
+  const realStatus = item.calculated_status || item.declared_status || null;
   const isDoc = item.artifact_type === 'DOCUMENTACAO';
 
   const copyCode = (code: string, id: string) => {
@@ -40,23 +41,25 @@ export const MapDetailModal: React.FC<MapDetailModalProps> = ({ item, onClose })
     }));
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status?.toUpperCase()) {
-      case 'VALIDADO':
-        return { bg: 'bg-emerald-50 dark:bg-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-800', label: 'Validado' };
-      case 'CORRECAO':
-        return { bg: 'bg-orange-50 dark:bg-orange-950/40', text: 'text-orange-700 dark:text-orange-300', border: 'border-orange-200 dark:border-orange-800', label: 'Correção' };
-      case 'NOVO':
-        return { bg: 'bg-blue-50 dark:bg-blue-950/40', text: 'text-blue-700 dark:text-blue-300', border: 'border-blue-200 dark:border-blue-800', label: 'Novo' };
-      case 'EXCLUIR':
-        return { bg: 'bg-rose-50 dark:bg-rose-950/40', text: 'text-rose-700 dark:text-rose-300', border: 'border-rose-200 dark:border-rose-800', label: 'Excluir' };
-      case 'DESCONTINUAR':
-        return { bg: 'bg-gray-100 dark:bg-slate-800', text: 'text-gray-600 dark:text-slate-400', border: 'border-gray-200 dark:border-slate-700', label: 'Descontinuar' };
-      case 'PARCIAL':
-        return { bg: 'bg-amber-50 dark:bg-amber-950/40', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-800', label: 'Parcial' };
-      default:
-        return { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-600 dark:text-slate-400', border: 'border-slate-200 dark:border-slate-700', label: status || 'Não Identificado' };
+  const getStatusBadge = (status?: string | null) => {
+    const norm = normalizarStatus(status);
+    if (norm) {
+      return getStatusStyle(norm);
     }
+    if (status?.toUpperCase() === 'PARCIAL') {
+      return { 
+        bg: 'bg-purple-50 dark:bg-purple-950/40', 
+        text: 'text-purple-700 dark:text-purple-300', 
+        border: 'border-purple-200 dark:border-purple-800', 
+        label: 'Parcial' 
+      };
+    }
+    return { 
+      bg: 'bg-slate-100 dark:bg-slate-800', 
+      text: 'text-slate-600 dark:text-slate-400', 
+      border: 'border-slate-200 dark:border-slate-700', 
+      label: status || 'Não Classificado' 
+    };
   };
 
   const getValueTypeBadge = (type: string) => {

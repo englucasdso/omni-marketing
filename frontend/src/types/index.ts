@@ -1,6 +1,6 @@
 export type ArtifactType = 'MAPA' | 'DOCUMENTACAO';
 export type MeasurementClass = 'GA4' | 'GA3' | 'MISTO' | 'NAO_CLASSIFICADO';
-export type ScreenStatus = 'NOVO' | 'VALIDADO' | 'CORRECAO' | 'EXCLUIR' | 'DESCONTINUAR' | 'NAO_IDENTIFICADO';
+export type ScreenStatus = 'NOVO' | 'VALIDADO' | 'CORREÇÃO' | 'CORRECAO' | 'EXCLUIR' | 'DESCONTINUAR';
 export type ValueType = 'PLACEHOLDER' | 'HARDCODED' | 'JAVASCRIPT_REFERENCE' | 'BOOLEAN' | 'NUMBER' | 'NULL' | 'EMPTY' | 'UNKNOWN';
 
 export interface HeaderField {
@@ -60,13 +60,13 @@ export interface ScreenItem {
 }
 
 export interface StatusSummary {
-  NOVO: number;
   VALIDADO: number;
-  CORRECAO: number;
+  'CORREÇÃO': number;
+  NOVO: number;
   EXCLUIR: number;
   DESCONTINUAR: number;
-  NAO_IDENTIFICADO: number;
-  [key: string]: number;
+  CORRECAO?: number;
+  [key: string]: number | undefined;
 }
 
 export interface ParameterSummaryItem {

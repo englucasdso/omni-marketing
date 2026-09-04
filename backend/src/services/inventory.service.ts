@@ -61,12 +61,12 @@ export function getInventoryData() {
 
 export function calculateInsights(inventory: any[]) {
   const statusCounts = {
-    NOVO: 0,
     VALIDADO: 0,
-    CORRECAO: 0,
+    'CORREÇÃO': 0,
+    NOVO: 0,
     EXCLUIR: 0,
     DESCONTINUAR: 0,
-    NAO_IDENTIFICADO: 0
+    CORRECAO: 0
   };
 
   const measurementCounts = {
@@ -100,15 +100,29 @@ export function calculateInsights(inventory: any[]) {
       const screens = item.screens || [];
       totalScreens += screens.length;
 
-      if (item.status_summary) {
-        for (const [key, val] of Object.entries(item.status_summary)) {
-          if (statusCounts.hasOwnProperty(key)) {
-            statusCounts[key as keyof typeof statusCounts] += Number(val) || 0;
+      // Contagem oficial por tela
+      for (const sc of screens) {
+        const raw = sc.status;
+        if (typeof raw === 'string') {
+          const clean = raw.replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase();
+          if (clean === 'VALIDADO') {
+            statusCounts.VALIDADO++;
+          } else if (clean === 'CORREÇÃO' || clean === 'CORRECAO') {
+            statusCounts['CORREÇÃO']++;
+            statusCounts.CORRECAO++;
+          } else if (clean === 'NOVO') {
+            statusCounts.NOVO++;
+          } else if (clean === 'EXCLUIR') {
+            statusCounts.EXCLUIR++;
+          } else if (clean === 'DESCONTINUAR') {
+            statusCounts.DESCONTINUAR++;
           }
         }
       }
     }
   }
+
+  const sumOfficial = statusCounts.VALIDADO + statusCounts['CORREÇÃO'] + statusCounts.NOVO + statusCounts.EXCLUIR + statusCounts.DESCONTINUAR;
 
   return {
     total: totalArtifacts,
@@ -118,6 +132,12 @@ export function calculateInsights(inventory: any[]) {
     divergentCount,
     statusCounts,
     measurementCounts,
+    integrity: {
+      valid: totalScreens === sumOfficial,
+      totalScreens,
+      sum: sumOfficial,
+      difference: totalScreens - sumOfficial
+    },
     recent: totalArtifacts > 0 ? 1 : 0
   };
 }

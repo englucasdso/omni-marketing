@@ -202,52 +202,61 @@ export class MapReader {
 
   /**
    * Normalização dos 5 status reais:
-   * NOVO, VALIDADO, CORRECAO, EXCLUIR, DESCONTINUAR (ou NAO_IDENTIFICADO)
+   * Normalização oficial dos 5 status de tela permitidos:
+   * VALIDADO, CORREÇÃO, NOVO, EXCLUIR, DESCONTINUAR.
+   * Não cria novos valores, não infere por cor.
    */
   normalizarStatusTela(rawStatus) {
     if (!rawStatus || typeof rawStatus !== 'string') {
-      return { status: 'NAO_IDENTIFICADO', status_raw: '' };
+      return { status: null, status_raw: '' };
     }
     const raw = rawStatus.trim();
     if (!raw) {
-      return { status: 'NAO_IDENTIFICADO', status_raw: '' };
+      return { status: null, status_raw: '' };
     }
 
+    // Normalização estrita:
+    // - remover espaços extras e quebras de linha
+    // - converter para maiúsculas
+    // - aceitar diferença de acentuação somente para reconhecer CORREÇÃO
+    // - não criar novos valores
+    // - não inferir status por cor ou classes
     const clean = raw
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toUpperCase()
-      .trim();
+      .replace(/[\r\n\t]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toUpperCase();
 
-    if (clean === 'VALIDADO' || clean.includes('VALIDADO') || clean.includes('HOMOLOGADO') || clean.includes('APROVADO')) {
+    if (clean === 'VALIDADO') {
       return { status: 'VALIDADO', status_raw: raw };
     }
-    if (clean === 'CORRECAO' || clean.includes('CORRECAO') || clean.includes('CORREÇAO') || clean.includes('AJUSTE') || clean.includes('BUG')) {
-      return { status: 'CORRECAO', status_raw: raw };
+    if (clean === 'CORREÇÃO' || clean === 'CORRECAO') {
+      return { status: 'CORREÇÃO', status_raw: raw };
     }
-    if (clean === 'NOVO' || clean.includes('NOVO') || clean.includes('NOVA')) {
+    if (clean === 'NOVO') {
       return { status: 'NOVO', status_raw: raw };
     }
-    if (clean === 'EXCLUIR' || clean.includes('EXCLUIR') || clean.includes('EXCLUSAO') || clean.includes('EXCLUIDO')) {
+    if (clean === 'EXCLUIR') {
       return { status: 'EXCLUIR', status_raw: raw };
     }
-    if (clean === 'DESCONTINUAR' || clean.includes('DESCONTINUAR') || clean.includes('DESCONTINUADO')) {
+    if (clean === 'DESCONTINUAR') {
       return { status: 'DESCONTINUAR', status_raw: raw };
     }
 
-    return { status: 'NAO_IDENTIFICADO', status_raw: raw };
+    // Qualquer outro valor é tratado como falha de extração (não reconhecido)
+    return { status: null, status_raw: raw };
   }
 
   /**
-   * Extração de status semântico da segunda célula de uma linha de Status da tela
-   * Seletor semântico principal: [data-macro-name="status"], .status-macro, .aui-lozenge
+   * Extração de status semântico da célula de uma linha de Status da tela
+   * Seletor semântico principal: .status-macro[data-macro-name="status"], [data-macro-name="status"]
    * Fallback: texto da própria célula
    */
   extrairStatusDaCelula(secondCellHtml) {
-    if (!secondCellHtml) return { status: 'NAO_IDENTIFICADO', status_raw: '' };
+    if (!secondCellHtml) return { status: null, status_raw: '' };
 
-    // Procura macro de status: [data-macro-name="status"], .status-macro, .aui-lozenge
-    // Não depende da cor nem de classes visuais como success ou moved
+    // Procura macro de status: [data-macro-name="status"], .status-macro
+    // Não depende de cor nem de classes cosméticas
     const macroRegex = /<[^>]+(?:data-macro-name=["']status["']|class=["'][^"']*\b(?:status-macro|aui-lozenge)\b[^"']*)[^>]*>([\s\S]*?)<\/[a-z0-9]+>/i;
     const match = secondCellHtml.match(macroRegex);
 
@@ -256,7 +265,7 @@ export class MapReader {
       rawVal = this.limpar(match[1]).trim();
     }
 
-    // Se o macro não existir, usa o texto da segunda célula como fallback
+    // Se o macro não existir, usa o texto da célula como fallback
     if (!rawVal) {
       rawVal = this.limpar(secondCellHtml).trim();
     }
@@ -426,7 +435,7 @@ export class MapReader {
 
       // Se contém ao menos 2 indicadores de tela (evita legendas e tabelas arbitrárias)
       if (matchScore >= 2) {
-        let statusObj = { status: 'NAO_IDENTIFICADO', status_raw: '' };
+        let statusObj = { status: null, status_raw: '' };
         let instruction = '';
         let screenName = '';
         let additionalInfo = '';
@@ -438,9 +447,8 @@ export class MapReader {
 
           // 4. encontrar a linha cujo rótulo seja Status
           if (screenLabelPatterns.status.some(p => labelNorm === p || labelNorm.startsWith(p))) {
-            // 5. procurar na segunda célula: [data-macro-name="status"], .status-macro, .aui-lozenge
-            // 6. ler o valor com textContent.trim()
-            // 7. se o macro não existir, usar o texto da segunda célula como fallback
+            // 5. procurar na segunda célula: [data-macro-name="status"], .status-macro
+            // 6. ler o valor com normalização oficial
             statusObj = this.extrairStatusDaCelula(secondCellHtml);
           } else if (screenLabelPatterns.instruction.some(p => labelNorm === p || labelNorm.startsWith(p))) {
             if (!instruction) instruction = this.limpar(secondCellHtml);
@@ -453,6 +461,33 @@ export class MapReader {
             const imgMatch = secondCellHtml.match(/<img[^>]+src=["']([^"']+)["']/i);
             if (imgMatch) imageName = imgMatch[1];
           }
+        }
+
+        // Se não foi identificado pela linha rotulada Status, busca macro de status na tabela
+        if (!statusObj.status) {
+          const macroInTableRegex = /<[^>]+(?:data-macro-name=["']status["']|class=["'][^"']*\bstatus-macro\b[^"']*)[^>]*>([\s\S]*?)<\/[a-z0-9]+>/i;
+          const tableMacroMatch = tableContent.match(macroInTableRegex);
+          if (tableMacroMatch && tableMacroMatch[1]) {
+            const rawInTable = this.limpar(tableMacroMatch[1]).trim();
+            const norm = this.normalizarStatusTela(rawInTable);
+            if (norm.status) {
+              statusObj = norm;
+            }
+          }
+        }
+
+        // Se a tela realmente não puder ser associada a um status durante a coleta:
+        // registrar erro técnico, não inventar status, não publicar "Sem status"
+        let technicalError = null;
+        if (!statusObj.status) {
+          technicalError = {
+            type: 'STATUS_EXTRACTION_FAILURE',
+            mapId,
+            produto,
+            screenIndex,
+            snippetSnippet: tableContent.replace(/\s+/g, ' ').slice(0, 160)
+          };
+          console.warn(`[MapReader] Falha técnica de extração de status da tela: mapa=${mapId}, tela=${screenIndex}`);
         }
 
         // Extrai snippets dentro desta tabela da tela
@@ -478,13 +513,14 @@ export class MapReader {
           map_id: mapId,
           screen_id: screenId,
           screen_index: screenIndex,
-          status_raw: statusObj.status_raw,
+          status_raw: statusObj.status_raw || '',
           status: statusObj.status,
           instruction: instruction || screenName || 'Instrução de disparo',
           image_name: imageName || '',
           additional_information: additionalInfo || '',
           evidence: evidence || '',
-          snippets: parsedSnippets
+          snippets: parsedSnippets,
+          ...(technicalError ? { technical_error: technicalError } : {})
         });
 
         screenIndex++;
@@ -508,12 +544,19 @@ export class MapReader {
           screen_id: screenId,
           screen_index: idx,
           status_raw: '',
-          status: 'NAO_IDENTIFICADO',
+          status: null,
           instruction: `Disparo ${idx + 1}`,
           image_name: '',
           additional_information: '',
           evidence: '',
-          snippets: [parsedSnippet]
+          snippets: [parsedSnippet],
+          technical_error: {
+            type: 'STATUS_EXTRACTION_FAILURE',
+            mapId,
+            produto,
+            screenIndex: idx,
+            reason: 'Bloco de snippet isolado sem tabela de tela ou macro de status'
+          }
         });
       });
     }
