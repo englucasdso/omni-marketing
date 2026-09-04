@@ -27,6 +27,9 @@ import { ProductAnalysisView } from "../components/ProductAnalysisView";
 import { ParameterAnalysisView } from "../components/ParameterAnalysisView";
 import { CanonicalInsightsDashboard } from "../components/CanonicalInsightsDashboard";
 
+// Espaçamento lateral global reutilizado no cabeçalho e rodapé para alinhamento no mesmo eixo vertical
+const GLOBAL_SCREEN_PADDING = "px-6 sm:px-8";
+
 const INITIAL_USERS: UserType[] = [
   {
     id: '1',
@@ -1373,43 +1376,44 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <div className={`flex flex-col flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 pt-8 pb-32 transition-all relative ${appState === 'auth' ? 'opacity-0 pointer-events-none absolute' : 'opacity-100 relative'}`}>
-        {/* Header */}
-        <header className="flex justify-between items-center mb-12 relative z-40">
-          <div className="flex items-center gap-8 flex-1">
-            <div className="flex flex-col cursor-pointer group" onClick={() => { setAppState('initial'); setQuery(''); setTableFilter(''); }}>
-              <div className="flex items-center gap-3">
-                <h1 className="brand-text text-2xl font-black tracking-tight text-gray-900 group-hover:text-red-600 transition-colors">
-                  Omni Marketing
-                </h1>
-              </div>
+      {/* Header com margem global da tela (fora do container central) */}
+      <header className={`w-full ${GLOBAL_SCREEN_PADDING} pt-8 mb-8 flex justify-between items-center relative z-40 transition-all ${appState === 'auth' ? 'opacity-0 pointer-events-none absolute' : 'opacity-100 relative'}`}>
+        <div className="flex items-center gap-8 flex-1">
+          <div className="flex flex-col cursor-pointer group" onClick={() => { setAppState('initial'); setQuery(''); setTableFilter(''); }}>
+            <div className="flex items-center gap-3">
+              <h1 className="brand-text text-2xl font-black tracking-tight text-gray-900 group-hover:text-red-600 transition-colors">
+                Omni Marketing
+              </h1>
             </div>
           </div>
+        </div>
 
-          <div className="flex items-center gap-4 text-sm font-medium text-gray-500 shrink-0">
-            <div className="flex items-center gap-2">
-              {appState !== 'home' && appState !== 'initial' && appState !== 'events_capture' && (
-                <button 
-                  onClick={handleBack}
-                  className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-100 shadow-sm hover:border-gray-300 hover:text-gray-900 transition-all font-bold text-[10px] uppercase tracking-wider h-10"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                  Voltar
-                </button>
-              )}
-            </div>
-
-            {!loading && appState === "inventory_table" && (
+        <div className="flex items-center gap-4 text-sm font-medium text-gray-500 shrink-0">
+          <div className="flex items-center gap-2">
+            {appState !== 'home' && appState !== 'initial' && appState !== 'events_capture' && (
               <button 
-                onClick={() => setShowExportModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-100 shadow-sm hover:border-bradesco-red hover:text-bradesco-red transition-all font-bold text-xs uppercase tracking-wider h-10"
+                onClick={handleBack}
+                className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-100 shadow-sm hover:border-gray-300 hover:text-gray-900 transition-all font-bold text-[10px] uppercase tracking-wider h-10"
               >
-                <Download className="w-3.5 h-3.5" />
-                Extrair Dados
+                <ChevronLeft className="w-3.5 h-3.5" />
+                Voltar
               </button>
             )}
           </div>
-        </header>
+
+          {!loading && appState === "inventory_table" && (
+            <button 
+              onClick={() => setShowExportModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-100 shadow-sm hover:border-bradesco-red hover:text-bradesco-red transition-all font-bold text-xs uppercase tracking-wider h-10"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Extrair Dados
+            </button>
+          )}
+        </div>
+      </header>
+
+      <div className={`flex flex-col flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 pb-32 transition-all relative ${appState === 'auth' ? 'opacity-0 pointer-events-none absolute' : 'opacity-100 relative'}`}>
 
         {!hasPermission ? (
           <div className="flex flex-col items-center justify-center flex-1 py-32 text-center mt-32">
@@ -2589,7 +2593,7 @@ export default function App() {
       </div>
 
       {/* Static Footer */}
-      <footer className="fixed bottom-0 left-0 w-full px-8 py-4 bg-white dark:bg-slate-900 dark:border-slate-800/90 backdrop-blur-sm border-t border-gray-100 dark:border-slate-700 flex justify-between items-center text-[10px] uppercase font-black tracking-widest text-gray-400 dark:text-slate-500 z-30">
+      <footer className={`fixed bottom-0 left-0 w-full ${GLOBAL_SCREEN_PADDING} py-4 bg-white dark:bg-slate-900 dark:border-slate-800/90 backdrop-blur-sm border-t border-gray-100 dark:border-slate-700 flex justify-between items-center text-[10px] uppercase font-black tracking-widest text-gray-400 dark:text-slate-500 z-30`}>
         <div className="flex flex-col gap-1 text-left">
           <div className="normal-case">Desenvolvido por: <strong className="lowercase">lucas.doliveira@bradesco.com.br</strong></div>
           {lastSync && (
