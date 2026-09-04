@@ -204,7 +204,7 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Card 1: Total Artefatos */}
         <div className="flat-card p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card relative overflow-hidden">
-          <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-3">
+          <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-700 shadow-neu-raised flex items-center justify-center mb-3">
             <Target className="w-5 h-5" />
           </div>
           <p className="text-[10px] font-ui font-semibold uppercase text-gray-400 tracking-wider">Artefatos Catalogados</p>
@@ -223,13 +223,13 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
 
         {/* Card 2: Telas & Snippets */}
         <div className="flat-card p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card relative overflow-hidden">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-3">
+          <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-700 shadow-neu-raised flex items-center justify-center mb-3">
             <Layers className="w-5 h-5" />
           </div>
           <p className="text-[10px] font-ui font-semibold uppercase text-gray-400 tracking-wider">Telas & Snippets</p>
           <div className="flex items-baseline gap-2 mt-1">
             <p className="kpi-number text-3xl font-bold text-gray-900 dark:text-slate-50 tabular-nums">{stats.totalScreens}</p>
-            <span className="text-xs font-ui font-semibold text-blue-600 dark:text-blue-400">
+            <span className="text-xs font-ui font-medium text-gray-600 dark:text-slate-300">
               telas estruturadas
             </span>
           </div>
@@ -240,7 +240,7 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
 
         {/* Card 3: Taxa de Homologação */}
         <div className="flat-card p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card relative overflow-hidden">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 shadow-neu-raised flex items-center justify-center mb-3">
             <ShieldCheck className="w-5 h-5" />
           </div>
           <p className="text-[10px] font-ui font-semibold uppercase text-gray-400 tracking-wider">Taxa de Homologação</p>
@@ -257,7 +257,7 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
 
         {/* Card 4: Parâmetros Distintos */}
         <div className="flat-card p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card relative overflow-hidden">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-3">
+          <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-700 shadow-neu-raised flex items-center justify-center mb-3">
             <Tag className="w-5 h-5" />
           </div>
           <p className="text-[10px] font-ui font-semibold uppercase text-gray-400 tracking-wider">Parâmetros Mapeados</p>
@@ -316,24 +316,24 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
           </div>
 
           <div className="grid grid-cols-2 gap-3 pt-2 font-ui">
-            <div className="p-4 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 text-center shadow-neu-raised">
-              <span className="text-[10px] font-semibold uppercase text-emerald-600 dark:text-emerald-400 block">GA4 Puro</span>
-              <span className="text-2xl font-heading font-bold text-emerald-700 dark:text-emerald-300 tabular-nums">{stats.measurementCounts.GA4 || 0}</span>
+            <div className="p-4 rounded-xl bg-gray-50/80 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700 text-center shadow-neu-raised">
+              <span className="text-[10px] font-medium uppercase text-gray-500 dark:text-slate-400 block">GA4 Puro</span>
+              <span className="text-2xl font-heading font-bold text-gray-900 dark:text-slate-100 tabular-nums">{stats.measurementCounts.GA4 || 0}</span>
               <span className="text-[10px] text-gray-400 block mt-1">100% compliant</span>
             </div>
-            <div className="p-4 rounded-xl bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900 text-center shadow-neu-raised">
-              <span className="text-[10px] font-semibold uppercase text-rose-600 dark:text-rose-400 block">Universal (GA3)</span>
-              <span className="text-2xl font-heading font-bold text-rose-700 dark:text-rose-300 tabular-nums">{stats.measurementCounts.GA3 || 0}</span>
+            <div className="p-4 rounded-xl bg-gray-50/80 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700 text-center shadow-neu-raised">
+              <span className="text-[10px] font-medium uppercase text-gray-500 dark:text-slate-400 block">Universal (GA3)</span>
+              <span className="text-2xl font-heading font-bold text-gray-900 dark:text-slate-100 tabular-nums">{stats.measurementCounts.GA3 || 0}</span>
               <span className="text-[10px] text-gray-400 block mt-1">Legado</span>
             </div>
-            <div className="p-4 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 text-center shadow-neu-raised">
-              <span className="text-[10px] font-semibold uppercase text-amber-600 dark:text-amber-400 block">Misto</span>
-              <span className="text-2xl font-heading font-bold text-amber-700 dark:text-amber-300 tabular-nums">{stats.measurementCounts.MISTO || 0}</span>
+            <div className="p-4 rounded-xl bg-gray-50/80 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700 text-center shadow-neu-raised">
+              <span className="text-[10px] font-medium uppercase text-gray-500 dark:text-slate-400 block">Misto</span>
+              <span className="text-2xl font-heading font-bold text-gray-900 dark:text-slate-100 tabular-nums">{stats.measurementCounts.MISTO || 0}</span>
               <span className="text-[10px] text-gray-400 block mt-1">Híbrido</span>
             </div>
-            <div className="p-4 rounded-xl bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-center shadow-neu-raised">
-              <span className="text-[10px] font-semibold uppercase text-gray-500 block">Não Classificado</span>
-              <span className="text-2xl font-heading font-bold text-gray-700 dark:text-slate-300 tabular-nums">{stats.measurementCounts.NAO_CLASSIFICADO || 0}</span>
+            <div className="p-4 rounded-xl bg-gray-50/80 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700 text-center shadow-neu-raised">
+              <span className="text-[10px] font-medium uppercase text-gray-500 dark:text-slate-400 block">Não Classificado</span>
+              <span className="text-2xl font-heading font-bold text-gray-900 dark:text-slate-100 tabular-nums">{stats.measurementCounts.NAO_CLASSIFICADO || 0}</span>
               <span className="text-[10px] text-gray-400 block mt-1">Docs / Outros</span>
             </div>
           </div>
@@ -346,7 +346,7 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
         <div className="lg:col-span-7 flat-card p-6 md:p-8 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card space-y-4">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-heading font-bold text-gray-900 dark:text-slate-50 uppercase tracking-wider flex items-center gap-2">
-              <Tag className="w-4 h-4 text-purple-600" />
+              <Tag className="w-4 h-4 text-gray-500 dark:text-slate-400" />
               Top 10 Parâmetros Mais Utilizados
             </h3>
             <span className="text-xs font-ui text-gray-400">Frequência em snippets</span>
@@ -356,10 +356,10 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
             {stats.topParameters.map((param, idx) => (
               <div 
                 key={param.name}
-                className="p-3 bg-gray-50 dark:bg-slate-800/80 rounded-xl border border-gray-200 dark:border-slate-700 flex items-center justify-between"
+                className="p-3 bg-gray-50/80 dark:bg-slate-800/80 rounded-xl border border-gray-200 dark:border-slate-700 flex items-center justify-between shadow-neu-raised"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-xs font-heading font-bold text-purple-600 w-5">#{idx + 1}</span>
+                  <span className="text-xs font-heading font-bold text-gray-400 w-5">#{idx + 1}</span>
                   <span className="font-mono text-xs font-semibold text-gray-900 dark:text-slate-100 truncate">
                     {param.name}
                   </span>
@@ -377,7 +377,7 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
         <div className="lg:col-span-5 flat-card p-6 md:p-8 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card space-y-4">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-heading font-bold text-gray-900 dark:text-slate-50 uppercase tracking-wider flex items-center gap-2">
-              <Code2 className="w-4 h-4 text-blue-600" />
+              <Code2 className="w-4 h-4 text-gray-500 dark:text-slate-400" />
               Padrões de Eventos Recorrentes
             </h3>
           </div>
@@ -386,20 +386,20 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
             {stats.topPatterns.length === 0 ? (
               <p className="text-xs font-ui text-gray-400 italic">Nenhum padrão estrutural catalogado.</p>
             ) : (
-              stats.topPatterns.map((pat, idx) => (
+              stats.topPatterns.map((pat) => (
                 <div 
                   key={pat.id}
-                  className="p-3.5 bg-gray-50 dark:bg-slate-800/80 rounded-xl border border-gray-200 dark:border-slate-700 flex items-center justify-between"
+                  className="p-3.5 bg-gray-50/80 dark:bg-slate-800/80 rounded-xl border border-gray-200 dark:border-slate-700 flex items-center justify-between shadow-neu-raised"
                 >
                   <div>
-                    <span className="font-mono text-xs font-bold text-gray-900 dark:text-slate-100 block">
+                    <span className="font-mono text-xs font-semibold text-gray-900 dark:text-slate-100 block">
                       {pat.event || pat.id}
                     </span>
-                    <span className="text-[10px] font-ui font-semibold text-purple-600">
+                    <span className="text-[10px] font-ui font-medium text-gray-500 dark:text-slate-400">
                       ID: {pat.id}
                     </span>
                   </div>
-                  <span className="px-2.5 py-1 bg-white dark:bg-slate-700 text-xs font-heading font-bold rounded-lg border border-gray-200 dark:border-slate-600 shadow-neu-raised tabular-nums">
+                  <span className="px-2.5 py-1 bg-white dark:bg-slate-700 text-xs font-heading font-bold text-gray-800 dark:text-slate-200 rounded-lg border border-gray-200 dark:border-slate-600 shadow-neu-raised tabular-nums">
                     {pat.count}x
                   </span>
                 </div>
@@ -451,7 +451,7 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
                   <span className="text-xs font-ui font-bold text-gray-900 dark:text-slate-100">{p.name}</span>
                 </div>
                 <div className="flex items-center gap-2 font-ui">
-                  <span className="text-xs font-heading font-bold text-blue-600 dark:text-blue-400 tabular-nums">{p.screens} telas</span>
+                  <span className="text-xs font-heading font-bold text-gray-800 dark:text-slate-200 tabular-nums">{p.screens} telas</span>
                   <ArrowUpRight className="w-3.5 h-3.5 text-gray-400" />
                 </div>
               </div>

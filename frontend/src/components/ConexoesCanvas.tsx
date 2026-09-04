@@ -28,18 +28,18 @@ const defaultEdgeOptions = {
 const ProdutoNode = React.memo(({ data }: any) => {
   return (
     <>
-      <div className="p-8 glass-card rounded-[40px] border border-purple-500/20 bg-purple-50/50 dark:bg-purple-900/20 shadow-2xl dark:shadow-none min-w-[250px] relative backdrop-blur-xl transition-all hover:border-purple-400/50">
+      <div className="p-6 flat-card rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-850 shadow-neu-card min-w-[250px] relative transition-all hover:border-gray-300">
         <button 
           onClick={data.onToggle}
-          className="absolute -top-4 -right-4 bg-white dark:bg-slate-900 border-2 border-purple-200 text-purple-600 text-xs font-black min-w-[40px] h-[40px] flex items-center justify-center rounded-2xl shadow-lg dark:shadow-none z-20 hover:scale-110 active:scale-95 cursor-pointer transition-transform"
+          className="absolute -top-3 -right-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 text-xs font-ui font-semibold min-w-[32px] h-[32px] flex items-center justify-center rounded-xl shadow-neu-raised z-20 hover:scale-105 active:scale-95 cursor-pointer transition-transform"
           title={data.isCollapsed ? "Expandir" : "Recolher"}
         >
           {data.count}
         </button>
-        <span className="text-[10px] font-black text-purple-600 uppercase tracking-[0.2em] block mb-2">Produto</span>
-        <h4 className="text-xl font-bold text-gray-900 dark:text-slate-50 tracking-tight leading-tight">{data.label}</h4>
+        <span className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Produto</span>
+        <h4 className="text-base font-heading font-bold text-gray-900 dark:text-slate-50 tracking-tight leading-tight">{data.label}</h4>
       </div>
-      <Handle type="source" position={Position.Right} className="!w-3 !h-3 !bg-purple-400 !border-2 !border-white dark:!border-slate-800" />
+      <Handle type="source" position={Position.Right} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
     </>
   );
 });
@@ -48,19 +48,19 @@ const ProdutoNode = React.memo(({ data }: any) => {
 const SubprodutoNode = React.memo(({ data }: any) => {
   return (
     <>
-      <Handle type="target" position={Position.Left} className="!w-3 !h-3 !bg-blue-400 !border-2 !border-white dark:!border-slate-800" />
-      <div className="p-7 glass-card rounded-[35px] border border-blue-500/20 bg-blue-50/50 dark:bg-blue-900/20 shadow-xl dark:shadow-none min-w-[250px] relative backdrop-blur-xl transition-all hover:border-blue-400/50">
+      <Handle type="target" position={Position.Left} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
+      <div className="p-5 flat-card rounded-2xl border border-gray-200 dark:border-slate-800 bg-gray-50/90 dark:bg-slate-800/90 shadow-neu-card min-w-[240px] relative transition-all hover:border-gray-300">
         <button 
           onClick={data.onToggle}
-          className="absolute -top-4 -right-4 bg-white dark:bg-slate-900 border-2 border-blue-200 text-blue-600 text-xs font-black min-w-[40px] h-[40px] flex items-center justify-center rounded-2xl shadow-lg dark:shadow-none z-20 hover:scale-110 active:scale-95 cursor-pointer transition-transform"
+          className="absolute -top-3 -right-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 text-xs font-ui font-semibold min-w-[32px] h-[32px] flex items-center justify-center rounded-xl shadow-neu-raised z-20 hover:scale-105 active:scale-95 cursor-pointer transition-transform"
           title={data.isCollapsed ? "Expandir" : "Recolher"}
         >
           {data.count}
         </button>
-        <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] block mb-2">Subproduto</span>
-        <h4 className="text-lg font-bold text-gray-900 dark:text-slate-50 tracking-tight">{data.label}</h4>
+        <span className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Subproduto</span>
+        <h4 className="text-sm font-heading font-bold text-gray-800 dark:text-slate-100 tracking-tight">{data.label}</h4>
       </div>
-      <Handle type="source" position={Position.Right} className="!w-3 !h-3 !bg-blue-400 !border-2 !border-white dark:!border-slate-800" />
+      <Handle type="source" position={Position.Right} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
     </>
   );
 });
@@ -72,26 +72,22 @@ const MapaNode = React.memo(({ data }: any) => {
   
   return (
     <>
-      <Handle type="target" position={Position.Left} className="!w-3 !h-3 !bg-slate-400 !border-2 !border-white dark:!border-slate-800" />
-      <div className={`w-[350px] p-6 glass-card rounded-[32px] border transition-all flex items-center justify-between bg-white/80 dark:bg-slate-800/90 backdrop-blur-2xl
-        ${isSelected ? 'border-bradesco-red shadow-[0_8px_30px_rgba(204,9,47,0.2)] ring-2 ring-red-500/20 scale-105 z-50' : 'border-gray-200/50 dark:border-slate-700/50 hover:border-red-200 shadow-lg dark:shadow-none hover:shadow-xl'}
+      <Handle type="target" position={Position.Left} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
+      <div className={`w-[340px] p-5 flat-card rounded-2xl border transition-all flex items-center justify-between bg-white dark:bg-slate-800 shadow-neu-card
+        ${isSelected ? 'border-bradesco-red shadow-neu-raised ring-1 ring-bradesco-red/30' : 'border-gray-200 dark:border-slate-700 hover:border-gray-300'}
       `}>
-        <div className="flex-1 min-w-0 pr-4">
+        <div className="flex-1 min-w-0 pr-3">
           <h5 
             onClick={(e) => { e.stopPropagation(); data.item.link && window.open(data.item.link, '_blank'); }}
-            className="text-[15px] font-bold text-gray-800 dark:text-slate-200 line-clamp-1 hover:text-bradesco-red transition-colors cursor-pointer mb-2"
+            className="text-sm font-ui font-bold text-gray-800 dark:text-slate-200 line-clamp-1 hover:text-bradesco-red transition-colors cursor-pointer mb-1.5"
           >
             {data.item.titulo}
           </h5>
           <div className="flex items-center gap-2">
-             <div className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider
-                ${t === 'ga4' ? 'bg-green-100 text-green-700 border border-green-200 dark:bg-green-900/30 dark:border-green-800/50' 
-                : t === 'universal analytics' ? 'bg-red-50 text-bradesco-red border border-red-100 dark:bg-red-900/30 dark:border-red-800/50'
-                : 'bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400 border border-gray-200 dark:border-slate-600'}
-              `}>
+             <div className="neutral-badge text-[10px] font-ui">
                 {data.item.tipo_mapa || 'Doc'}
              </div>
-             <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 font-mono">#{data.item.id}</span>
+             <span className="text-[10px] font-medium text-gray-400 dark:text-slate-500 font-mono">#{data.item.id}</span>
           </div>
         </div>
         <button 
@@ -99,14 +95,14 @@ const MapaNode = React.memo(({ data }: any) => {
             e.stopPropagation(); 
             data.onSelect(data.item.id);
           }}
-          className={`p-3 rounded-2xl transition-all shadow-sm dark:shadow-none pointer-events-auto
+          className={`p-2.5 rounded-xl transition-all pointer-events-auto cursor-pointer
             ${isSelected 
-              ? 'bg-gradient-to-r from-[#7d046d] to-[#cc092f] text-white shadow-red-200' 
-              : 'bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-700 text-gray-400 dark:text-slate-500 hover:text-bradesco-red hover:border-red-200 hover:bg-gray-50 dark:hover:bg-slate-800'}
+              ? 'bg-bradesco-red text-white shadow-neu-raised' 
+              : 'btn-neu text-gray-400 hover:text-bradesco-red'}
           `}
           title="Ver detalhes"
         >
-          <Info className="w-5 h-5" />
+          <Info className="w-4 h-4" />
         </button>
       </div>
     </>

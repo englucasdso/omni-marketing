@@ -274,7 +274,7 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
                   <h3 className="text-sm font-heading font-bold text-gray-900 dark:text-slate-100">
                     {prod.produto}
                   </h3>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-ui font-semibold bg-red-50 dark:bg-red-950/40 text-bradesco-red border border-red-100 dark:border-red-900 tabular-nums">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-ui font-medium bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-700 tabular-nums">
                     {prod.totalMaps} mapas
                   </span>
                 </div>
@@ -287,16 +287,16 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
 
                 <div className="grid grid-cols-3 gap-2 text-center pt-3 border-t border-gray-100 dark:border-slate-800 text-[10px] font-ui">
                   <div>
-                    <span className="text-gray-400 block font-semibold">TELAS</span>
+                    <span className="text-gray-400 block font-medium">TELAS</span>
                     <span className="font-heading font-bold text-gray-800 dark:text-slate-200 tabular-nums">{prod.totalTelas}</span>
                   </div>
                   <div>
-                    <span className="text-gray-400 block font-semibold">HOMOLOGADOS</span>
+                    <span className="text-gray-400 block font-medium">HOMOLOGADOS</span>
                     <span className="font-heading font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{prod.taxaHomologacao}%</span>
                   </div>
                   <div>
-                    <span className="text-gray-400 block font-semibold">GA4</span>
-                    <span className="font-heading font-bold text-blue-600 dark:text-blue-400 tabular-nums">{prod.measurementCounts.GA4 || 0}</span>
+                    <span className="text-gray-400 block font-medium">GA4</span>
+                    <span className="font-heading font-bold text-gray-800 dark:text-slate-200 tabular-nums">{prod.measurementCounts.GA4 || 0}</span>
                   </div>
                 </div>
               </div>
@@ -339,12 +339,11 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
                     <button
                       type="button"
                       onClick={() => setSelectedSubproduto('TODOS')}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-ui font-semibold transition-all cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-ui font-medium transition-all cursor-pointer ${
                         selectedSubproduto === 'TODOS'
-                          ? 'text-white shadow-neu-raised'
+                          ? 'bg-white dark:bg-slate-800 text-bradesco-red border border-bradesco-red/40 shadow-neu-raised'
                           : 'btn-neu text-gray-600 dark:text-slate-300 hover:text-gray-900'
                       }`}
-                      style={selectedSubproduto === 'TODOS' ? { background: 'linear-gradient(90deg, #7D046D 0%, #cc092f 100%)' } : {}}
                     >
                       Todos ({activeProduct.mapas.length})
                     </button>
@@ -355,12 +354,11 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
                           key={sub}
                           type="button"
                           onClick={() => setSelectedSubproduto(sub)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-ui font-semibold transition-all cursor-pointer ${
+                          className={`px-3 py-1.5 rounded-xl text-xs font-ui font-medium transition-all cursor-pointer ${
                             selectedSubproduto === sub
-                              ? 'text-white shadow-neu-raised'
+                              ? 'bg-white dark:bg-slate-800 text-bradesco-red border border-bradesco-red/40 shadow-neu-raised'
                               : 'btn-neu text-gray-600 dark:text-slate-300 hover:text-gray-900'
                           }`}
-                          style={selectedSubproduto === sub ? { background: 'linear-gradient(90deg, #7D046D 0%, #cc092f 100%)' } : {}}
                         >
                           {sub} ({countMaps})
                         </button>
@@ -373,52 +371,52 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
               {/* Distribuição de status das telas */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-xs font-black uppercase text-gray-400 tracking-wider">
+                  <h4 className="text-xs font-ui font-semibold uppercase text-gray-500 dark:text-slate-400 tracking-wider">
                     Distribuição de status das telas
                   </h4>
-                  <span className="text-xs font-bold text-gray-500 dark:text-slate-400">
+                  <span className="text-xs font-medium text-gray-500 dark:text-slate-400">
                     Total: {selectedMetrics.totalTelas} telas
                   </span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                  <div className="p-3 rounded-xl border text-center text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800">
-                    <span className="text-lg font-black block">{selectedMetrics.statusCounts.VALIDADO}</span>
-                    <span className="text-[10px] font-bold uppercase">Validado</span>
+                  <div className="p-3 rounded-xl border text-center text-emerald-700 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800">
+                    <span className="text-lg font-heading font-bold block">{selectedMetrics.statusCounts.VALIDADO}</span>
+                    <span className="text-[10px] font-medium uppercase tracking-wider">Validado</span>
                   </div>
-                  <div className="p-3 rounded-xl border text-center text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800">
-                    <span className="text-lg font-black block">{selectedMetrics.statusCounts.CORRECAO}</span>
-                    <span className="text-[10px] font-bold uppercase">Correção</span>
+                  <div className="p-3 rounded-xl border text-center text-orange-700 dark:text-orange-400 bg-orange-50/60 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800">
+                    <span className="text-lg font-heading font-bold block">{selectedMetrics.statusCounts.CORRECAO}</span>
+                    <span className="text-[10px] font-medium uppercase tracking-wider">Correção</span>
                   </div>
-                  <div className="p-3 rounded-xl border text-center text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800">
-                    <span className="text-lg font-black block">{selectedMetrics.statusCounts.NOVO}</span>
-                    <span className="text-[10px] font-bold uppercase">Novo</span>
+                  <div className="p-3 rounded-xl border text-center text-blue-700 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800">
+                    <span className="text-lg font-heading font-bold block">{selectedMetrics.statusCounts.NOVO}</span>
+                    <span className="text-[10px] font-medium uppercase tracking-wider">Novo</span>
                   </div>
-                  <div className="p-3 rounded-xl border text-center text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800">
-                    <span className="text-lg font-black block">{selectedMetrics.statusCounts.EXCLUIR}</span>
-                    <span className="text-[10px] font-bold uppercase">Excluir</span>
+                  <div className="p-3 rounded-xl border text-center text-rose-700 dark:text-rose-400 bg-rose-50/60 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800">
+                    <span className="text-lg font-heading font-bold block">{selectedMetrics.statusCounts.EXCLUIR}</span>
+                    <span className="text-[10px] font-medium uppercase tracking-wider">Excluir</span>
                   </div>
-                  <div className="p-3 rounded-xl border text-center text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-slate-800 border-gray-200 dark:border-slate-700">
-                    <span className="text-lg font-black block">{selectedMetrics.statusCounts.DESCONTINUAR}</span>
-                    <span className="text-[10px] font-bold uppercase">Descontinuar</span>
+                  <div className="p-3 rounded-xl border text-center text-gray-700 dark:text-gray-400 bg-gray-100/80 dark:bg-slate-800 border-gray-200 dark:border-slate-700">
+                    <span className="text-lg font-heading font-bold block">{selectedMetrics.statusCounts.DESCONTINUAR}</span>
+                    <span className="text-[10px] font-medium uppercase tracking-wider">Descontinuar</span>
                   </div>
                 </div>
 
                 {/* Se existirem telas sem status lido, mostrar separadamente como Sem status */}
                 {selectedMetrics.statusCounts.NAO_IDENTIFICADO > 0 && (
-                  <div className="mt-2 p-2.5 rounded-xl border text-center text-amber-800 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 flex items-center justify-between text-xs font-bold px-4">
+                  <div className="mt-2 p-2.5 rounded-xl border text-center text-amber-800 dark:text-amber-400 bg-amber-50/60 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 flex items-center justify-between text-xs font-medium px-4">
                     <span>Sem status</span>
-                    <span className="text-sm font-black">{selectedMetrics.statusCounts.NAO_IDENTIFICADO}</span>
+                    <span className="text-sm font-heading font-bold">{selectedMetrics.statusCounts.NAO_IDENTIFICADO}</span>
                   </div>
                 )}
               </div>
 
               {/* Métrica de Homologação dos Mapas */}
-              <div className="p-4 bg-gray-50 dark:bg-slate-800/70 rounded-2xl border border-gray-100 dark:border-slate-700 space-y-2">
+              <div className="p-4 bg-gray-50/80 dark:bg-slate-800/50 rounded-2xl border border-gray-200 dark:border-slate-800 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-black uppercase text-gray-500 dark:text-slate-400 tracking-wider">
+                  <span className="text-xs font-ui font-semibold uppercase text-gray-500 dark:text-slate-400 tracking-wider">
                     Mapas Homologados
                   </span>
-                  <span className="text-base font-black text-emerald-600 dark:text-emerald-400">
+                  <span className="text-base font-heading font-bold text-emerald-600 dark:text-emerald-400">
                     {selectedMetrics.taxaHomologacao}%
                   </span>
                 </div>
@@ -430,8 +428,8 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
                 </div>
                 <div className="flex flex-wrap items-center justify-between text-[11px] text-gray-500 dark:text-slate-400 pt-1 gap-2">
                   <span>
-                    <strong className="text-gray-900 dark:text-slate-100 font-bold">{selectedMetrics.mapasHomologados}</strong> de{' '}
-                    <strong className="text-gray-900 dark:text-slate-100 font-bold">{selectedMetrics.mapasComTelas}</strong> mapas com telas detectadas (100% validados)
+                    <strong className="text-gray-900 dark:text-slate-100 font-semibold">{selectedMetrics.mapasHomologados}</strong> de{' '}
+                    <strong className="text-gray-900 dark:text-slate-100 font-semibold">{selectedMetrics.mapasComTelas}</strong> mapas com telas detectadas (100% validados)
                   </span>
                   {selectedMetrics.mapasSemTelas > 0 && (
                     <span className="text-gray-400 dark:text-slate-500">
@@ -443,25 +441,25 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
 
               {/* Measurement breakdown */}
               <div>
-                <h4 className="text-xs font-black uppercase text-gray-400 tracking-wider mb-3">
+                <h4 className="text-xs font-ui font-semibold uppercase text-gray-500 dark:text-slate-400 tracking-wider mb-3">
                   Classificação de Mensuração
                 </h4>
                 <div className="grid grid-cols-4 gap-2">
-                  <div className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 text-center">
-                    <span className="text-xs font-bold text-gray-400 block">GA4 Puro</span>
-                    <span className="text-base font-black text-emerald-600">{selectedMetrics.measurementCounts.GA4 || 0}</span>
+                  <div className="p-3 bg-gray-50/80 dark:bg-slate-800/60 rounded-xl border border-gray-200 dark:border-slate-800 text-center">
+                    <span className="text-[11px] font-medium text-gray-500 dark:text-slate-400 block">GA4 Puro</span>
+                    <span className="text-base font-heading font-bold text-gray-800 dark:text-slate-100">{selectedMetrics.measurementCounts.GA4 || 0}</span>
                   </div>
-                  <div className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 text-center">
-                    <span className="text-xs font-bold text-gray-400 block">Universal/GA3</span>
-                    <span className="text-base font-black text-rose-600">{selectedMetrics.measurementCounts.GA3 || 0}</span>
+                  <div className="p-3 bg-gray-50/80 dark:bg-slate-800/60 rounded-xl border border-gray-200 dark:border-slate-800 text-center">
+                    <span className="text-[11px] font-medium text-gray-500 dark:text-slate-400 block">Universal/GA3</span>
+                    <span className="text-base font-heading font-bold text-gray-800 dark:text-slate-100">{selectedMetrics.measurementCounts.GA3 || 0}</span>
                   </div>
-                  <div className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 text-center">
-                    <span className="text-xs font-bold text-gray-400 block">Misto</span>
-                    <span className="text-base font-black text-amber-600">{selectedMetrics.measurementCounts.MISTO || 0}</span>
+                  <div className="p-3 bg-gray-50/80 dark:bg-slate-800/60 rounded-xl border border-gray-200 dark:border-slate-800 text-center">
+                    <span className="text-[11px] font-medium text-gray-500 dark:text-slate-400 block">Misto</span>
+                    <span className="text-base font-heading font-bold text-gray-800 dark:text-slate-100">{selectedMetrics.measurementCounts.MISTO || 0}</span>
                   </div>
-                  <div className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 text-center">
-                    <span className="text-xs font-bold text-gray-400 block">Não Classif.</span>
-                    <span className="text-base font-black text-gray-600">{selectedMetrics.measurementCounts.NAO_CLASSIFICADO || 0}</span>
+                  <div className="p-3 bg-gray-50/80 dark:bg-slate-800/60 rounded-xl border border-gray-200 dark:border-slate-800 text-center">
+                    <span className="text-[11px] font-medium text-gray-500 dark:text-slate-400 block">Não Classif.</span>
+                    <span className="text-base font-heading font-bold text-gray-800 dark:text-slate-100">{selectedMetrics.measurementCounts.NAO_CLASSIFICADO || 0}</span>
                   </div>
                 </div>
               </div>
@@ -515,7 +513,7 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
               </div>
             </div>
           ) : (
-            <div className="p-12 text-center text-gray-400 glass-card rounded-[32px]">
+            <div className="p-12 text-center text-gray-400 flat-card border border-gray-200 dark:border-slate-800 rounded-2xl shadow-neu-card">
               Selecione um produto ao lado para ver a análise detalhada.
             </div>
           )}

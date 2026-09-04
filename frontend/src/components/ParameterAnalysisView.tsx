@@ -104,13 +104,13 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
   const getValueBadge = (type: string) => {
     switch (type) {
       case 'PLACEHOLDER':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
+        return 'bg-amber-50/60 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200/80 dark:border-amber-800/80';
       case 'HARDCODED':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
+        return 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
       case 'JAVASCRIPT_REFERENCE':
-        return 'bg-purple-50 text-purple-700 border-purple-200';
+        return 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700';
       default:
-        return 'bg-gray-100 text-gray-700 border-gray-200';
+        return 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700';
     }
   };
 
@@ -181,15 +181,15 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
                 >
                   <div className="flex items-center justify-between gap-2 mb-1.5">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-gray-900 dark:text-slate-100">
+                      <span className="font-mono text-xs font-semibold text-gray-900 dark:text-slate-100">
                         {param.name}
                       </span>
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-ui font-semibold border ${getValueBadge(param.predominantType)}`}>
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-ui font-medium border ${getValueBadge(param.predominantType)}`}>
                         {param.predominantType}
                       </span>
                     </div>
 
-                    <span className="text-[11px] font-heading font-bold text-bradesco-red bg-red-50 dark:bg-red-950/40 px-2 py-0.5 rounded-full border border-red-100 dark:border-red-900 tabular-nums">
+                    <span className="text-[11px] font-ui font-medium text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-gray-200 dark:border-slate-700 tabular-nums">
                       {param.occurrences}x
                     </span>
                   </div>
@@ -219,7 +219,7 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
                   <h3 className="text-2xl font-mono font-bold text-gray-900 dark:text-slate-50 tracking-tight">
                     {activeParam.name}
                   </h3>
-                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-ui font-semibold border ${getValueBadge(activeParam.predominantType)}`}>
+                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-ui font-medium border ${getValueBadge(activeParam.predominantType)}`}>
                     Predominante: {activeParam.predominantType}
                   </span>
                 </div>
@@ -227,26 +227,26 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
 
               {/* Metrics Grid */}
               <div className="grid grid-cols-3 gap-3 text-center font-ui">
-                <div className="p-3 bg-gray-50 dark:bg-slate-800/80 rounded-xl border border-gray-200 dark:border-slate-700">
-                  <span className="text-[10px] font-semibold text-gray-400 uppercase block">Ocorrências</span>
+                <div className="p-3 bg-gray-50/80 dark:bg-slate-800/80 rounded-xl border border-gray-200 dark:border-slate-700">
+                  <span className="text-[10px] font-medium text-gray-400 uppercase block">Ocorrências</span>
                   <span className="text-xl font-heading font-bold text-gray-900 dark:text-slate-100 tabular-nums">{activeParam.occurrences}</span>
                 </div>
-                <div className="p-3 bg-gray-50 dark:bg-slate-800/80 rounded-xl border border-gray-200 dark:border-slate-700">
-                  <span className="text-[10px] font-semibold text-gray-400 uppercase block">Telas com Campo</span>
+                <div className="p-3 bg-gray-50/80 dark:bg-slate-800/80 rounded-xl border border-gray-200 dark:border-slate-700">
+                  <span className="text-[10px] font-medium text-gray-400 uppercase block">Telas com Campo</span>
                   <span className="text-xl font-heading font-bold text-gray-900 dark:text-slate-100 tabular-nums">{activeParam.screensCount}</span>
                 </div>
-                <div className="p-3 bg-gray-50 dark:bg-slate-800/80 rounded-xl border border-gray-200 dark:border-slate-700">
-                  <span className="text-[10px] font-semibold text-gray-400 uppercase block">Mapas Vinculados</span>
+                <div className="p-3 bg-gray-50/80 dark:bg-slate-800/80 rounded-xl border border-gray-200 dark:border-slate-700">
+                  <span className="text-[10px] font-medium text-gray-400 uppercase block">Mapas Vinculados</span>
                   <span className="text-xl font-heading font-bold text-gray-900 dark:text-slate-100 tabular-nums">{activeParam.mapsCount}</span>
                 </div>
               </div>
 
               {/* Distinct Values Sample */}
               <div>
-                <h4 className="text-xs font-black uppercase text-gray-400 tracking-wider mb-2">
+                <h4 className="text-xs font-ui font-semibold uppercase text-gray-500 dark:text-slate-400 tracking-wider mb-2">
                   Valores Distintos Identificados ({activeParam.distinctValuesList.length})
                 </h4>
-                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto custom-scrollbar p-2 bg-gray-50 dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700">
+                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto custom-scrollbar p-2 bg-gray-50/80 dark:bg-slate-800/60 rounded-2xl border border-gray-200 dark:border-slate-700">
                   {activeParam.distinctValuesList.map((val, idx) => (
                     <span 
                       key={idx}
@@ -260,14 +260,14 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
 
               {/* Products utilizing this parameter */}
               <div>
-                <h4 className="text-xs font-black uppercase text-gray-400 tracking-wider mb-2">
+                <h4 className="text-xs font-ui font-semibold uppercase text-gray-500 dark:text-slate-400 tracking-wider mb-2">
                   Produtos e Jornadas que Utilizam ({activeParam.productsList.length})
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {activeParam.productsList.map(prod => (
                     <span 
                       key={prod}
-                      className="px-3 py-1 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-xl text-xs font-bold text-purple-700 dark:text-purple-300"
+                      className="px-3 py-1 bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-ui font-medium text-gray-700 dark:text-slate-300"
                     >
                       {prod}
                     </span>
@@ -277,7 +277,7 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
 
               {/* Associated Maps */}
               <div>
-                <h4 className="text-xs font-black uppercase text-gray-400 tracking-wider mb-2">
+                <h4 className="text-xs font-ui font-semibold uppercase text-gray-500 dark:text-slate-400 tracking-wider mb-2">
                   Mapas onde o Parâmetro Está Presente
                 </h4>
                 <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
@@ -285,7 +285,7 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
                     <div 
                       key={mapItem.id}
                       onClick={() => onOpenMap(mapItem)}
-                      className="p-3 bg-gray-50 dark:bg-slate-800 hover:bg-red-50/50 dark:hover:bg-slate-750 rounded-xl border border-gray-100 dark:border-slate-700 flex items-center justify-between cursor-pointer transition-colors group"
+                      className="p-3 bg-gray-50/80 dark:bg-slate-800 hover:bg-red-50/50 dark:hover:bg-slate-750 rounded-xl border border-gray-200 dark:border-slate-700 flex items-center justify-between cursor-pointer transition-colors group"
                     >
                       <div className="overflow-hidden pr-2">
                         <p className="text-xs font-bold text-gray-900 dark:text-slate-100 group-hover:text-bradesco-red transition-colors truncate">
@@ -302,7 +302,7 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
               </div>
             </div>
           ) : (
-            <div className="p-12 text-center text-gray-400 glass-card rounded-[32px]">
+            <div className="p-12 text-center text-gray-400 flat-card border border-gray-200 dark:border-slate-800 rounded-2xl shadow-neu-card">
               Selecione um parâmetro para inspecionar seus detalhes e ocorrências.
             </div>
           )}

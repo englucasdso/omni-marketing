@@ -62,16 +62,16 @@ export const MapDetailModal: React.FC<MapDetailModalProps> = ({ item, onClose })
   const getValueTypeBadge = (type: string) => {
     switch (type) {
       case 'PLACEHOLDER':
-        return { bg: 'bg-amber-50 text-amber-700 border-amber-200', label: 'Placeholder' };
+        return { bg: 'bg-amber-50/60 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200/80', label: 'Placeholder' };
       case 'HARDCODED':
-        return { bg: 'bg-blue-50 text-blue-700 border-blue-200', label: 'Hardcoded' };
+        return { bg: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700', label: 'Hardcoded' };
       case 'JAVASCRIPT_REFERENCE':
-        return { bg: 'bg-purple-50 text-purple-700 border-purple-200', label: 'JS Ref' };
+        return { bg: 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700', label: 'JS Ref' };
       case 'BOOLEAN':
       case 'NUMBER':
-        return { bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: type };
+        return { bg: 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700', label: type };
       default:
-        return { bg: 'bg-gray-50 text-gray-600 border-gray-200', label: type || 'String' };
+        return { bg: 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700', label: type || 'String' };
     }
   };
 
@@ -157,9 +157,9 @@ export const MapDetailModal: React.FC<MapDetailModalProps> = ({ item, onClose })
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-ui font-semibold transition-all cursor-pointer ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-ui font-medium transition-all cursor-pointer ${
                     isActive 
-                      ? 'bg-red-50 text-bradesco-red border border-red-200 dark:bg-red-950/40 dark:border-red-800 shadow-neu-raised' 
+                      ? 'bg-white dark:bg-slate-800 text-bradesco-red border border-bradesco-red/40 shadow-neu-raised font-semibold' 
                       : 'btn-neu text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
                   }`}
                 >
