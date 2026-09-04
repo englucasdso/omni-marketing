@@ -96,8 +96,18 @@ export interface Artifact {
   responsavel: string;
   versao: number | string;
   nivel: string | number;
+  depth?: number;
   taxonomy_depth?: number;
   pai: string;
+  parent_id?: string | null;
+  parent_title?: string | null;
+  ancestor_ids?: string[];
+  ancestor_titles?: string[];
+  full_path?: string;
+  has_children?: boolean;
+  children_count?: number;
+  is_leaf?: boolean;
+  space?: string;
   produto: string;
   subproduto: string;
   artifact_type?: ArtifactType;
@@ -111,6 +121,9 @@ export interface Artifact {
   status_divergent?: boolean;
   parameter_summary?: ParameterSummaryItem[];
   pattern_summary?: PatternSummaryItem[];
+  gtm_ids?: string[];
+  structural_metadata?: any;
+  signature_hash?: string;
   // Retrocompatibilidade
   tipo_mapa: string;
   produto_servico?: string;

@@ -28,20 +28,19 @@ export class ConfluenceOrchestrator {
     }
   }
 
-  ehMapaValidoPorTitulo(title) {
-    return title && String(title).startsWith('MT -');
-  }
-
-  extrairProdutoSubprodutoDaTrilha(trilhaAtual, nivelAtual) {
-    const ancestrais = trilhaAtual.filter(x => Number(x.nivel) < Number(nivelAtual));
+  extrairProdutoSubprodutoDaTrilha(ancestorTitles = [], cabecalhoProduto = '') {
+    if (cabecalhoProduto) {
+      return {
+        produto: cabecalhoProduto,
+        subproduto: ancestorTitles.length > 2 ? ancestorTitles[ancestorTitles.length - 1] : ''
+      };
+    }
     
-    const p = ancestrais.find(x => Number(x.nivel) === 1);
-    const sp = ancestrais.find(x => Number(x.nivel) === 2);
+    // Sem fixar níveis rígidos: primeiro ancestral significativo após a raiz como área/produto
+    const produto = ancestorTitles.length >= 2 ? ancestorTitles[1] : (ancestorTitles[0] || '');
+    const subproduto = ancestorTitles.length >= 3 ? ancestorTitles[2] : '';
     
-    return {
-      produto: p ? String(p.titulo || '').trim() : '',
-      subproduto: sp ? String(sp.titulo || '').trim() : ''
-    };
+    return { produto, subproduto };
   }
 
   async run(rootPageId, maxRows, username, password) {
@@ -85,19 +84,19 @@ export class ConfluenceOrchestrator {
       const childrenFound = (rootData && rootData.results) ? rootData.results.length : 0;
       console.log(`[BrowserTransport] Filhos encontrados: ${childrenFound}`);
 
-      const crawler = new TreeCrawler(this.transport, 4); // Max 4 reqs simultâneas na árvore
+      const crawler = new TreeCrawler(this.transport, 4, CONFLUENCE_BASE_URL);
       const mapReader = new MapReader(this.transport);
 
-      // 3. Processa cada página da árvore
-      await crawler.crawl(rootPageId, async (page, ehFolha, nivel, parentTitulo, trilhaAtual) => {
-        const idStr = String(page.id);
-        const estrutura = this.extrairProdutoSubprodutoDaTrilha(trilhaAtual, nivel);
+      // 3. Processa cada página da árvore (sem limite de profundidade, incluindo nós intermediários com filhos)
+      await crawler.crawl(rootPageId, async (node, isLeaf, depth, parentTitle, trilhaAtual) => {
+        const idStr = String(node.id);
+        const ancestorTitles = node.ancestor_titles || trilhaAtual.map(t => t.titulo);
         
         let cabecalho = {};
         let headerObj = {};
         let tipo_mapa = '';
         let telasDoMapa = [];
-        let artifact_type = 'DOCUMENTACAO';
+        let artifact_type = 'NAO_CLASSIFICADO';
         let measurement_class = 'NAO_CLASSIFICADO';
         let statusSummary = {};
         let declaredStatus = null;
@@ -106,82 +105,107 @@ export class ConfluenceOrchestrator {
         let homologado = false;
         let parameterSummary = [];
         let patternSummary = [];
+        let gtm_ids = [];
+        let structural_metadata = null;
+        let signature_hash = '';
 
-        if (ehFolha) {
-          const currentVersion = (page.version && page.version.number) || '';
-          const currentUpdated = (page.history && page.history.lastUpdated && page.history.lastUpdated.when) || '';
-          
-          const cached = invMap.get(idStr);
-          
-          // Reutiliza se existe e versão não mudou
-          if (cached && cached.versao === currentVersion && cached.ultima_atualizacao === currentUpdated) {
-            cabecalho = {
-              produto_servico: cached.produto_servico,
-              numero_task: cached.numero_da_task,
-              figma_xd: cached.figma_xd,
-              ga4_stream_id: cached.propriedade_ga4_stream_id,
-              firebase: cached.firebase,
-              gtm_id: cached.gtm_id,
-              dominio: cached.dominio_exclusivo_web,
-              status_homologacao: cached.declared_status
-            };
-            headerObj = cached.header || {};
-            telasDoMapa = cached.screens || [];
-            artifact_type = cached.artifact_type || (telasDoMapa.length > 0 ? 'MAPA' : 'DOCUMENTACAO');
-            measurement_class = cached.measurement_class || 'NAO_CLASSIFICADO';
-            tipo_mapa = cached.tipo_mapa || (artifact_type === 'DOCUMENTACAO' ? 'Doc' : measurement_class);
-            statusSummary = cached.status_summary || {};
-            declaredStatus = cached.declared_status || null;
-            calculatedStatus = cached.calculated_status || 'NAO_IDENTIFICADO';
-            statusDivergent = Boolean(cached.status_divergent);
-            homologado = cached.homologado !== undefined ? Boolean(cached.homologado) : (telasDoMapa.length > 0 && telasDoMapa.every(s => s.status === 'VALIDADO'));
-            parameterSummary = cached.parameter_summary || [];
-            patternSummary = cached.pattern_summary || [];
-            stats.reused++;
-          } else {
-            const isValido = this.ehMapaValidoPorTitulo(page.title);
+        const currentVersion = String(node.version || (node.raw_page && node.raw_page.version && node.raw_page.version.number) || '');
+        const currentUpdated = String(node.ultima_atualizacao || (node.raw_page && node.raw_page.history && node.raw_page.history.lastUpdated && node.raw_page.history.lastUpdated.when) || '');
+        
+        const cached = invMap.get(idStr);
+        
+        // Reutiliza se existe e versão não mudou (mantendo telas e metadados já capturados)
+        if (cached && String(cached.versao) === currentVersion && String(cached.ultima_atualizacao) === currentUpdated && cached.screens && cached.screens.length > 0) {
+          cabecalho = {
+            produto_servico: cached.produto_servico,
+            numero_task: cached.numero_da_task,
+            figma_xd: cached.figma_xd,
+            ga4_stream_id: cached.propriedade_ga4_stream_id,
+            firebase: cached.firebase,
+            gtm_id: cached.gtm_id,
+            dominio: cached.dominio_exclusivo_web,
+            status_homologacao: cached.declared_status
+          };
+          headerObj = cached.header || {};
+          telasDoMapa = cached.screens || [];
+          artifact_type = cached.artifact_type || (telasDoMapa.length > 0 ? 'MAPA' : 'DOCUMENTACAO');
+          measurement_class = cached.measurement_class || 'NAO_CLASSIFICADO';
+          tipo_mapa = cached.tipo_mapa || (artifact_type === 'DOCUMENTACAO' ? 'Doc' : measurement_class);
+          statusSummary = cached.status_summary || {};
+          declaredStatus = cached.declared_status || null;
+          calculatedStatus = cached.calculated_status || 'NAO_IDENTIFICADO';
+          statusDivergent = Boolean(cached.status_divergent);
+          homologado = cached.homologado !== undefined ? Boolean(cached.homologado) : (telasDoMapa.length > 0 && telasDoMapa.every(s => s.status === 'VALIDADO'));
+          parameterSummary = cached.parameter_summary || [];
+          patternSummary = cached.pattern_summary || [];
+          gtm_ids = Array.isArray(cached.gtm_ids) ? cached.gtm_ids : (cached.gtm_id ? [cached.gtm_id] : []);
+          structural_metadata = cached.structural_metadata || null;
+          signature_hash = cached.signature_hash || (structural_metadata && structural_metadata.signature_hash) || '';
+          stats.reused++;
+        } else {
+          // Captura completa do conteúdo da página (independentemente de possuir filhos ou de prefixo MT -)
+          try {
+            const tempEstrutura = this.extrairProdutoSubprodutoDaTrilha(ancestorTitles);
+            const details = await mapReader.readMapDetails(idStr, tempEstrutura.produto, tempEstrutura.subproduto);
+            cabecalho = details.cabecalho || {};
+            headerObj = details.header || {};
+            telasDoMapa = details.telas || [];
+            parameterSummary = details.parameter_summary || [];
+            patternSummary = details.pattern_summary || [];
+            gtm_ids = details.gtm_ids || [];
+            structural_metadata = details.structural_metadata || null;
+            signature_hash = details.signature_hash || '';
+
+            const classification = this.classifier.classifyMap(telasDoMapa, cabecalho.status_homologacao, {
+              hasTrackingScreens: telasDoMapa.length > 0,
+              hasGtmIds: gtm_ids.length > 0,
+              hasDocContent: structural_metadata && structural_metadata.signals && structural_metadata.signals.has_documentation_signals
+            });
+
+            artifact_type = classification.artifact_type;
+            measurement_class = classification.measurement_class;
+            statusSummary = classification.status_summary;
+            declaredStatus = classification.declared_status;
+            calculatedStatus = classification.calculated_status;
+            statusDivergent = classification.status_divergent;
+            homologado = Boolean(classification.homologado);
+            tipo_mapa = artifact_type === 'DOCUMENTACAO' ? 'Doc' : (measurement_class === 'NAO_CLASSIFICADO' ? 'Não classificado' : measurement_class);
             
-            if (isValido) {
-              const details = await mapReader.readMapDetails(idStr, estrutura.produto, estrutura.subproduto);
-              cabecalho = details.cabecalho || {};
-              headerObj = details.header || {};
-              telasDoMapa = details.telas || [];
-              parameterSummary = details.parameter_summary || [];
-              patternSummary = details.pattern_summary || [];
-
-              const classification = this.classifier.classifyMap(telasDoMapa, cabecalho.status_homologacao);
-              artifact_type = classification.artifact_type;
-              measurement_class = classification.measurement_class;
-              statusSummary = classification.status_summary;
-              declaredStatus = classification.declared_status;
-              calculatedStatus = classification.calculated_status;
-              statusDivergent = classification.status_divergent;
-              homologado = Boolean(classification.homologado);
-              tipo_mapa = artifact_type === 'DOCUMENTACAO' ? 'Doc' : measurement_class;
-              
-              if (cached) stats.altered++;
-              else stats.new++;
-            } else {
-              // Documentação solta
-              artifact_type = 'DOCUMENTACAO';
-              measurement_class = 'NAO_CLASSIFICADO';
-              tipo_mapa = 'Doc';
-            }
+            if (cached) stats.altered++;
+            else stats.new++;
+          } catch (readErr) {
+            console.warn(`[ConfluenceOrchestrator] Não foi possível ler conteúdo detalhado da página ${idStr} (${node.title}): ${readErr.message}`);
+            artifact_type = 'NAO_CLASSIFICADO';
+            measurement_class = 'NAO_CLASSIFICADO';
+            tipo_mapa = 'Não classificado';
           }
         }
 
+        const resolvedStructure = this.extrairProdutoSubprodutoDaTrilha(ancestorTitles, cabecalho.produto_servico);
+
         const row = {
-          id: idStr || '',
-          titulo: String(page.title || '').trim(),
-          link: CONFLUENCE_BASE_URL + '/pages/viewpage.action?pageId=' + page.id,
-          ultima_atualizacao: (page.history && page.history.lastUpdated && page.history.lastUpdated.when) || '',
-          responsavel: (page.version && page.version.by && page.version.by.displayName) || '',
-          versao: (page.version && page.version.number) || '',
-          nivel: nivel,
-          taxonomy_depth: nivel,
-          pai: parentTitulo || '',
-          produto: estrutura.produto,
-          subproduto: estrutura.subproduto,
+          id: idStr,
+          titulo: String(node.title || '').trim(),
+          link: node.url || `${CONFLUENCE_BASE_URL}/pages/viewpage.action?pageId=${idStr}`,
+          ultima_atualizacao: currentUpdated,
+          responsavel: String(node.responsavel || '').trim(),
+          versao: currentVersion,
+          // Estrutura hierárquica completa
+          depth: Number(node.depth !== undefined ? node.depth : depth),
+          nivel: Number(node.depth !== undefined ? node.depth : depth),
+          taxonomy_depth: Number(node.depth !== undefined ? node.depth : depth),
+          parent_id: node.parent_id !== undefined ? node.parent_id : null,
+          parent_title: node.parent_title !== undefined ? node.parent_title : (parentTitle || ''),
+          pai: node.parent_title !== undefined ? node.parent_title : (parentTitle || ''),
+          ancestor_ids: node.ancestor_ids || [],
+          ancestor_titles: ancestorTitles,
+          full_path: node.full_path || ancestorTitles.join(' > '),
+          has_children: Boolean(node.has_children),
+          children_count: Number(node.children_count || 0),
+          is_leaf: Boolean(node.is_leaf !== undefined ? node.is_leaf : isLeaf),
+          space: node.space || '',
+          produto: resolvedStructure.produto,
+          subproduto: resolvedStructure.subproduto,
           artifact_type,
           measurement_class,
           header: headerObj,
@@ -193,13 +217,16 @@ export class ConfluenceOrchestrator {
           status_divergent: statusDivergent,
           parameter_summary: parameterSummary,
           pattern_summary: patternSummary,
+          gtm_ids,
+          gtm_id: gtm_ids.length > 0 ? gtm_ids.join(', ') : (cabecalho.gtm_id || ''),
+          structural_metadata,
+          signature_hash,
           // Campos planos para retrocompatibilidade
           produto_servico: cabecalho.produto_servico || '',
           numero_da_task: cabecalho.numero_task || cabecalho.n_da_task || cabecalho.numero_da_task || '',
           figma_xd: cabecalho.figma_xd || cabecalho.figma || '',
           propriedade_ga4_stream_id: cabecalho.ga4_stream_id || cabecalho.propriedade_ga4_stream_id || '',
           firebase: cabecalho.firebase || '',
-          gtm_id: cabecalho.gtm_id || '',
           dominio_exclusivo_web: cabecalho.dominio || cabecalho.dominio_exclusivo_web || '',
           tipo_mapa: tipo_mapa || 'Doc'
         };

@@ -15,7 +15,19 @@ export function normalizeInventoryItem(item: any) {
     ...item,
     artifact_type,
     measurement_class,
-    taxonomy_depth: item.taxonomy_depth || item.nivel || 1,
+    depth: item.depth !== undefined ? item.depth : (item.taxonomy_depth || item.nivel || 1),
+    taxonomy_depth: item.depth !== undefined ? item.depth : (item.taxonomy_depth || item.nivel || 1),
+    parent_id: item.parent_id !== undefined ? item.parent_id : null,
+    parent_title: item.parent_title !== undefined ? item.parent_title : (item.pai || null),
+    ancestor_ids: Array.isArray(item.ancestor_ids) ? item.ancestor_ids : [],
+    ancestor_titles: Array.isArray(item.ancestor_titles) ? item.ancestor_titles : [],
+    full_path: item.full_path || item.titulo || '',
+    has_children: Boolean(item.has_children),
+    children_count: Number(item.children_count || 0),
+    is_leaf: Boolean(item.is_leaf !== undefined ? item.is_leaf : (!item.has_children)),
+    space: item.space || '',
+    gtm_ids: Array.isArray(item.gtm_ids) ? item.gtm_ids : (item.gtm_id ? [item.gtm_id] : []),
+    structural_metadata: item.structural_metadata || null,
     header: item.header || {},
     screens: Array.isArray(item.screens) ? item.screens : [],
     status_summary: item.status_summary || {
@@ -31,7 +43,7 @@ export function normalizeInventoryItem(item: any) {
     status_divergent: Boolean(item.status_divergent),
     parameter_summary: Array.isArray(item.parameter_summary) ? item.parameter_summary : [],
     pattern_summary: Array.isArray(item.pattern_summary) ? item.pattern_summary : [],
-    tipo_mapa: item.tipo_mapa || (artifact_type === 'DOCUMENTACAO' ? 'Doc' : measurement_class)
+    tipo_mapa: item.tipo_mapa || (artifact_type === 'DOCUMENTACAO' ? 'Doc' : (measurement_class === 'NAO_CLASSIFICADO' ? 'Não classificado' : measurement_class))
   };
 }
 
@@ -117,12 +129,14 @@ export function searchArtifacts(query: string) {
 
   return inventory.filter((item: any) => {
     if (item.titulo && item.titulo.toLowerCase().includes(lowerQuery)) return true;
+    if (item.full_path && item.full_path.toLowerCase().includes(lowerQuery)) return true;
     if (item.responsavel && item.responsavel.toLowerCase().includes(lowerQuery)) return true;
     if (item.produto && item.produto.toLowerCase().includes(lowerQuery)) return true;
     if (item.subproduto && item.subproduto.toLowerCase().includes(lowerQuery)) return true;
     if (item.numero_da_task && item.numero_da_task.toLowerCase().includes(lowerQuery)) return true;
     if (item.propriedade_ga4_stream_id && item.propriedade_ga4_stream_id.toLowerCase().includes(lowerQuery)) return true;
     if (item.gtm_id && item.gtm_id.toLowerCase().includes(lowerQuery)) return true;
+    if (item.gtm_ids && item.gtm_ids.some((g: string) => String(g).toLowerCase().includes(lowerQuery))) return true;
     if (item.artifact_type && item.artifact_type.toLowerCase().includes(lowerQuery)) return true;
     if (item.measurement_class && item.measurement_class.toLowerCase().includes(lowerQuery)) return true;
 

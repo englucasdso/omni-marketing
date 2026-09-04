@@ -11,7 +11,7 @@ export class MeasurementClassifier {
   /**
    * Determina a classificação de mensuração e sumários a partir das telas do mapa
    */
-  classifyMap(screens = [], declaredStatus = '') {
+  classifyMap(screens = [], declaredStatus = '', context = {}) {
     const statusSummary = {
       NOVO: 0,
       VALIDADO: 0,
@@ -48,10 +48,25 @@ export class MeasurementClassifier {
       }
     }
 
-    // Tipo de artefato: MAPA se possui telas ou snippets de tagueamento; DOCUMENTACAO se solto
-    const artifact_type = (screens.length > 0 || totalSnippets > 0) ? 'MAPA' : 'DOCUMENTACAO';
+    // Tipo de artefato:
+    // - MAPA: possui telas estruturadas ou snippets de tagueamento analítico
+    // - DOCUMENTACAO: possui conteúdo textual ou painéis de documentação sem snippets analíticos
+    // - NAO_CLASSIFICADO: quando não há evidência suficiente nem de mapa nem de documentação
+    let artifact_type = 'NAO_CLASSIFICADO';
+    if (screens.length > 0 || totalSnippets > 0 || context.hasTrackingScreens) {
+      artifact_type = 'MAPA';
+    } else if (context.isAmbiguous) {
+      artifact_type = 'NAO_CLASSIFICADO';
+    } else if (context.hasDocContent || context.isDoc || (context.htmlLength && context.htmlLength > 200)) {
+      artifact_type = 'DOCUMENTACAO';
+    } else if (context.hasContent === false && !declaredStatus) {
+      artifact_type = 'NAO_CLASSIFICADO';
+    } else {
+      artifact_type = declaredStatus ? 'DOCUMENTACAO' : 'NAO_CLASSIFICADO';
+    }
 
-    // Classificação de mensuração
+    // Classificação de mensuração:
+    // Quando não houver evidência suficiente de GA4 ou GA3, manter NAO_CLASSIFICADO
     let measurement_class = 'NAO_CLASSIFICADO';
     if (hasGa4 && hasGa3) {
       measurement_class = 'MISTO';
@@ -127,9 +142,10 @@ export class MeasurementClassifier {
   }
 
   // Compatibilidade com chamadas legadas
-  classify(screens) {
-    const result = this.classifyMap(screens);
+  classify(screens, declaredStatus, context) {
+    const result = this.classifyMap(screens, declaredStatus, context);
     if (result.artifact_type === 'DOCUMENTACAO') return 'Doc';
+    if (result.artifact_type === 'NAO_CLASSIFICADO') return 'Não classificado';
     return result.measurement_class === 'NAO_CLASSIFICADO' ? 'Não classificado' : result.measurement_class;
   }
 }

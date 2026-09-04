@@ -265,6 +265,39 @@ export class MapReader {
   }
 
   /**
+   * Extrai identificadores genéricos de container GTM iniciados exatamente por GTM-
+   * em letras maiúsculas, com caracteres alfanuméricos válidos após o hífen.
+   * Case-sensitive, remove duplicidades.
+   */
+  extrairGtmIds(textOrHtml) {
+    if (!textOrHtml) return [];
+    const str = String(textOrHtml);
+    const regex = /\bGTM-[A-Z0-9]+\b/g;
+    const matches = str.match(regex);
+    if (!matches) return [];
+    return Array.from(new Set(matches));
+  }
+
+  /**
+   * Verifica se um bloco de código é uma tag/snippet de instalação do Google Tag Manager.
+   * Blocos de instalação não são disparos analíticos e não devem virar telas, eventos ou parâmetros.
+   */
+  isGtmInstallationSnippet(rawCode) {
+    if (!rawCode) return false;
+    const code = String(rawCode);
+    if (code.includes('googletagmanager.com/gtm.js') || code.includes('googletagmanager.com/ns.html')) {
+      return true;
+    }
+    if (code.includes('gtm.start') || /event\s*:\s*['"]gtm\.js['"]/i.test(code)) {
+      return true;
+    }
+    if (/\(function\s*\(\s*w\s*,\s*d\s*,\s*s\s*,\s*l\s*,\s*i\s*\)/.test(code)) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Extração e reconstrução linha a linha de snippets (.syntaxhighlighter, pre, code)
    */
   extrairSnippetsDeHtml(containerHtml) {
@@ -285,6 +318,10 @@ export class MapReader {
       }
       if (lines.length > 0) {
         const codeText = lines.join('\n').trim();
+        // Não classificar blocos de instalação do GTM como snippet de tela ou disparo
+        if (this.isGtmInstallationSnippet(codeText)) {
+          continue;
+        }
         if (codeText.length > 10 && (codeText.includes('dataLayer') || codeText.includes('event'))) {
           snippets.push(codeText);
         }
@@ -305,6 +342,11 @@ export class MapReader {
         const codeText = this.parameterParser.decodeHtml(
           withNewlines.replace(/<[^>]+>/g, '')
         ).trim();
+
+        // Não classificar blocos de instalação do GTM como snippet de tela ou disparo
+        if (this.isGtmInstallationSnippet(codeText)) {
+          continue;
+        }
 
         if (codeText.length > 10 && (codeText.includes('dataLayer') || codeText.includes('event'))) {
           snippets.push(codeText);
@@ -415,6 +457,12 @@ export class MapReader {
 
         // Extrai snippets dentro desta tabela da tela
         const rawSnippets = this.extrairSnippetsDeHtml(tableContent);
+
+        // Se a tabela contém apenas código de instalação do GTM e nenhum snippet analítico real,
+        // não classificar o bloco de instalação como tela analítica
+        if (rawSnippets.length === 0 && this.isGtmInstallationSnippet(tableContent)) {
+          continue;
+        }
 
         // ID estável da tela
         const screenId = crypto.createHash('sha256')
@@ -546,20 +594,165 @@ export class MapReader {
   }
 
   /**
+   * Extrai metadados estruturais determinísticos para futuras análises de agrupamento e IA
+   */
+  extrairMetadadosEstruturais(html, telas = [], gtm_ids = [], parameter_summary = []) {
+    if (!html) {
+      return {
+        table_headers: [],
+        macros_found: [],
+        code_blocks_count: 0,
+        snippet_keys: [],
+        status_structures: [],
+        signals: {
+          has_gtm_ids: false,
+          has_tracking_screens: false,
+          has_documentation_signals: false
+        },
+        signature_hash: 'empty'
+      };
+    }
+
+    // 1. Cabeçalhos de tabelas encontradas
+    const tableHeaderSets = [];
+    const thRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+    let trM;
+    while ((trM = thRegex.exec(html)) !== null) {
+      const trHtml = trM[1];
+      if (/<th[^>]*>/i.test(trHtml)) {
+        const cellRegex = /<th[^>]*>([\s\S]*?)<\/th>/gi;
+        const headers = [];
+        let cM;
+        while ((cM = cellRegex.exec(trHtml)) !== null) {
+          const norm = this.normalizarRotulo(cM[1]);
+          if (norm) headers.push(norm);
+        }
+        if (headers.length > 0) {
+          tableHeaderSets.push(headers.sort().join('|'));
+        }
+      }
+    }
+    const distinctTableHeaders = Array.from(new Set(tableHeaderSets));
+
+    // 2. Macros encontradas
+    const macroMatches = [];
+    const macroAttrRegex = /data-macro-name=["']([a-zA-Z0-9_-]+)["']/gi;
+    let mM;
+    while ((mM = macroAttrRegex.exec(html)) !== null) {
+      macroMatches.push(mM[1].toLowerCase());
+    }
+    if (/status-macro|aui-lozenge/i.test(html)) macroMatches.push('status');
+    if (/syntaxhighlighter|codeContent/i.test(html)) macroMatches.push('code');
+    if (/panelContent/i.test(html)) macroMatches.push('panel');
+    const macros_found = Array.from(new Set(macroMatches)).sort();
+
+    // 3. Blocos de código
+    const codeBlockMatches = html.match(/class=["'][^"']*(?:syntaxhighlighter|codeContent)[^"']*["']|<pre[^>]*>|<code[^>]*>/gi) || [];
+    const code_blocks_count = codeBlockMatches.length;
+
+    // 4. Chaves dos snippets / parâmetros
+    const snippet_keys = Array.from(new Set(parameter_summary.map(p => p.path || p.name).filter(Boolean))).sort();
+
+    // 5. Estruturas de status
+    const status_structures = [];
+    if (/data-macro-name=["']status["']|status-macro/i.test(html)) {
+      status_structures.push('macro:status');
+    }
+    if (/aui-lozenge/i.test(html)) {
+      status_structures.push('badge:aui-lozenge');
+    }
+    if (telas.some(s => s.status_raw && s.status !== 'NAO_IDENTIFICADO')) {
+      status_structures.push('table_cell:status');
+    }
+
+    // 6. Sinais
+    const signals = {
+      has_gtm_ids: gtm_ids.length > 0,
+      has_tracking_screens: telas.length > 0,
+      has_documentation_signals: html.length > 200 && telas.length === 0 && !gtm_ids.length
+    };
+
+    // 7. Assinatura estrutural determinística (hash)
+    const sigSeed = [
+      macros_found.join(','),
+      distinctTableHeaders.join(','),
+      code_blocks_count,
+      snippet_keys.slice(0, 10).join(','),
+      telas.length > 0 ? 'SCREENS' : 'NO_SCREENS',
+      gtm_ids.length > 0 ? 'GTM' : 'NO_GTM'
+    ].join('##');
+
+    const signature_hash = crypto.createHash('sha256').update(sigSeed).digest('hex').slice(0, 16);
+
+    return {
+      table_headers: distinctTableHeaders,
+      macros_found,
+      code_blocks_count,
+      snippet_keys,
+      status_structures,
+      signals,
+      signature_hash
+    };
+  }
+
+  /**
    * Lê detalhes completos do mapa a partir do Confluence
    */
   async readMapDetails(pageId, produto, fluxo) {
     const html = await this.transport.fetchApi(`/pages/viewpage.action?pageId=${pageId}`);
     const { header, flatHeader } = this.extrairCabecalho(html);
+    
+    // Identificação genérica de GTM (Header, Body, scripts)
+    const gtmIdsFromHtml = this.extrairGtmIds(html);
+    const gtmIdsFromHeader = flatHeader.gtm_id ? this.extrairGtmIds(flatHeader.gtm_id) : [];
+    const gtm_ids = Array.from(new Set([...gtmIdsFromHtml, ...gtmIdsFromHeader]));
+
+    if (gtm_ids.length > 0 && !flatHeader.gtm_id) {
+      flatHeader.gtm_id = gtm_ids.join(', ');
+      header.gtm_id = {
+        value: gtm_ids.join(', '),
+        raw_label: 'GTM ID',
+        source: 'html_detection'
+      };
+    }
+
     const telas = this.extrairTelas(html, String(pageId), produto, fluxo);
     const { parameter_summary, pattern_summary } = this.gerarSumarios(telas);
+    const structural_metadata = this.extrairMetadadosEstruturais(html, telas, gtm_ids, parameter_summary);
 
     return {
       cabecalho: flatHeader,
       header,
       telas,
       parameter_summary,
-      pattern_summary
+      pattern_summary,
+      gtm_ids,
+      gtm_id: gtm_ids.join(', '),
+      structural_metadata,
+      signature_hash: structural_metadata.signature_hash
     };
   }
+}
+
+export function extrairGtmIdsHelper(textOrHtml) {
+  if (!textOrHtml) return [];
+  const regex = /\bGTM-[A-Z0-9]+\b/g;
+  const matches = String(textOrHtml).match(regex);
+  if (!matches) return [];
+  return Array.from(new Set(matches));
+}
+
+export function isGtmInstallationSnippetHelper(rawCode) {
+  if (!rawCode) return false;
+  const code = String(rawCode);
+  if (code.includes('googletagmanager.com/gtm.js') || code.includes('googletagmanager.com/ns.html')) {
+    return true;
+  }
+  if (code.includes('gtm.start') || /event\s*:\s*['"]gtm\.js['"]/i.test(code)) {
+    return true;
+  }
+  if (/\(function\s*\(\s*w\s*,\s*d\s*,\s*s\s*,\s*l\s*,\s*i\s*\)/.test(code)) {
+    return true;
+  }
+  return false;
 }
