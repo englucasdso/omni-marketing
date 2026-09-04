@@ -3,17 +3,20 @@ import {
   Search, ChevronRight, ArrowUpRight, Filter
 } from 'lucide-react';
 import { Artifact } from '../types';
+import { PageHeader } from './PageHeader';
 
 interface ProductAnalysisViewProps {
   artifacts: Artifact[];
   onSelectProduct: (produto: string) => void;
   onOpenMap: (map: Artifact) => void;
+  onBack?: () => void;
 }
 
 export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({ 
   artifacts, 
   onSelectProduct,
-  onOpenMap 
+  onOpenMap,
+  onBack
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProductKey, setSelectedProductKey] = useState<string | null>(null);
@@ -230,29 +233,25 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Search and Header */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 flat-card p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card">
-        <div>
-          <h2 className="text-2xl brand-title font-heading tracking-tight">
-            Análise por Produto e Subproduto
-          </h2>
-          <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 font-ui">
-            Visão consolidada da esteira analítica dividida por canais, jornadas e serviços.
-          </p>
-        </div>
-
-        <div className="w-full md:w-80 relative">
-          <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-          <input 
-            type="text"
-            placeholder="Filtrar por produto ou subproduto..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="neu-input w-full pl-10 pr-4 py-2.5 rounded-xl text-xs font-ui font-medium text-gray-800 dark:text-slate-200 outline-none"
-          />
-        </div>
-      </div>
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader
+        title="Análise por Produto e Subproduto"
+        subtitle="Visão consolidada da esteira analítica dividida por canais, jornadas e serviços."
+        showBack={!!onBack}
+        onBack={onBack}
+        actions={
+          <div className="w-full sm:w-72 relative">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input 
+              type="text"
+              placeholder="Filtrar por produto ou subproduto..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="neu-input w-full pl-9 pr-4 py-2 rounded-xl text-xs font-ui font-medium text-gray-800 dark:text-slate-200 outline-none"
+            />
+          </div>
+        }
+      />
 
       {/* Main Grid: Left List + Right Product Deep Dive */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

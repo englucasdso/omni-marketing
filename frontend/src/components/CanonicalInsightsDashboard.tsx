@@ -5,17 +5,20 @@ import {
   TrendingUp, BarChart3, Database
 } from 'lucide-react';
 import { Artifact } from '../types';
+import { PageHeader } from './PageHeader';
 
 interface CanonicalInsightsDashboardProps {
   artifacts: Artifact[];
   onOpenMap: (map: Artifact) => void;
   onFilterByProduct: (produto: string) => void;
+  onBack?: () => void;
 }
 
 export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProps> = ({
   artifacts,
   onOpenMap,
-  onFilterByProduct
+  onFilterByProduct,
+  onBack
 }) => {
   const [selectedProductFilter, setSelectedProductFilter] = useState('all');
   const [selectedMeasurementFilter, setSelectedMeasurementFilter] = useState('all');
@@ -158,47 +161,43 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
   }, [artifacts]);
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Header and Quick Filters */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 flat-card p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card">
-        <div>
-          <h2 className="text-2xl brand-title font-heading tracking-tight">
-            Indicadores e Governança Analítica
-          </h2>
-          <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 font-ui">
-            Métricas canônicas da esteira de tagueamento, telas mapeadas e conformidade técnica.
-          </p>
-        </div>
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader
+        title="Indicadores e Governança Analítica"
+        subtitle="Métricas canônicas da esteira de tagueamento, telas mapeadas e conformidade técnica."
+        showBack={!!onBack}
+        onBack={onBack}
+        actions={
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-neu-raised">
+              <Filter className="w-3.5 h-3.5 text-gray-400" />
+              <select
+                value={selectedProductFilter}
+                onChange={(e) => setSelectedProductFilter(e.target.value)}
+                className="bg-transparent text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 outline-none cursor-pointer"
+              >
+                <option value="all">TODOS OS PRODUTOS</option>
+                {uniqueProducts.map(p => (
+                  <option key={p} value={p}>{p.toUpperCase()}</option>
+                ))}
+              </select>
+            </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-neu-raised">
-            <Filter className="w-3.5 h-3.5 text-gray-400" />
-            <select
-              value={selectedProductFilter}
-              onChange={(e) => setSelectedProductFilter(e.target.value)}
-              className="bg-transparent text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 outline-none cursor-pointer"
-            >
-              <option value="all">TODOS OS PRODUTOS</option>
-              {uniqueProducts.map(p => (
-                <option key={p} value={p}>{p.toUpperCase()}</option>
-              ))}
-            </select>
+            <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-neu-raised">
+              <select
+                value={selectedMeasurementFilter}
+                onChange={(e) => setSelectedMeasurementFilter(e.target.value)}
+                className="bg-transparent text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 outline-none cursor-pointer"
+              >
+                <option value="all">QUALQUER MENSURAÇÃO</option>
+                <option value="GA4">APENAS GA4</option>
+                <option value="GA3">APENAS GA3 / UNIVERSAL</option>
+                <option value="MISTO">APENAS MISTO</option>
+              </select>
+            </div>
           </div>
-
-          <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-neu-raised">
-            <select
-              value={selectedMeasurementFilter}
-              onChange={(e) => setSelectedMeasurementFilter(e.target.value)}
-              className="bg-transparent text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 outline-none cursor-pointer"
-            >
-              <option value="all">QUALQUER MENSURAÇÃO</option>
-              <option value="GA4">APENAS GA4</option>
-              <option value="GA3">APENAS GA3 / UNIVERSAL</option>
-              <option value="MISTO">APENAS MISTO</option>
-            </select>
-          </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Top 4 Primary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">

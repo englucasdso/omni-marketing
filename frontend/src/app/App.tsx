@@ -26,6 +26,8 @@ import { MapDetailModal } from "../components/MapDetailModal";
 import { ProductAnalysisView } from "../components/ProductAnalysisView";
 import { ParameterAnalysisView } from "../components/ParameterAnalysisView";
 import { CanonicalInsightsDashboard } from "../components/CanonicalInsightsDashboard";
+import { AppShell } from "../components/AppShell";
+import { PageHeader } from "../components/PageHeader";
 
 // Espaçamento lateral global reutilizado no cabeçalho e rodapé para alinhamento no mesmo eixo vertical
 const GLOBAL_SCREEN_PADDING = "px-6 sm:px-8";
@@ -655,7 +657,8 @@ export default function App() {
   }, [appState, fullInventory.length]);
 
   useEffect(() => {
-    if ((appState === "inventory_table" || appState === "results") && results.length === 0 && !loading && !isSearchingRef.current && (query === "" || query === "inventario")) {
+    const mainCatalogStates = ["inventory_table", "results", "produtos_analise", "parametros_analise", "insights", "graph"];
+    if (mainCatalogStates.includes(appState) && results.length === 0 && !loading && !isSearchingRef.current && (query === "" || query === "inventario")) {
       executeSearch("inventario");
     }
   }, [appState, results.length, loading]);
@@ -1462,51 +1465,15 @@ export default function App() {
     </motion.div>
   );
 
-  const NavigationModes = () => {
-    if (!["results", "insights", "graph", "inventory_table", "decision", "produtos_analise", "parametros_analise"].includes(appState) || loading) return null;
-    if (appState === "decision") return null;
-
-    const modes = [
-      { id: "results", label: "Cards", icon: LayoutList },
-      { id: "inventory_table", label: "Inventário", icon: Landmark },
-      { id: "produtos_analise", label: "Por Produto", icon: Layers },
-      { id: "parametros_analise", label: "Por Parâmetro", icon: Tag },
-      { id: "insights", label: "Insights", icon: Sparkles },
-      { id: "graph", label: "Conexões", icon: Network }
-    ];
-
-    return (
-      <div className="flex flex-col items-center mb-10">
-        <nav 
-          aria-label="Modos de visualização"
-          className="bg-white/90 dark:bg-slate-900/90 p-1.5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card flex flex-wrap justify-center gap-1.5"
-        >
-          {modes.map(mode => {
-            const isActive = appState === mode.id;
-            return (
-              <button
-                key={mode.id}
-                onClick={() => setAppState(mode.id as any)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-ui font-semibold text-xs tracking-wider transition-all duration-200 cursor-pointer
-                  ${isActive 
-                    ? "bg-white dark:bg-slate-800 text-bradesco-red border border-gray-200 dark:border-slate-700 shadow-neu-raised" 
-                    : "text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-800/60"
-                  } active:shadow-neu-pressed active:translate-y-px`}
-              >
-                <mode.icon className={`w-4 h-4 ${isActive ? 'text-bradesco-red' : 'text-gray-400 dark:text-slate-500'}`} />
-                {mode.label}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-    );
-  };
-
   const hasPermission = true;
 
   return (
-    <main className="app flex flex-col flex-1 min-h-screen bg-[#f4f5f8] dark:bg-[#0b0f19] w-full relative">
+    <AppShell
+      currentRouteId={appState}
+      onNavigate={(item) => setAppState(item.id as any)}
+      onHomeClick={() => { setAppState('initial'); setQuery(''); setTableFilter(''); }}
+      lastSync={lastSync}
+    >
       <AIReveal isLoading={loading}>
         <AnimatePresence>
         {appState === 'auth' && (
@@ -1536,44 +1503,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Header com margem global da tela (fora do container central) */}
-      <header className={`w-full ${GLOBAL_SCREEN_PADDING} pt-8 mb-8 flex justify-between items-center relative z-40 transition-all ${appState === 'auth' ? 'opacity-0 pointer-events-none absolute' : 'opacity-100 relative'}`}>
-        <div className="flex items-center gap-8 flex-1">
-          <div className="flex flex-col cursor-pointer group" onClick={() => { setAppState('initial'); setQuery(''); setTableFilter(''); }}>
-            <div className="flex items-center gap-3">
-              <h1 className="brand-text font-heading text-2xl font-bold tracking-tight text-gray-900 dark:text-slate-50 group-hover:opacity-85 transition-opacity">
-                Omni Marketing
-              </h1>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 text-sm font-medium text-gray-500 shrink-0">
-          <div className="flex items-center gap-2">
-            {appState !== 'home' && appState !== 'initial' && appState !== 'events_capture' && (
-              <button 
-                onClick={handleBack}
-                className="btn-neu flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-ui font-semibold text-gray-700 dark:text-slate-200 h-10 cursor-pointer"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                Voltar
-              </button>
-            )}
-          </div>
-
-          {!loading && (appState === "inventory_table" || appState === "results") && (
-            <button 
-              onClick={() => setShowExportModal(true)}
-              className="btn-neu flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-ui font-semibold text-bradesco-red hover:text-bradesco-red-hover h-10 cursor-pointer"
-            >
-              <Download className="w-4 h-4 text-bradesco-red" />
-              Extrair Dados
-            </button>
-          )}
-        </div>
-      </header>
-
-      <div className={`flex flex-col flex-1 w-full max-w-5xl mx-auto px-4 sm:px-8 pb-12 transition-all relative ${appState === 'auth' ? 'opacity-0 pointer-events-none absolute' : 'opacity-100 relative'}`}>
+      <div className={`flex flex-col flex-1 w-full transition-all relative ${appState === 'auth' ? 'opacity-0 pointer-events-none absolute' : 'opacity-100 relative'}`}>
 
         {!hasPermission ? (
           <div className="flex flex-col items-center justify-center flex-1 py-32 text-center mt-32">
@@ -1802,7 +1732,6 @@ export default function App() {
 
         {/* Content Section */}
         <section className={`content ${["initial", "catalog", "events_capture", "home", "operational_insights"].includes(appState) ? "hidden" : ""}`}>
-          <NavigationModes />
           
           {/* Decision / Loading Area */}
           <section className={`decision ${appState === "decision" || loading || appState === "empty" ? "flex flex-col items-center justify-center text-center py-24" : "hidden"}`}>
@@ -2120,13 +2049,19 @@ export default function App() {
 
           {/* Graph Visualization Section */}
           <AnimatePresence>
-            {appState === "graph" && insights && (
+            {appState === "graph" && (
               <motion.section 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="graph-container pb-20"
+                className="graph-container pb-20 space-y-6"
               >
+                <PageHeader
+                  title="Conexões e Dependências"
+                  subtitle="Mapeamento relacional de produtos, subprodutos e artefatos de tagueamento."
+                  showBack={true}
+                  onBack={handleBack}
+                />
                 <GraphView 
                   data={results} 
                   isEmbedded={true}
@@ -2137,6 +2072,27 @@ export default function App() {
 
           {/* Results Area (Tela de Cards) */}
           <section className={`results space-y-6 ${appState === "results" && !loading ? "" : "hidden"}`}>
+            <PageHeader
+              title="Cards de Artefatos"
+              subtitle="Visualização em cards com metadados, status e histórico de cada especificação."
+              badge={
+                <span className="text-xs font-ui font-semibold px-3 py-1 rounded-xl bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 border border-gray-200 dark:border-slate-700 shadow-neu-raised tabular-nums">
+                  {filteredAndSortedCards.length} de {cardSource.length} artefatos
+                </span>
+              }
+              showBack={true}
+              onBack={handleBack}
+              actions={
+                <button 
+                  onClick={() => setShowExportModal(true)}
+                  className="btn-neu flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-ui font-semibold text-bradesco-red hover:text-bradesco-red-hover h-10 cursor-pointer"
+                >
+                  <Download className="w-4 h-4 text-bradesco-red" />
+                  Extrair Dados
+                </button>
+              }
+            />
+
             {/* Âncora para rolagem suave ao trocar de página */}
             <div ref={cardsListRef} className="scroll-mt-6" />
 
@@ -2606,22 +2562,27 @@ export default function App() {
               animate={{ opacity: 1 }}
               className="inventory-table-container pb-20"
             >
-              {/* Header Padronizado no Estilo da Página de Cards */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                <div>
-                  <h2 className="text-2xl brand-title font-heading tracking-tight mb-1">
-                    Inventário de Artefatos e Especificações
-                  </h2>
-                  <p className="text-xs text-gray-500 dark:text-slate-400 font-ui">
-                    Visualização técnica de todos os mapas, especificações de tags e fluxos catalogados.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
+              {/* Header Padronizado com PageHeader */}
+              <PageHeader
+                title="Inventário de Artefatos e Especificações"
+                subtitle="Visualização técnica de todos os mapas, especificações de tags e fluxos catalogados."
+                badge={
                   <span className="text-xs font-ui font-semibold px-3.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 border border-gray-200 dark:border-slate-700 shadow-neu-raised tabular-nums">
                     {filteredInventory.length} de {results.length} artefatos
                   </span>
-                </div>
-              </div>
+                }
+                showBack={true}
+                onBack={handleBack}
+                actions={
+                  <button 
+                    onClick={() => setShowExportModal(true)}
+                    className="btn-neu flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-ui font-semibold text-bradesco-red hover:text-bradesco-red-hover h-10 cursor-pointer"
+                  >
+                    <Download className="w-4 h-4 text-bradesco-red" />
+                    Extrair Dados
+                  </button>
+                }
+              />
 
               {/* Advanced Filter Architecture */}
               <div className="glass-card rounded-2xl border border-gray-200 dark:border-slate-800 p-6 mb-8 shadow-neu-card">
@@ -3023,19 +2984,6 @@ export default function App() {
         )}
       </div>
 
-      {/* Static Footer */}
-      <footer className={`mt-auto w-full ${GLOBAL_SCREEN_PADDING} py-4 bg-white dark:bg-slate-900 dark:border-slate-800/90 backdrop-blur-sm border-t border-gray-100 dark:border-slate-700 flex justify-between items-center text-[10px] uppercase font-black tracking-widest text-gray-400 dark:text-slate-500 z-30`}>
-        <div className="flex flex-col gap-1 text-left">
-          <div className="normal-case font-ui">Desenvolvido por: <strong className="lowercase">lucas.doliveira@bradesco.com.br</strong></div>
-          {lastSync && (
-            <div className="text-[9px] font-medium text-gray-400 dark:text-slate-500 normal-case font-ui">
-              Última sincronização: {lastSync}
-            </div>
-          )}
-        </div>
-        <div className="uppercase font-ui tracking-wider">Salla.MKT V1.0.0</div>
-      </footer>
-
       {/* Export Modal */}
       <AnimatePresence>
         {showExportModal && (
@@ -3166,6 +3114,6 @@ export default function App() {
       />
 
       </AIReveal>
-    </main>
+    </AppShell>
   );
 }
