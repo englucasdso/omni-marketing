@@ -516,7 +516,7 @@ const SyncWidget = ({ job, onCancel }: { job: any, onCancel: () => void }) => {
 
 const AIReveal = ({ isLoading, children }: { isLoading: boolean, children: React.ReactNode }) => {
   return (
-    <div className="relative w-full">
+    <div className="relative w-full flex-1 flex flex-col min-h-screen">
       {children}
       <AnimatePresence>
         {isLoading && (
@@ -1506,7 +1506,7 @@ export default function App() {
   const hasPermission = true;
 
   return (
-    <main className="app flex flex-col min-h-screen bg-[#f4f5f8] dark:bg-[#0b0f19] w-full h-full relative">
+    <main className="app flex flex-col flex-1 min-h-screen bg-[#f4f5f8] dark:bg-[#0b0f19] w-full relative">
       <AIReveal isLoading={loading}>
         <AnimatePresence>
         {appState === 'auth' && (

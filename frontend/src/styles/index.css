@@ -239,13 +239,17 @@ html, body {
 }
 
 html,
-body {
+body,
+#root {
   margin: 0;
   padding: 0;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-ui);
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 /* ==========================================================================
