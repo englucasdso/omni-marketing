@@ -6,10 +6,33 @@ const DATA_FILE = path.join(process.cwd(), "backend/data/inventario.json");
 export function normalizeInventoryItem(item: any) {
   if (!item) return null;
   const artifact_type = item.artifact_type || (item.tipo_mapa === 'Doc' ? 'DOCUMENTACAO' : 'MAPA');
-  const measurement_class = item.measurement_class || (
+  let measurement_class = item.measurement_class || (
     item.tipo_mapa === 'GA4' ? 'GA4' : 
     (item.tipo_mapa === 'Universal Analytics' || item.tipo_mapa === 'GA3' ? 'GA3' : 'NAO_CLASSIFICADO')
   );
+  
+  if (measurement_class === 'MISTO') {
+    measurement_class = 'HIBRIDO';
+  }
+
+  const screens = Array.isArray(item.screens) ? item.screens : [];
+  const totalScreens = screens.length;
+  let validatedScreens = item.validated_screens !== undefined ? item.validated_screens : 
+    (item.status_summary?.VALIDADO || 0);
+
+  let homologation_percentage = item.homologation_percentage !== undefined ? item.homologation_percentage : 
+    (totalScreens > 0 ? Math.round((validatedScreens / totalScreens) * 100) : 0);
+
+  let homologation_status = item.homologation_status;
+  if (!homologation_status) {
+    if (totalScreens > 0 && validatedScreens === totalScreens) {
+      homologation_status = 'HOMOLOGADO';
+    } else if (validatedScreens > 0 && validatedScreens < totalScreens) {
+      homologation_status = 'PARCIAL';
+    } else {
+      homologation_status = 'NAO_HOMOLOGADO';
+    }
+  }
 
   return {
     ...item,
@@ -29,7 +52,7 @@ export function normalizeInventoryItem(item: any) {
     gtm_ids: Array.isArray(item.gtm_ids) ? item.gtm_ids : (item.gtm_id ? [item.gtm_id] : []),
     structural_metadata: item.structural_metadata || null,
     header: item.header || {},
-    screens: Array.isArray(item.screens) ? item.screens : [],
+    screens: screens,
     status_summary: item.status_summary || {
       NOVO: 0,
       VALIDADO: 0,
@@ -40,6 +63,10 @@ export function normalizeInventoryItem(item: any) {
     },
     declared_status: item.declared_status || null,
     calculated_status: item.calculated_status || 'NAO_IDENTIFICADO',
+    homologation_status,
+    homologation_percentage,
+    validated_screens: validatedScreens,
+    total_screens: totalScreens,
     status_divergent: Boolean(item.status_divergent),
     parameter_summary: Array.isArray(item.parameter_summary) ? item.parameter_summary : [],
     pattern_summary: Array.isArray(item.pattern_summary) ? item.pattern_summary : [],
@@ -72,7 +99,7 @@ export function calculateInsights(inventory: any[]) {
   const measurementCounts = {
     GA4: 0,
     GA3: 0,
-    MISTO: 0,
+    HIBRIDO: 0,
     NAO_CLASSIFICADO: 0
   };
 

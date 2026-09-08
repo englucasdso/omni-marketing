@@ -1,5 +1,5 @@
 export type ArtifactType = 'MAPA' | 'DOCUMENTACAO';
-export type MeasurementClass = 'GA4' | 'GA3' | 'MISTO' | 'NAO_CLASSIFICADO';
+export type MeasurementClass = 'GA4' | 'GA3' | 'HIBRIDO' | 'NAO_CLASSIFICADO';
 export type ScreenStatus = 'NOVO' | 'VALIDADO' | 'CORREÇÃO' | 'CORRECAO' | 'EXCLUIR' | 'DESCONTINUAR';
 export type ValueType = 'PLACEHOLDER' | 'HARDCODED' | 'JAVASCRIPT_REFERENCE' | 'BOOLEAN' | 'NUMBER' | 'NULL' | 'EMPTY' | 'UNKNOWN';
 
@@ -117,6 +117,10 @@ export interface Artifact {
   status_summary?: StatusSummary;
   declared_status?: string | null;
   calculated_status?: string;
+  homologation_status?: 'HOMOLOGADO' | 'PARCIAL' | 'NAO_HOMOLOGADO';
+  homologation_percentage?: number;
+  validated_screens?: number;
+  total_screens?: number;
   homologado?: boolean;
   status_divergent?: boolean;
   parameter_summary?: ParameterSummaryItem[];
@@ -145,7 +149,7 @@ export interface Insights {
   measurementCounts?: {
     GA4: number;
     GA3: number;
-    MISTO: number;
+    HIBRIDO: number;
     NAO_CLASSIFICADO: number;
   };
   ga4?: number;

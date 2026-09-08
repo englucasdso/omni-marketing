@@ -1320,7 +1320,7 @@ export default function App() {
         { v: 'all', l: 'Todos' },
         { v: 'GA4', l: `GA4 (${measurementCounts.get('GA4') || 0})` },
         { v: 'GA3', l: `GA3 (${measurementCounts.get('GA3') || 0})` },
-        { v: 'MISTO', l: `Misto (${measurementCounts.get('MISTO') || 0})` },
+        { v: 'HIBRIDO', l: `Híbrido (${measurementCounts.get('HIBRIDO') || 0})` },
         { v: 'NAO_CLASSIFICADO', l: `Não Classificado (${measurementCounts.get('NAO_CLASSIFICADO') || 0})` }
       ],
       produtos: [
@@ -2024,11 +2024,6 @@ export default function App() {
             <PageHeader
               title="Cards de Artefatos"
               subtitle="Visualização em cards com metadados, status e histórico de cada especificação."
-              badge={
-                <span className="text-xs font-ui font-semibold px-3 py-1 rounded-xl bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 border border-gray-200 dark:border-slate-700 shadow-neu-raised tabular-nums">
-                  {filteredAndSortedCards.length} de {cardSource.length} artefatos
-                </span>
-              }
               actions={
                 <button 
                   onClick={() => setShowExportModal(true)}
@@ -2206,74 +2201,37 @@ export default function App() {
             <div className="space-y-6">
               <AnimatePresence>
                 {paginatedCards.map((item, index) => {
-                // Real Confluence status mapping
-                const realStatus = item.calculated_status || item.declared_status || null;
                 const isDoc = item.artifact_type === 'DOCUMENTACAO';
                 
-                let statusBadge = {
-                  label: realStatus || 'Não Classificado',
-                  bg: 'bg-slate-50 dark:bg-slate-800',
-                  border: 'border-slate-200 dark:border-slate-700',
-                  color: 'text-slate-700 dark:text-slate-300',
-                  icon: <Info className="w-3 h-3" />
-                };
-
-                if (isDoc) {
-                  statusBadge = {
-                    label: 'Documento',
-                    bg: 'bg-slate-50 dark:bg-slate-800',
-                    border: 'border-slate-200 dark:border-slate-700',
-                    color: 'text-slate-700 dark:text-slate-300',
-                    icon: <FileText className="w-3 h-3" />
-                  };
-                } else if (realStatus === 'VALIDADO') {
-                  statusBadge = {
-                    label: 'Validado',
-                    bg: 'bg-emerald-50 dark:bg-emerald-950/40',
-                    border: 'border-emerald-200 dark:border-emerald-800',
-                    color: 'text-emerald-700 dark:text-emerald-300',
-                    icon: <CheckCircle2 className="w-3 h-3" />
-                  };
-                } else if (realStatus === 'CORRECAO' || realStatus === 'CORREÇÃO') {
-                  statusBadge = {
-                    label: 'Correção',
-                    bg: 'bg-rose-50 dark:bg-rose-950/40',
-                    border: 'border-rose-200 dark:border-rose-800',
-                    color: 'text-rose-700 dark:text-rose-300',
-                    icon: <AlertTriangle className="w-3 h-3" />
-                  };
-                } else if (realStatus === 'NOVO') {
-                  statusBadge = {
-                    label: 'Novo',
-                    bg: 'bg-amber-50 dark:bg-amber-950/40',
-                    border: 'border-amber-200 dark:border-amber-800',
-                    color: 'text-amber-800 dark:text-amber-300',
-                    icon: <Sparkles className="w-3 h-3" />
-                  };
-                } else if (realStatus === 'EXCLUIR') {
-                  statusBadge = {
-                    label: 'Excluir',
-                    bg: 'bg-slate-100 dark:bg-slate-800',
-                    border: 'border-slate-300 dark:border-slate-700',
-                    color: 'text-slate-700 dark:text-slate-300',
-                    icon: <AlertCircle className="w-3 h-3" />
-                  };
-                } else if (realStatus === 'DESCONTINUAR') {
-                  statusBadge = {
-                    label: 'Descontinuar',
-                    bg: 'bg-blue-50 dark:bg-blue-950/40',
-                    border: 'border-blue-200 dark:border-blue-800',
-                    color: 'text-blue-700 dark:text-blue-300',
-                    icon: <Info className="w-3 h-3" />
-                  };
-                } else if (realStatus === 'PARCIAL') {
-                  statusBadge = {
-                    label: 'Parcial',
-                    bg: 'bg-purple-50 dark:bg-purple-950/40',
-                    border: 'border-purple-200 dark:border-purple-800',
-                    color: 'text-purple-700 dark:text-purple-300',
-                    icon: <AlertTriangle className="w-3 h-3" />
-                  };
+                let homologationBadge = null;
+                
+                if (!isDoc) {
+                  const homologationStatus = item.homologation_status || 'NAO_HOMOLOGADO';
+                  if (homologationStatus === 'HOMOLOGADO') {
+                    homologationBadge = {
+                      label: 'Homologado',
+                      bg: 'bg-emerald-50 dark:bg-emerald-950/40',
+                      border: 'border-emerald-200 dark:border-emerald-800',
+                      color: 'text-emerald-700 dark:text-emerald-300',
+                      icon: <CheckCircle2 className="w-3 h-3" />
+                    };
+                  } else if (homologationStatus === 'PARCIAL') {
+                    homologationBadge = {
+                      label: 'Parcial',
+                      bg: 'bg-amber-50 dark:bg-amber-950/40',
+                      border: 'border-amber-200 dark:border-amber-800',
+                      color: 'text-amber-800 dark:text-amber-300',
+                      icon: <AlertTriangle className="w-3 h-3" />
+                    };
+                  } else {
+                    homologationBadge = {
+                      label: 'Não homologado',
+                      bg: 'bg-transparent',
+                      border: 'border-gray-300 dark:border-slate-600',
+                      color: 'text-gray-500 dark:text-slate-400',
+                      icon: <Info className="w-3 h-3" />
+                    };
+                  }
                 }
 
                 return (
@@ -2287,23 +2245,18 @@ export default function App() {
                   <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="red-badge font-ui">
-                        {item.artifact_type === 'DOCUMENTACAO' || (item.tipo_mapa && normalizar(item.tipo_mapa) === 'doc')
-                          ? "DOCUMENTO" 
-                          : (item.measurement_class || item.tipo_mapa || "MAPA").toUpperCase()}
+                        {isDoc ? "DOCUMENTO" : "MAPA"}
                       </span>
                       {item.produto && <span className="red-badge font-ui">{item.produto}</span>}
                       {item.subproduto && <span className="red-badge font-ui">{item.subproduto}</span>}
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {item.status_divergent && (
-                        <span className="flex items-center gap-1 px-2.5 py-1 rounded-full border text-[9px] font-ui font-semibold uppercase tracking-wider bg-amber-50 dark:bg-amber-950/50 border-amber-200 text-amber-700 dark:text-amber-300">
-                          <AlertTriangle className="w-2.5 h-2.5" /> Divergente
-                        </span>
+                      {homologationBadge && (
+                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-neu-raised text-[10px] font-ui font-semibold uppercase tracking-widest cursor-default ${homologationBadge.bg} ${homologationBadge.border} ${homologationBadge.color}`}>
+                          {homologationBadge.icon} {homologationBadge.label}
+                        </div>
                       )}
-                      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-neu-raised text-[10px] font-ui font-semibold uppercase tracking-widest cursor-default ${statusBadge.bg} ${statusBadge.border} ${statusBadge.color}`}>
-                        {statusBadge.icon} {statusBadge.label}
-                      </div>
                     </div>
                   </div>
 
@@ -2318,7 +2271,7 @@ export default function App() {
                     </a>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6 p-4 rounded-xl bg-gray-50/50 dark:bg-slate-800/30 border border-gray-100 dark:border-slate-800">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6 p-4 rounded-xl bg-gray-50/50 dark:bg-slate-800/30 border border-gray-100 dark:border-slate-800">
                     <div className="flex flex-col gap-1">
                       <span className="text-[10px] font-ui font-semibold uppercase text-gray-400 dark:text-slate-500 tracking-wider">Identificador</span>
                       <span className="text-sm font-heading font-bold text-gray-800 dark:text-slate-200 tabular-nums">{item.id}</span>
@@ -2331,37 +2284,27 @@ export default function App() {
                       <span className="text-[10px] font-ui font-semibold uppercase text-gray-400 dark:text-slate-500 tracking-wider">Versão</span>
                       <span className="text-sm font-heading font-bold text-gray-800 dark:text-slate-200 tabular-nums">{item.versao || "1"}</span>
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] font-ui font-semibold uppercase text-gray-400 dark:text-slate-500 tracking-wider">Nível de Taxonomia</span>
-                      <span className="text-sm font-heading font-bold text-gray-800 dark:text-slate-200 tabular-nums">{item.taxonomy_depth || item.nivel || "1"}</span>
-                    </div>
                   </div>
 
                   <div className="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-gray-100 dark:border-slate-800">
                     <div className="flex items-center gap-3">
                       <button 
-                        className="btn-neu px-3 py-1.5 rounded-xl font-ui font-semibold text-xs text-gray-700 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer hover:text-bradesco-red" 
+                        className="px-2 py-1.5 font-ui text-sm text-gray-600 dark:text-slate-300 flex items-center gap-1 cursor-pointer hover:text-bradesco-red transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bradesco-red rounded" 
                         onClick={() => toggleDetails(item.id)}
+                        aria-expanded={expandedCards.has(item.id)}
+                        aria-controls={`details-${item.id}`}
                       >
                         {expandedCards.has(item.id) ? (
                           <>
-                            <ChevronUp className="w-3.5 h-3.5" />
-                            Ocultar metadados
+                            <ChevronUp className="w-4 h-4" />
+                            Ocultar detalhes
                           </>
                         ) : (
                           <>
-                            <ChevronDown className="w-3.5 h-3.5" />
-                            Ver metadados
+                            <ChevronDown className="w-4 h-4" />
+                            Ver detalhes
                           </>
                         )}
-                      </button>
-
-                      <button
-                        onClick={() => setDetailModalItem(item)}
-                        className="btn-neu px-3 py-1.5 rounded-xl font-ui font-semibold text-xs text-gray-700 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer hover:text-bradesco-red"
-                      >
-                        <Layers className="w-3.5 h-3.5" />
-                        Inspecionar Telas
                       </button>
                     </div>
 
@@ -2372,50 +2315,213 @@ export default function App() {
 
                   {expandedCards.has(item.id) && (
                     <motion.div 
+                      id={`details-${item.id}`}
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
                       className="mt-6 pt-6 border-t border-gray-100 dark:border-slate-700"
                     >
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-y-4 gap-x-8">
+                      <div className="space-y-6">
+                        {/* Classificação */}
                         <div>
-                          <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Produto/Serviço</p>
-                          <p className="text-sm text-gray-800 dark:text-slate-200">{item.produto_servico || "-"}</p>
+                          <h4 className="text-xs font-bold text-gray-800 dark:text-slate-200 uppercase tracking-wider border-b border-gray-200 dark:border-slate-700 pb-2 mb-3">Classificação</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Tipo de artefato</p>
+                              <p className="text-sm font-ui text-gray-800 dark:text-slate-200">{item.artifact_type || "-"}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Classificação de mensuração</p>
+                              <p className="text-sm font-ui text-gray-800 dark:text-slate-200">
+                                {item.measurement_class === 'HIBRIDO' ? 'Híbrido' : (item.measurement_class === 'NAO_CLASSIFICADO' ? 'Não classificado' : item.measurement_class)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Produto</p>
+                              <p className="text-sm font-ui text-gray-800 dark:text-slate-200">{item.produto || "-"}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Subproduto</p>
+                              <p className="text-sm font-ui text-gray-800 dark:text-slate-200">{item.subproduto || "-"}</p>
+                            </div>
+                          </div>
                         </div>
+
+                        {/* Homologação (only for maps) */}
+                        {!isDoc && (
+                          <div>
+                            <h4 className="text-xs font-bold text-gray-800 dark:text-slate-200 uppercase tracking-wider border-b border-gray-200 dark:border-slate-700 pb-2 mb-3">Homologação</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                              <div>
+                                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Status de homologação</p>
+                                <p className="text-sm font-ui text-gray-800 dark:text-slate-200">{homologationBadge?.label || "Não homologado"}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Telas validadas</p>
+                                <p className="text-sm font-ui text-gray-800 dark:text-slate-200">{item.validated_screens || 0} de {item.total_screens || 0}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Percentual de homologação</p>
+                                <p className="text-sm font-ui text-gray-800 dark:text-slate-200">{item.homologation_percentage || 0}%</p>
+                              </div>
+                            </div>
+                            <div className="mt-4">
+                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-2">Distribuição de status</p>
+                              <div className="flex flex-wrap gap-4">
+                                <span className="text-xs font-ui text-gray-700 dark:text-slate-300"><strong className="text-emerald-600 dark:text-emerald-400">{item.status_summary?.VALIDADO || 0}</strong> Validado</span>
+                                <span className="text-xs font-ui text-gray-700 dark:text-slate-300"><strong className="text-rose-600 dark:text-rose-400">{item.status_summary?.['CORREÇÃO'] || item.status_summary?.CORRECAO || 0}</strong> Correção</span>
+                                <span className="text-xs font-ui text-gray-700 dark:text-slate-300"><strong className="text-amber-600 dark:text-amber-400">{item.status_summary?.NOVO || 0}</strong> Novo</span>
+                                <span className="text-xs font-ui text-gray-700 dark:text-slate-300"><strong className="text-gray-600 dark:text-gray-400">{item.status_summary?.EXCLUIR || 0}</strong> Excluir</span>
+                                <span className="text-xs font-ui text-gray-700 dark:text-slate-300"><strong className="text-blue-600 dark:text-blue-400">{item.status_summary?.DESCONTINUAR || 0}</strong> Descontinuar</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Consistência */}
                         <div>
-                          <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Nº Task</p>
-                          <p className="text-sm text-gray-800 dark:text-slate-200">{item.numero_da_task || "-"}</p>
+                          <h4 className="text-xs font-bold text-gray-800 dark:text-slate-200 uppercase tracking-wider border-b border-gray-200 dark:border-slate-700 pb-2 mb-3">Consistência</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Status declarado</p>
+                              <p className="text-sm font-ui text-gray-800 dark:text-slate-200">{item.declared_status || "-"}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Divergência detectada</p>
+                              <p className="text-sm font-ui text-gray-800 dark:text-slate-200">{item.status_divergent ? "Sim" : "Não"}</p>
+                            </div>
+                          </div>
                         </div>
+
+                        {/* Metadados técnicos */}
                         <div>
-                          <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">GTM ID</p>
-                          <p className="text-sm text-gray-800 dark:text-slate-200">{item.gtm_id || "-"}</p>
+                          <h4 className="text-xs font-bold text-gray-800 dark:text-slate-200 uppercase tracking-wider border-b border-gray-200 dark:border-slate-700 pb-2 mb-3">Metadados técnicos</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-y-4 gap-x-8">
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Produto/Serviço declarado</p>
+                              <p className="text-sm text-gray-800 dark:text-slate-200">{item.produto_servico || "-"}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Nº da Task</p>
+                              <p className="text-sm text-gray-800 dark:text-slate-200">{item.numero_da_task || "-"}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">GTM ID</p>
+                              <p className="text-sm text-gray-800 dark:text-slate-200">{item.gtm_id || "-"}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">GA4 Stream ID</p>
+                              <p className="text-sm text-gray-800 dark:text-slate-200">{item.propriedade_ga4_stream_id || "-"}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Firebase</p>
+                              <p className="text-sm text-gray-800 dark:text-slate-200">{item.firebase || "-"}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Domínio</p>
+                              <p className="text-sm text-gray-800 dark:text-slate-200">{item.dominio_exclusivo_web || "-"}</p>
+                            </div>
+                            <div className="md:col-span-3">
+                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Figma/XD</p>
+                              {item.figma_xd && item.figma_xd !== "-" ? (
+                                <a 
+                                  href={item.figma_xd} 
+                                  target="_blank" 
+                                  rel="noreferrer" 
+                                  className="text-sm font-bold text-red-600 hover:underline"
+                                >
+                                  ACESSE AQUI
+                                </a>
+                              ) : (
+                                <p className="text-sm text-gray-800 dark:text-slate-200">{item.figma_xd || "-"}</p>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">GA4 Stream ID</p>
-                          <p className="text-sm text-gray-800 dark:text-slate-200">{item.propriedade_ga4_stream_id || "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Firebase</p>
-                          <p className="text-sm text-gray-800 dark:text-slate-200">{item.firebase || "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Domínio</p>
-                          <p className="text-sm text-gray-800 dark:text-slate-200">{item.dominio_exclusivo_web || "-"}</p>
-                        </div>
-                        <div className="md:col-span-3">
-                          <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Figma/XD</p>
-                          {item.figma_xd && item.figma_xd !== "-" ? (
-                            <a 
-                              href={item.figma_xd} 
-                              target="_blank" 
-                              rel="noreferrer" 
-                              className="text-sm font-bold text-red-600 hover:underline"
-                            >
-                              ACESSE AQUI
-                            </a>
-                          ) : (
-                            <p className="text-sm text-gray-800 dark:text-slate-200">{item.figma_xd || "-"}</p>
-                          )}
-                        </div>
+
+                        {/* Telas do Mapa Accordion */}
+                        {!isDoc && Array.isArray(item.screens) && item.screens.length > 0 && (
+                          <div className="pt-2">
+                            <details className="group/details">
+                              <summary className="flex items-center gap-2 cursor-pointer list-none font-ui font-semibold text-sm text-gray-700 dark:text-slate-300 hover:text-bradesco-red transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bradesco-red rounded select-none py-1">
+                                <ChevronRight className="w-4 h-4 transition-transform group-open/details:rotate-90" />
+                                Telas do mapa ({item.screens.length})
+                              </summary>
+                              <div className="mt-3 ml-6 space-y-2">
+                                {item.screens.map((screen, sIdx) => {
+                                  const sStatus = screen.status || screen.status_raw;
+                                  return (
+                                    <details key={sIdx} className="border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 overflow-hidden group/screen">
+                                      <summary className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 p-3 cursor-pointer list-none hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bradesco-red select-none">
+                                        <div className="flex items-center gap-3 w-full">
+                                          <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform group-open/screen:rotate-90" />
+                                          <span className="font-ui font-medium text-sm text-gray-800 dark:text-slate-200 truncate pr-4">
+                                            {screen.instruction || `Tela ${screen.screen_index || sIdx + 1}`}
+                                          </span>
+                                          <div className="ml-auto shrink-0 flex items-center">
+                                            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${
+                                              sStatus === 'VALIDADO' ? 'text-emerald-700 bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-400' :
+                                              (sStatus === 'CORREÇÃO' || sStatus === 'CORRECAO') ? 'text-rose-700 bg-rose-50 border-rose-200 dark:bg-rose-950/30 dark:border-rose-800 dark:text-rose-400' :
+                                              sStatus === 'NOVO' ? 'text-amber-700 bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-400' :
+                                              sStatus === 'DESCONTINUAR' ? 'text-blue-700 bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-400' :
+                                              sStatus === 'EXCLUIR' ? 'text-gray-700 bg-gray-50 border-gray-200 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-300' :
+                                              'text-gray-500 bg-transparent border-gray-200 dark:border-slate-700'
+                                            }`}>
+                                              {sStatus || 'NÃO IDENTIFICADO'}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </summary>
+                                      
+                                      <div className="p-4 pt-0 border-t border-gray-100 dark:border-slate-800/60 bg-gray-50/50 dark:bg-slate-800/20 text-sm font-ui text-gray-600 dark:text-slate-400">
+                                        <div className="mt-4 space-y-3">
+                                          {screen.image_name && (
+                                            <div><strong className="text-gray-800 dark:text-slate-300">Evidência:</strong> {screen.image_name}</div>
+                                          )}
+                                          
+                                          {screen.snippets && screen.snippets.length > 0 ? (
+                                            <div>
+                                              <strong className="text-gray-800 dark:text-slate-300 block mb-2">Snippets associados:</strong>
+                                              <div className="space-y-2">
+                                                {screen.snippets.map((snip, snIdx) => (
+                                                  <div key={snIdx} className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg p-3">
+                                                    <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-100 dark:border-slate-800 text-xs">
+                                                      <span className="font-bold text-bradesco-red font-mono">{snip.event_normalized || snip.event_raw || "unknown_event"}</span>
+                                                      <span className="font-mono text-[10px] bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">{snip.measurement_class}</span>
+                                                    </div>
+                                                    
+                                                    {snip.parameters && snip.parameters.length > 0 && (
+                                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                                                        {snip.parameters.map((p, pIdx) => (
+                                                          <div key={pIdx} className="flex flex-col">
+                                                            <span className="text-[10px] uppercase text-gray-500 font-bold">{p.name || p.path}</span>
+                                                            <span className="font-mono text-gray-800 dark:text-slate-300 truncate" title={p.raw_value}>{p.raw_value}</span>
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <p className="text-xs italic text-gray-500">Sem snippets associados a esta tela.</p>
+                                          )}
+                                          
+                                          {screen.additional_information && (
+                                            <div className="pt-2 border-t border-gray-200 dark:border-slate-700 mt-3">
+                                              <strong className="text-gray-800 dark:text-slate-300 text-xs block mb-1">Info adicional:</strong>
+                                              <p className="text-xs whitespace-pre-wrap">{screen.additional_information}</p>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </details>
+                                  )
+                                })}
+                              </div>
+                            </details>
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   )}
@@ -2727,8 +2833,8 @@ export default function App() {
                               } else if (mRaw === 'GA3' || tRaw === 'ga3' || tRaw === 'universal analytics') {
                                 classLabel = 'GA3';
                                 classStyle = 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300';
-                              } else if (mRaw === 'MISTO' || tRaw === 'misto') {
-                                classLabel = 'Misto';
+                              } else if (mRaw === 'HIBRIDO' || tRaw === 'hibrido' || tRaw === 'híbrido' || tRaw === 'misto') {
+                                classLabel = 'Híbrido';
                                 classStyle = 'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300';
                               }
 

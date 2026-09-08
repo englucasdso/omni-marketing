@@ -147,6 +147,10 @@ export class ConfluenceOrchestrator {
           statusSummary = cached.status_summary || {};
           declaredStatus = cached.declared_status || null;
           calculatedStatus = cached.calculated_status || 'NAO_IDENTIFICADO';
+          let homologationStatus = cached.homologation_status || 'NAO_HOMOLOGADO';
+          let homologationPercentage = cached.homologation_percentage || 0;
+          let validatedScreens = cached.validated_screens || 0;
+          let totalScreens = cached.total_screens || 0;
           statusDivergent = Boolean(cached.status_divergent);
           homologado = cached.homologado !== undefined ? Boolean(cached.homologado) : (telasDoMapa.length > 0 && telasDoMapa.every(s => s.status === 'VALIDADO'));
           parameterSummary = cached.parameter_summary || [];
@@ -180,6 +184,10 @@ export class ConfluenceOrchestrator {
             statusSummary = classification.status_summary;
             declaredStatus = classification.declared_status;
             calculatedStatus = classification.calculated_status;
+            let homologationStatus = classification.homologation_status;
+            let homologationPercentage = classification.homologation_percentage;
+            let validatedScreens = classification.validated_screens;
+            let totalScreens = classification.total_screens;
             statusDivergent = classification.status_divergent;
             homologado = Boolean(classification.homologado);
             tipo_mapa = artifact_type === 'DOCUMENTACAO' ? 'Doc' : (measurement_class === 'NAO_CLASSIFICADO' ? 'Não classificado' : measurement_class);
@@ -226,6 +234,10 @@ export class ConfluenceOrchestrator {
           status_summary: statusSummary,
           declared_status: declaredStatus,
           calculated_status: calculatedStatus,
+          homologation_status: typeof homologationStatus !== 'undefined' ? homologationStatus : (homologado ? 'HOMOLOGADO' : 'NAO_HOMOLOGADO'),
+          homologation_percentage: typeof homologationPercentage !== 'undefined' ? homologationPercentage : (homologado ? 100 : 0),
+          validated_screens: typeof validatedScreens !== 'undefined' ? validatedScreens : (homologado ? telasDoMapa.length : 0),
+          total_screens: typeof totalScreens !== 'undefined' ? totalScreens : telasDoMapa.length,
           homologado,
           status_divergent: statusDivergent,
           parameter_summary: parameterSummary,

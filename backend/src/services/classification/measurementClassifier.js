@@ -2,7 +2,7 @@
  * MeasurementClassifier
  * Classifica artefatos em:
  * - artifact_type: MAPA | DOCUMENTACAO
- * - measurement_class: GA4 | GA3 | MISTO | NAO_CLASSIFICADO
+ * - measurement_class: GA4 | GA3 | HIBRIDO | NAO_CLASSIFICADO
  * Calcula distribuição dos 5 status reais oficiais:
  * VALIDADO, CORREÇÃO, NOVO, EXCLUIR, DESCONTINUAR
  * Regra de integridade: total_telas = VALIDADO + CORREÇÃO + NOVO + EXCLUIR + DESCONTINUAR
@@ -78,7 +78,7 @@ export class MeasurementClassifier {
       for (const snippet of snippets) {
         if (snippet.measurement_class === 'GA4') hasGa4 = true;
         else if (snippet.measurement_class === 'GA3') hasGa3 = true;
-        else if (snippet.measurement_class === 'MISTO') {
+        else if (snippet.measurement_class === 'HIBRIDO') {
           hasGa4 = true;
           hasGa3 = true;
         }
@@ -105,7 +105,7 @@ export class MeasurementClassifier {
     // Classificação de mensuração:
     let measurement_class = 'NAO_CLASSIFICADO';
     if (hasGa4 && hasGa3) {
-      measurement_class = 'MISTO';
+      measurement_class = 'HIBRIDO';
     } else if (hasGa4) {
       measurement_class = 'GA4';
     } else if (hasGa3) {
@@ -113,18 +113,33 @@ export class MeasurementClassifier {
     }
 
     // Status calculado e homologação do mapa:
-    // Um mapa será considerado homologado somente quando:
-    // - possuir pelo menos uma tela detectada;
-    // - todas as telas detectadas estiverem com status VALIDADO.
     const totalScreens = screens.length;
+    const validatedScreens = statusSummary.VALIDADO || 0;
+    
+    let homologation_percentage = 0;
+    if (totalScreens > 0) {
+      homologation_percentage = Math.round((validatedScreens / totalScreens) * 100);
+    }
+    
+    let homologation_status = 'NAO_HOMOLOGADO';
+    if (totalScreens > 0 && validatedScreens === totalScreens) {
+      homologation_status = 'HOMOLOGADO';
+    } else if (validatedScreens > 0 && validatedScreens < totalScreens) {
+      homologation_status = 'PARCIAL';
+    }
+    
+    // Maintain calculated_status for backward compatibility
     let calculated_status = null;
     let homologado = false;
     if (totalScreens > 0) {
-      if (statusSummary.VALIDADO === totalScreens) {
+      if (validatedScreens === totalScreens) {
         calculated_status = 'VALIDADO';
         homologado = true;
-      } else {
+      } else if (validatedScreens > 0) {
         calculated_status = 'PARCIAL';
+        homologado = false;
+      } else {
+        calculated_status = 'NAO_VALIDADO';
         homologado = false;
       }
     }
@@ -147,6 +162,10 @@ export class MeasurementClassifier {
       status_summary: statusSummary,
       declared_status: normDeclared || null,
       calculated_status,
+      homologation_status,
+      homologation_percentage,
+      validated_screens: validatedScreens,
+      total_screens: totalScreens,
       homologado,
       status_divergent,
       extraction_errors: extractionErrors,

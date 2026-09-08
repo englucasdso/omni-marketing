@@ -443,7 +443,7 @@ export class ParameterParser {
       sigLower.includes('ep_padrao');
 
     if (hasGa3Paths && (hasGa4Paths || hasGa4Sig)) {
-      return 'MISTO';
+      return 'HIBRIDO';
     }
     if (hasGa4Paths || hasGa4Sig) {
       return 'GA4';
