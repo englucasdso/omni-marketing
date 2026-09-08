@@ -2059,8 +2059,6 @@ export default function App() {
                 <PageHeader
                   title="Conexões e Dependências"
                   subtitle="Mapeamento relacional de produtos, subprodutos e artefatos de tagueamento."
-                  showBack={true}
-                  onBack={handleBack}
                 />
                 <GraphView 
                   data={results} 
@@ -2080,8 +2078,6 @@ export default function App() {
                   {filteredAndSortedCards.length} de {cardSource.length} artefatos
                 </span>
               }
-              showBack={true}
-              onBack={handleBack}
               actions={
                 <button 
                   onClick={() => setShowExportModal(true)}

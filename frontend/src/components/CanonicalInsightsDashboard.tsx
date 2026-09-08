@@ -12,14 +12,12 @@ interface CanonicalInsightsDashboardProps {
   artifacts: Artifact[];
   onOpenMap: (map: Artifact) => void;
   onFilterByProduct: (produto: string) => void;
-  onBack?: () => void;
 }
 
 export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProps> = ({
   artifacts,
   onOpenMap,
-  onFilterByProduct,
-  onBack
+  onFilterByProduct
 }) => {
   const [selectedProductFilter, setSelectedProductFilter] = useState('all');
   const [selectedMeasurementFilter, setSelectedMeasurementFilter] = useState('all');
@@ -166,8 +164,6 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
       <PageHeader
         title="Indicadores e Governança Analítica"
         subtitle="Métricas canônicas da esteira de tagueamento, telas mapeadas e conformidade técnica."
-        showBack={!!onBack}
-        onBack={onBack}
         actions={
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-neu-raised">

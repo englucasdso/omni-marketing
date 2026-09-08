@@ -9,13 +9,11 @@ import { PageHeader } from './PageHeader';
 interface ParameterAnalysisViewProps {
   artifacts: Artifact[];
   onOpenMap: (map: Artifact) => void;
-  onBack?: () => void;
 }
 
 export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({ 
   artifacts,
-  onOpenMap,
-  onBack
+  onOpenMap
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedParamKey, setSelectedParamKey] = useState<string | null>(null);
@@ -122,8 +120,6 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
       <PageHeader
         title="Catálogo e Dicionário de Parâmetros"
         subtitle={`Total de ${parametersCatalog.length} parâmetros mapeados em todos os snippets dataLayer catalogados.`}
-        showBack={!!onBack}
-        onBack={onBack}
         actions={
           <div className="flex items-center gap-3 flex-wrap">
             {/* Quick filter by predominant value type */}

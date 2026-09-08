@@ -10,14 +10,12 @@ interface ProductAnalysisViewProps {
   artifacts: Artifact[];
   onSelectProduct: (produto: string) => void;
   onOpenMap: (map: Artifact) => void;
-  onBack?: () => void;
 }
 
 export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({ 
   artifacts, 
   onSelectProduct,
-  onOpenMap,
-  onBack
+  onOpenMap
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProductKey, setSelectedProductKey] = useState<string | null>(null);
@@ -212,8 +210,6 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
       <PageHeader
         title="Análise por Produto e Subproduto"
         subtitle="Visão consolidada da esteira analítica dividida por canais, jornadas e serviços."
-        showBack={!!onBack}
-        onBack={onBack}
         actions={
           <div className="w-full sm:w-72 relative">
             <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />

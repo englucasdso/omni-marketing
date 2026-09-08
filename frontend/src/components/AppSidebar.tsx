@@ -104,7 +104,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                 if (onCloseMobile) onCloseMobile();
               }}
               className="relative flex items-center w-full h-11 rounded-xl p-1 text-left transition-colors hover:bg-gray-50 dark:hover:bg-slate-800/60 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--omni-brand-primary)] overflow-hidden"
-              title="Ir para o início do Hub de Artefatos"
+              title="Ir para o início"
               aria-label="Omni Marketing - Página inicial"
             >
               {/* Símbolo oficial reduzido (sidebar recolhida) */}
