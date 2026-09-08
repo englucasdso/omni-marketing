@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="750" height="180" viewBox="0 0 750 180">
+      
+    <path fill="#7B0209" d="
+      M 86.5 15.1
+      A 75.0 75.0 0 0 0 24.5 126.8
+      L 48.3 111.9
+      A 47.0 47.0 0 0 1 86.5 43.1
+      Z
+    " />
+    <path fill="#7B0209" d="
+      M 93.5 15.1
+      V 43.1
+      A 47.0 47.0 0 0 1 131.7 111.9
+      L 155.5 126.8
+      A 75.0 75.0 0 0 0 93.5 15.1
+      Z
+    " />
+    <path fill="#7B0209" d="
+      M 28.3 132.7
+      A 75.0 75.0 0 0 0 151.7 132.7
+      L 128.0 117.9
+      C 125.0 112.0, 116.0 99.0, 111.0 94.0
+      L 90.0 117.0
+      L 69.0 94.0
+      C 64.0 99.0, 55.0 112.0, 52.0 117.9
+      Z
+    " />
+    
+      <text x="200" y="108" font-family="Liberation Sans, 'Rethink Sans', 'Bradesco Sans', -apple-system, sans-serif" font-size="56" font-weight="bold" fill="#7B0209" letter-spacing="3">OMNI</text>
+      <text x="395" y="108" font-family="Liberation Sans, 'Rethink Sans', 'Bradesco Sans', -apple-system, sans-serif" font-size="56" font-weight="400" fill="#7B0209" letter-spacing="10">MARKETING</text>
+    </svg>

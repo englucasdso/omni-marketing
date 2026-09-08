@@ -103,27 +103,38 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                 onHomeClick();
                 if (onCloseMobile) onCloseMobile();
               }}
-              className="flex items-center gap-3 w-full rounded-xl p-1 text-left transition-colors hover:bg-gray-50 dark:hover:bg-slate-800/60 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-bradesco-red"
+              className="relative flex items-center w-full h-11 rounded-xl p-1 text-left transition-colors hover:bg-gray-50 dark:hover:bg-slate-800/60 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--omni-brand-primary)] overflow-hidden"
               title="Ir para o início do Hub de Artefatos"
-              aria-label="Omni Hub - Página inicial"
+              aria-label="Omni Marketing - Página inicial"
             >
-              {/* Símbolo compacto reservado para o futuro logo */}
-              <div className="w-10 h-10 rounded-xl bg-gray-900 dark:bg-slate-100 text-white dark:text-gray-900 flex items-center justify-center font-heading font-bold text-base shadow-neu-raised shrink-0 border border-gray-800 dark:border-slate-300">
-                <span className="tracking-tighter">O</span>
-              </div>
-
-              {/* Texto suave revelado no estado expandido */}
+              {/* Símbolo oficial reduzido (sidebar recolhida) */}
               <div 
-                className={`flex flex-col min-w-0 transition-opacity duration-150 overflow-hidden ${
-                  isExpanded || isMobileOpen ? 'opacity-100' : 'opacity-0 md:w-0'
+                className={`w-10 h-10 flex items-center justify-center shrink-0 transition-opacity duration-200 ${
+                  isExpanded || isMobileOpen ? 'opacity-0 pointer-events-none absolute' : 'opacity-100'
                 }`}
               >
-                <span className="font-heading font-bold text-sm tracking-tight text-gray-900 dark:text-slate-100 truncate">
-                  Omni
-                </span>
-                <span className="text-[10px] font-ui text-gray-400 dark:text-slate-500 uppercase tracking-widest truncate">
-                  Hub de Artefatos
-                </span>
+                <img
+                  src="/omni-logo-1-icone.png"
+                  alt="Omni"
+                  className="w-8 h-8 object-contain rounded-lg shadow-sm"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+
+              {/* Logo oficial horizontal completo (sidebar expandida) */}
+              <div 
+                className={`flex items-center min-w-0 transition-all duration-200 ${
+                  isExpanded || isMobileOpen 
+                    ? 'opacity-100 translate-x-0 w-full pl-0.5' 
+                    : 'opacity-0 -translate-x-2 pointer-events-none absolute'
+                }`}
+              >
+                <img
+                  src="/omni-logo-2-horizontal-branco.png"
+                  alt="Omni Marketing"
+                  className="h-8 max-w-[190px] object-contain"
+                  referrerPolicy="no-referrer"
+                />
               </div>
             </button>
 
@@ -167,16 +178,16 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                     }}
                     aria-current={isActive ? 'page' : undefined}
                     aria-label={item.label}
-                    className={`flex items-center w-full h-11 rounded-xl transition-all duration-150 cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-bradesco-red
+                    className={`flex items-center w-full h-11 rounded-xl transition-all duration-150 cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-omni-brand-accent
                       ${isActive
-                        ? 'bg-red-50/80 dark:bg-red-950/40 text-bradesco-red border border-red-200/70 dark:border-red-900/50 shadow-neu-raised font-semibold'
+                        ? 'bg-red-50/80 dark:bg-red-950/40 text-omni-brand-primary border border-red-200/70 dark:border-red-900/50 shadow-neu-raised font-semibold'
                         : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-100/70 dark:hover:bg-slate-800/60 font-medium'
                       }
                     `}
                   >
                     {/* Ícone fixo no centro exato da sidebar recolhida (w-10 dentro dos 64px) */}
                     <div className="w-10 h-10 flex items-center justify-center shrink-0">
-                      <Icon className={`w-5 h-5 transition-transform duration-150 ${isActive ? 'text-bradesco-red scale-105' : 'text-gray-500 dark:text-slate-400'}`} />
+                      <Icon className={`w-5 h-5 transition-transform duration-150 ${isActive ? 'text-omni-brand-primary scale-105' : 'text-gray-500 dark:text-slate-400'}`} />
                     </div>
 
                     {/* Rótulo visível apenas quando expandido */}
