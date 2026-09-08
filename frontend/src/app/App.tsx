@@ -21,6 +21,7 @@ import { fetchInventory, searchContent, fetchUsers, createUser, updateUser, dele
 import { Artifact, Insights, SearchResponse, User as UserType, UserRole, UserStatus } from "../types";
 import { normalizar, formatDataBR, getFilteredInsights } from "../utils/helpers";
 import { MultiSelect } from "../components/MultiSelect";
+import { FilterField } from "../components/FilterField";
 import { TypewriterText } from "../components/TypewriterText";
 import { MapDetailModal } from "../components/MapDetailModal";
 import { ProductAnalysisView } from "../components/ProductAnalysisView";
@@ -51,7 +52,7 @@ const INITIAL_USERS: UserType[] = [
   }
 ];
 
-const GraphView = ({ data, isEmbedded = false, onClose }: { data: Artifact[], isEmbedded?: boolean, onClose?: () => void }) => {
+const GraphView = ({ data, isEmbedded = false, onClose, onOpenMap }: { data: Artifact[], isEmbedded?: boolean, onClose?: () => void, onOpenMap?: (item: Artifact) => void }) => {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const selectedItem = data.find(i => i.id === selectedItemId);
 
@@ -143,6 +144,15 @@ const GraphView = ({ data, isEmbedded = false, onClose }: { data: Artifact[], is
                     </div>
                  </div>
               </div>
+
+              <button 
+                type="button"
+                onClick={() => onOpenMap?.(selectedItem)}
+                className="w-full py-4 px-4 rounded-[28px] border border-gray-200 dark:border-slate-700 text-xs font-ui font-bold text-gray-800 dark:text-slate-100 hover:text-bradesco-red hover:border-bradesco-red/40 bg-white dark:bg-slate-800 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+              >
+                <FileText className="w-4 h-4 text-bradesco-red" />
+                Ver detalhes completos do mapa
+              </button>
 
               {selectedItem.link && (
                 <button 
@@ -609,7 +619,6 @@ export default function App() {
   const [capturePlatform, setCapturePlatform] = useState<string | null>(null);
   const [isSyncAuthOpen, setIsSyncAuthOpen] = useState(false);
   const [isSearchActive, setIsSearchActive] = useState(false);
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [tableFilter, setTableFilter] = useState("");
   const [lastSync, setLastSync] = useState<string | null>(localStorage.getItem('last_sync'));
   const [showExportModal, setShowExportModal] = useState(false);
@@ -891,9 +900,6 @@ export default function App() {
     direction: 'asc' | 'desc';
   }>({ field: 'null', direction: 'desc' });
 
-  // Quick Chips logic
-  const [activeChip, setActiveChip] = useState('Todos');
-
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleBack = () => {
@@ -974,13 +980,6 @@ export default function App() {
     autoResize();
   }, [query]);
 
-  const toggleDetails = (id: string) => {
-    const next = new Set(expandedCards);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setExpandedCards(next);
-  };
-
   /**
    * Realiza a busca quando o usuário clica em Enter ou no ícone da Lupa.
    * Ele usa as rotas da API que definimos no backend.
@@ -1000,7 +999,6 @@ export default function App() {
     setLoading(true);
     setAppState("results");
     setResults([]);
-    setExpandedCards(new Set());
     setInsightFilters({ ga: 'all', produto: 'all', subproduto: 'all' });
     setExecutiveSummaryResult(null);
     setInsightsActiveTab("indicadores");
@@ -1098,20 +1096,6 @@ export default function App() {
       });
     }
 
-    // Quick Chips (shortcuts)
-    if (activeChip === 'Mapas') {
-      base = base.filter(i => (i.artifact_type === 'MAPA' || (normalizar(i.tipo_mapa) !== 'doc' && i.artifact_type !== 'DOCUMENTACAO')));
-    }
-    if (activeChip === 'Documentações') {
-      base = base.filter(i => (i.artifact_type === 'DOCUMENTACAO' || normalizar(i.tipo_mapa) === 'doc'));
-    }
-    if (activeChip === 'GA4') {
-      base = base.filter(i => (i.measurement_class === 'GA4' || normalizar(i.tipo_mapa) === 'ga4'));
-    }
-    if (activeChip === 'GA3') {
-      base = base.filter(i => (i.measurement_class === 'GA3' || normalizar(i.tipo_mapa) === 'ga3' || normalizar(i.tipo_mapa) === 'universal analytics'));
-    }
-
     // Secondary Detailed Filters
     if (onlyWithoutResponsible) {
       base = base.filter(i => !i.responsavel || i.responsavel === '-');
@@ -1180,7 +1164,7 @@ export default function App() {
     }
 
     return base;
-  }, [results, tableFilter, inventoryFilters, inventorySort, activeChip, onlyDivergent, onlyWithoutResponsible, onlyWithoutSubproduct]);
+  }, [results, tableFilter, inventoryFilters, inventorySort, onlyDivergent, onlyWithoutResponsible, onlyWithoutSubproduct]);
 
   const currentInventoryInsights = useMemo(() => {
     return getFilteredInsights(filteredInventory, tableFilter || query);
@@ -1274,7 +1258,6 @@ export default function App() {
     setOnlyDivergent(false);
     setOnlyWithoutResponsible(false);
     setOnlyWithoutSubproduct(false);
-    setActiveChip('Todos');
     setInventorySort({ field: 'null', direction: 'desc' });
   };
 
@@ -1370,7 +1353,6 @@ export default function App() {
     setQuery("");
     setResults([]);
     setInsights(null);
-    setExpandedCards(new Set());
     setShowGraph(false);
     setTableFilter("");
     setExecutiveSummaryResult(null);
@@ -2014,6 +1996,7 @@ export default function App() {
                 <GraphView 
                   data={results} 
                   isEmbedded={true}
+                  onOpenMap={(art) => setDetailModalItem(art)}
                 />
               </motion.section>
             )}
@@ -2070,10 +2053,7 @@ export default function App() {
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 flex-1">
                 {/* 1. Ordenação */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-ui font-bold uppercase tracking-wider text-gray-400 dark:text-slate-400 flex items-center gap-1.5">
-                    <ArrowUpDown className="w-3 h-3 text-bradesco-red" /> Ordenação
-                  </label>
+                <FilterField label="Ordenação" icon={ArrowUpDown}>
                   <select
                     value={cardSort}
                     onChange={(e) => {
@@ -2087,13 +2067,10 @@ export default function App() {
                     <option value="az">Título de A a Z</option>
                     <option value="za">Título de Z a A</option>
                   </select>
-                </div>
+                </FilterField>
 
                 {/* 2. Artefato */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-ui font-bold uppercase tracking-wider text-gray-400 dark:text-slate-400 flex items-center gap-1.5">
-                    <FileText className="w-3 h-3 text-bradesco-red" /> Artefato
-                  </label>
+                <FilterField label="Artefato" icon={FileText}>
                   <select
                     value={cardArtifactType}
                     onChange={(e) => {
@@ -2106,13 +2083,10 @@ export default function App() {
                     <option value="mapas">Mapas</option>
                     <option value="docs">Documentações</option>
                   </select>
-                </div>
+                </FilterField>
 
                 {/* 3. Responsável */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-ui font-bold uppercase tracking-wider text-gray-400 dark:text-slate-400 flex items-center gap-1.5">
-                    <User className="w-3 h-3 text-bradesco-red" /> Responsável
-                  </label>
+                <FilterField label="Responsável" icon={User}>
                   <select
                     value={cardResponsible}
                     onChange={(e) => {
@@ -2126,13 +2100,10 @@ export default function App() {
                       <option key={resp} value={resp}>{resp}</option>
                     ))}
                   </select>
-                </div>
+                </FilterField>
 
                 {/* 4. Data (Ano) */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-ui font-bold uppercase tracking-wider text-gray-400 dark:text-slate-400 flex items-center gap-1.5">
-                    <Calendar className="w-3 h-3 text-bradesco-red" /> Data (Ano)
-                  </label>
+                <FilterField label="Data (Ano)" icon={Calendar}>
                   <select
                     value={cardYear}
                     onChange={(e) => {
@@ -2146,7 +2117,7 @@ export default function App() {
                       <option key={yr} value={yr}>{yr}</option>
                     ))}
                   </select>
-                </div>
+                </FilterField>
               </div>
 
               {/* Ação discreta: Limpar filtros */}
@@ -2290,21 +2261,10 @@ export default function App() {
                     <div className="flex items-center gap-3">
                       <button 
                         className="px-2 py-1.5 font-ui text-sm text-gray-600 dark:text-slate-300 flex items-center gap-1 cursor-pointer hover:text-bradesco-red transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bradesco-red rounded" 
-                        onClick={() => toggleDetails(item.id)}
-                        aria-expanded={expandedCards.has(item.id)}
-                        aria-controls={`details-${item.id}`}
+                        onClick={() => setDetailModalItem(item)}
                       >
-                        {expandedCards.has(item.id) ? (
-                          <>
-                            <ChevronUp className="w-4 h-4" />
-                            Ocultar detalhes
-                          </>
-                        ) : (
-                          <>
-                            <ChevronDown className="w-4 h-4" />
-                            Ver detalhes
-                          </>
-                        )}
+                        Ver detalhes
+                        <ChevronRight className="w-4 h-4 ml-1" />
                       </button>
                     </div>
 
@@ -2312,219 +2272,6 @@ export default function App() {
                       Atualizado em: {formatDataBR(item.ultima_atualizacao)}
                     </p>
                   </div>
-
-                  {expandedCards.has(item.id) && (
-                    <motion.div 
-                      id={`details-${item.id}`}
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      className="mt-6 pt-6 border-t border-gray-100 dark:border-slate-700"
-                    >
-                      <div className="space-y-6">
-                        {/* Classificação */}
-                        <div>
-                          <h4 className="text-xs font-bold text-gray-800 dark:text-slate-200 uppercase tracking-wider border-b border-gray-200 dark:border-slate-700 pb-2 mb-3">Classificação</h4>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                            <div>
-                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Tipo de artefato</p>
-                              <p className="text-sm font-ui text-gray-800 dark:text-slate-200">{item.artifact_type || "-"}</p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Classificação de mensuração</p>
-                              <p className="text-sm font-ui text-gray-800 dark:text-slate-200">
-                                {item.measurement_class === 'HIBRIDO' ? 'Híbrido' : (item.measurement_class === 'NAO_CLASSIFICADO' ? 'Não classificado' : item.measurement_class)}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Produto</p>
-                              <p className="text-sm font-ui text-gray-800 dark:text-slate-200">{item.produto || "-"}</p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Subproduto</p>
-                              <p className="text-sm font-ui text-gray-800 dark:text-slate-200">{item.subproduto || "-"}</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Homologação (only for maps) */}
-                        {!isDoc && (
-                          <div>
-                            <h4 className="text-xs font-bold text-gray-800 dark:text-slate-200 uppercase tracking-wider border-b border-gray-200 dark:border-slate-700 pb-2 mb-3">Homologação</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                              <div>
-                                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Status de homologação</p>
-                                <p className="text-sm font-ui text-gray-800 dark:text-slate-200">{homologationBadge?.label || "Não homologado"}</p>
-                              </div>
-                              <div>
-                                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Telas validadas</p>
-                                <p className="text-sm font-ui text-gray-800 dark:text-slate-200">{item.validated_screens || 0} de {item.total_screens || 0}</p>
-                              </div>
-                              <div>
-                                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Percentual de homologação</p>
-                                <p className="text-sm font-ui text-gray-800 dark:text-slate-200">{item.homologation_percentage || 0}%</p>
-                              </div>
-                            </div>
-                            <div className="mt-4">
-                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-2">Distribuição de status</p>
-                              <div className="flex flex-wrap gap-4">
-                                <span className="text-xs font-ui text-gray-700 dark:text-slate-300"><strong className="text-emerald-600 dark:text-emerald-400">{item.status_summary?.VALIDADO || 0}</strong> Validado</span>
-                                <span className="text-xs font-ui text-gray-700 dark:text-slate-300"><strong className="text-rose-600 dark:text-rose-400">{item.status_summary?.['CORREÇÃO'] || item.status_summary?.CORRECAO || 0}</strong> Correção</span>
-                                <span className="text-xs font-ui text-gray-700 dark:text-slate-300"><strong className="text-amber-600 dark:text-amber-400">{item.status_summary?.NOVO || 0}</strong> Novo</span>
-                                <span className="text-xs font-ui text-gray-700 dark:text-slate-300"><strong className="text-gray-600 dark:text-gray-400">{item.status_summary?.EXCLUIR || 0}</strong> Excluir</span>
-                                <span className="text-xs font-ui text-gray-700 dark:text-slate-300"><strong className="text-blue-600 dark:text-blue-400">{item.status_summary?.DESCONTINUAR || 0}</strong> Descontinuar</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Consistência */}
-                        <div>
-                          <h4 className="text-xs font-bold text-gray-800 dark:text-slate-200 uppercase tracking-wider border-b border-gray-200 dark:border-slate-700 pb-2 mb-3">Consistência</h4>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Status declarado</p>
-                              <p className="text-sm font-ui text-gray-800 dark:text-slate-200">{item.declared_status || "-"}</p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Divergência detectada</p>
-                              <p className="text-sm font-ui text-gray-800 dark:text-slate-200">{item.status_divergent ? "Sim" : "Não"}</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Metadados técnicos */}
-                        <div>
-                          <h4 className="text-xs font-bold text-gray-800 dark:text-slate-200 uppercase tracking-wider border-b border-gray-200 dark:border-slate-700 pb-2 mb-3">Metadados técnicos</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-y-4 gap-x-8">
-                            <div>
-                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Produto/Serviço declarado</p>
-                              <p className="text-sm text-gray-800 dark:text-slate-200">{item.produto_servico || "-"}</p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Nº da Task</p>
-                              <p className="text-sm text-gray-800 dark:text-slate-200">{item.numero_da_task || "-"}</p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">GTM ID</p>
-                              <p className="text-sm text-gray-800 dark:text-slate-200">{item.gtm_id || "-"}</p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">GA4 Stream ID</p>
-                              <p className="text-sm text-gray-800 dark:text-slate-200">{item.propriedade_ga4_stream_id || "-"}</p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Firebase</p>
-                              <p className="text-sm text-gray-800 dark:text-slate-200">{item.firebase || "-"}</p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Domínio</p>
-                              <p className="text-sm text-gray-800 dark:text-slate-200">{item.dominio_exclusivo_web || "-"}</p>
-                            </div>
-                            <div className="md:col-span-3">
-                              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase mb-1">Figma/XD</p>
-                              {item.figma_xd && item.figma_xd !== "-" ? (
-                                <a 
-                                  href={item.figma_xd} 
-                                  target="_blank" 
-                                  rel="noreferrer" 
-                                  className="text-sm font-bold text-red-600 hover:underline"
-                                >
-                                  ACESSE AQUI
-                                </a>
-                              ) : (
-                                <p className="text-sm text-gray-800 dark:text-slate-200">{item.figma_xd || "-"}</p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Telas do Mapa Accordion */}
-                        {!isDoc && Array.isArray(item.screens) && item.screens.length > 0 && (
-                          <div className="pt-2">
-                            <details className="group/details">
-                              <summary className="flex items-center gap-2 cursor-pointer list-none font-ui font-semibold text-sm text-gray-700 dark:text-slate-300 hover:text-bradesco-red transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bradesco-red rounded select-none py-1">
-                                <ChevronRight className="w-4 h-4 transition-transform group-open/details:rotate-90" />
-                                Telas do mapa ({item.screens.length})
-                              </summary>
-                              <div className="mt-3 ml-6 space-y-2">
-                                {item.screens.map((screen, sIdx) => {
-                                  const sStatus = screen.status || screen.status_raw;
-                                  return (
-                                    <details key={sIdx} className="border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 overflow-hidden group/screen">
-                                      <summary className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 p-3 cursor-pointer list-none hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bradesco-red select-none">
-                                        <div className="flex items-center gap-3 w-full">
-                                          <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform group-open/screen:rotate-90" />
-                                          <span className="font-ui font-medium text-sm text-gray-800 dark:text-slate-200 truncate pr-4">
-                                            {screen.instruction || `Tela ${screen.screen_index || sIdx + 1}`}
-                                          </span>
-                                          <div className="ml-auto shrink-0 flex items-center">
-                                            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${
-                                              sStatus === 'VALIDADO' ? 'text-emerald-700 bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-400' :
-                                              (sStatus === 'CORREÇÃO' || sStatus === 'CORRECAO') ? 'text-rose-700 bg-rose-50 border-rose-200 dark:bg-rose-950/30 dark:border-rose-800 dark:text-rose-400' :
-                                              sStatus === 'NOVO' ? 'text-amber-700 bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-400' :
-                                              sStatus === 'DESCONTINUAR' ? 'text-blue-700 bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-400' :
-                                              sStatus === 'EXCLUIR' ? 'text-gray-700 bg-gray-50 border-gray-200 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-300' :
-                                              'text-gray-500 bg-transparent border-gray-200 dark:border-slate-700'
-                                            }`}>
-                                              {sStatus || 'NÃO IDENTIFICADO'}
-                                            </span>
-                                          </div>
-                                        </div>
-                                      </summary>
-                                      
-                                      <div className="p-4 pt-0 border-t border-gray-100 dark:border-slate-800/60 bg-gray-50/50 dark:bg-slate-800/20 text-sm font-ui text-gray-600 dark:text-slate-400">
-                                        <div className="mt-4 space-y-3">
-                                          {screen.image_name && (
-                                            <div><strong className="text-gray-800 dark:text-slate-300">Evidência:</strong> {screen.image_name}</div>
-                                          )}
-                                          
-                                          {screen.snippets && screen.snippets.length > 0 ? (
-                                            <div>
-                                              <strong className="text-gray-800 dark:text-slate-300 block mb-2">Snippets associados:</strong>
-                                              <div className="space-y-2">
-                                                {screen.snippets.map((snip, snIdx) => (
-                                                  <div key={snIdx} className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg p-3">
-                                                    <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-100 dark:border-slate-800 text-xs">
-                                                      <span className="font-bold text-bradesco-red font-mono">{snip.event_normalized || snip.event_raw || "unknown_event"}</span>
-                                                      <span className="font-mono text-[10px] bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">{snip.measurement_class}</span>
-                                                    </div>
-                                                    
-                                                    {snip.parameters && snip.parameters.length > 0 && (
-                                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-                                                        {snip.parameters.map((p, pIdx) => (
-                                                          <div key={pIdx} className="flex flex-col">
-                                                            <span className="text-[10px] uppercase text-gray-500 font-bold">{p.name || p.path}</span>
-                                                            <span className="font-mono text-gray-800 dark:text-slate-300 truncate" title={p.raw_value}>{p.raw_value}</span>
-                                                          </div>
-                                                        ))}
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                ))}
-                                              </div>
-                                            </div>
-                                          ) : (
-                                            <p className="text-xs italic text-gray-500">Sem snippets associados a esta tela.</p>
-                                          )}
-                                          
-                                          {screen.additional_information && (
-                                            <div className="pt-2 border-t border-gray-200 dark:border-slate-700 mt-3">
-                                              <strong className="text-gray-800 dark:text-slate-300 text-xs block mb-1">Info adicional:</strong>
-                                              <p className="text-xs whitespace-pre-wrap">{screen.additional_information}</p>
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </details>
-                                  )
-                                })}
-                              </div>
-                            </details>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
                 </motion.article>
                 );
               })}
@@ -2619,11 +2366,6 @@ export default function App() {
               <PageHeader
                 title="Inventário de Artefatos e Especificações"
                 subtitle="Visualização técnica de todos os mapas, especificações de tags e fluxos catalogados."
-                badge={
-                  <span className="text-xs font-ui font-semibold px-3.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 border border-gray-200 dark:border-slate-700 shadow-neu-raised tabular-nums">
-                    {filteredInventory.length} de {results.length} artefatos
-                  </span>
-                }
                 actions={
                   <button 
                     onClick={() => setShowExportModal(true)}
@@ -2636,108 +2378,114 @@ export default function App() {
               />
 
               {/* Advanced Filter Architecture */}
-              <div className="glass-card rounded-2xl border border-gray-200 dark:border-slate-800 p-6 mb-8 shadow-neu-card">
-                {/* Search & Main Chips */}
-                <div className="flex flex-col md:flex-row gap-4 mb-6 items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-6">
-                  <div className="w-full md:max-w-md relative group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-500 group-focus-within:text-bradesco-red transition-colors" />
-                    <input 
-                      type="text" 
-                      placeholder="Busca global em toda a base..." 
-                      className="neu-input w-full pl-11 pr-4 py-2.5 rounded-xl text-xs font-ui font-medium text-gray-800 dark:text-slate-200 outline-none"
-                      value={tableFilter}
-                      onChange={(e) => setTableFilter(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 justify-center items-center">
-                    {['Todos', 'Mapas', 'Documentações', 'GA4', 'GA3'].map(chip => (
-                      <button 
-                        key={chip}
-                        onClick={() => setActiveChip(chip)}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-ui font-semibold transition-all cursor-pointer
-                          ${activeChip === chip
-                            ? 'text-white shadow-neu-raised' 
-                            : 'btn-neu text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-slate-100'}
-                        `}
-                        style={activeChip === chip ? { background: 'linear-gradient(90deg, #7D046D 0%, #cc092f 100%)' } : {}}
-                      >
-                        {chip}
-                      </button>
-                    ))}
-                  </div>
+              <div className="relative mb-6">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-gray-400" />
                 </div>
+                <input
+                  type="text"
+                  placeholder="Buscar por título, ID, produto, subproduto, responsável ou parâmetro..."
+                  className="w-full pl-11 pr-10 py-3.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-sm focus:ring-2 focus:ring-bradesco-red focus:border-bradesco-red text-sm font-ui dark:text-slate-100 transition-shadow"
+                  value={tableFilter}
+                  onChange={(e) => setTableFilter(e.target.value)}
+                />
+                {tableFilter && (
+                  <button
+                    onClick={() => setTableFilter("")}
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
 
-                {/* Grid of Independent Filters */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-3 flex-1">
                   {[
-                    { label: 'Artefato', key: 'tipo_mapa', options: filterOptions.tipoArtefato },
-                    { label: 'Classificação', key: 'measurement_class', options: filterOptions.classificacao },
-                    { label: 'Produto', key: 'produto', options: filterOptions.produtos },
-                    { label: 'Subproduto', key: 'subproduto', options: filterOptions.subprodutos },
-                    { label: 'Parâmetro', key: 'parametro', options: filterOptions.parametros },
-                    { label: 'Ano', key: 'ano', options: filterOptions.anos }
+                    { label: 'Artefato', key: 'tipo_mapa', options: filterOptions.tipoArtefato, icon: FileText },
+                    { label: 'Classificação', key: 'measurement_class', options: filterOptions.classificacao, icon: Layers },
+                    { label: 'Produto', key: 'produto', options: filterOptions.produtos, icon: Landmark },
+                    { label: 'Subproduto', key: 'subproduto', options: filterOptions.subprodutos, icon: Tag },
+                    { label: 'Parâmetro', key: 'parametro', options: filterOptions.parametros, icon: Code2 },
+                    { label: 'Ano', key: 'ano', options: filterOptions.anos, icon: Calendar }
                   ].map(filter => (
                     <MultiSelect 
                       key={filter.key} 
                       label={filter.label} 
+                      icon={filter.icon}
                       options={filter.options}
                       values={inventoryFilters[filter.key as keyof typeof inventoryFilters] || []}
                       onChange={(vals) => setInventoryFilters(f => ({ ...f, [filter.key]: vals }))}
                     />
                   ))}
                 </div>
+              </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-4 mt-6 pt-5 border-t border-gray-100 dark:border-slate-800">
-                   <div className="flex flex-wrap items-center gap-3">
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-slate-800/80 rounded-xl border border-gray-100 dark:border-slate-700/60">
-                        <span className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase">Filtrados:</span>
-                        <span className="text-xs font-heading font-bold text-gray-900 dark:text-slate-50 tabular-nums">{filteredInventory.length} / {results.length}</span>
-                      </div>
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                 <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setOnlyWithoutResponsible(prev => !prev)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-ui font-semibold transition-all cursor-pointer border ${
+                        onlyWithoutResponsible
+                          ? 'bg-red-50 dark:bg-red-950/20 text-bradesco-red border-red-200 dark:border-red-900/50'
+                          : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      Sem responsável
+                    </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setOnlyWithoutResponsible(prev => !prev)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-ui font-semibold transition-all cursor-pointer ${
-                          onlyWithoutResponsible
-                            ? 'bg-amber-500 text-white shadow-neu-raised'
-                            : 'btn-neu text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'
-                        }`}
-                      >
-                        Sem responsável
-                      </button>
+                    <button
+                      type="button"
+                      onClick={() => setOnlyWithoutSubproduct(prev => !prev)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-ui font-semibold transition-all cursor-pointer border ${
+                        onlyWithoutSubproduct
+                          ? 'bg-red-50 dark:bg-red-950/20 text-bradesco-red border-red-200 dark:border-red-900/50'
+                          : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      Sem subproduto
+                    </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setOnlyWithoutSubproduct(prev => !prev)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-ui font-semibold transition-all cursor-pointer ${
-                          onlyWithoutSubproduct
-                            ? 'bg-amber-500 text-white shadow-neu-raised'
-                            : 'btn-neu text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'
-                        }`}
-                      >
-                        Sem subproduto
-                      </button>
+                    <button
+                      type="button"
+                      onClick={() => setOnlyDivergent(prev => !prev)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-ui font-semibold transition-all cursor-pointer border flex items-center gap-1.5 ${
+                        onlyDivergent
+                          ? 'bg-red-50 dark:bg-red-950/20 text-bradesco-red border-red-200 dark:border-red-900/50'
+                          : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      Apenas divergentes
+                    </button>
+                 </div>
 
-                      <button
-                        type="button"
-                        onClick={() => setOnlyDivergent(prev => !prev)}
-                        className={`px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center gap-1.5 ${
-                          onlyDivergent
-                            ? 'bg-amber-500 text-white shadow-sm'
-                            : 'bg-gray-50 dark:bg-slate-800 text-amber-600 dark:text-amber-400 hover:bg-amber-50'
-                        }`}
-                      >
-                        <AlertTriangle className="w-3 h-3" />
-                        Apenas divergentes
-                      </button>
-                   </div>
+                 {(tableFilter || 
+                    Object.values(inventoryFilters).some(arr => arr && arr.length > 0 && !arr.includes("all")) || 
+                    onlyWithoutResponsible || 
+                    onlyWithoutSubproduct || 
+                    onlyDivergent
+                 ) && (
                    <button 
                     onClick={resetInventoryFilters}
-                    className="flex items-center gap-2 text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest hover:text-red-500 transition-colors"
+                    className="btn-neu px-3.5 py-2 rounded-xl text-xs font-ui font-semibold text-gray-600 dark:text-slate-300 hover:text-bradesco-red flex items-center gap-1.5 cursor-pointer transition-colors"
                    >
-                     <X className="w-3 h-3" /> Limpar Filtros
+                     <RotateCcw className="w-3.5 h-3.5" /> Limpar filtros
                    </button>
+                 )}
+              </div>
+
+              {/* Single Counter Label Before Table */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 border-b border-gray-200 dark:border-slate-800 mb-6">
+                <div className="text-xs font-ui text-gray-500 dark:text-slate-400 tabular-nums">
+                   {filteredInventory.length === 0 ? (
+                     "Nenhum resultado encontrado"
+                   ) : (
+                     <>
+                       Exibindo <strong className="font-semibold text-gray-800 dark:text-slate-200">{filteredInventory.length}</strong> de <strong className="font-semibold text-gray-800 dark:text-slate-200">{results.length}</strong> resultados
+                     </>
+                   )}
                 </div>
               </div>
 

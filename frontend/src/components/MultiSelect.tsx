@@ -1,14 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
+import { FilterField } from './FilterField';
 
 interface MultiSelectProps {
   label: string;
+  icon?: React.ElementType;
   options: { v: string; l: string }[];
   values: string[];
   onChange: (values: string[]) => void;
 }
 
-export function MultiSelect({ label, options, values, onChange }: MultiSelectProps) {
+export function MultiSelect({ label, icon, options, values, onChange }: MultiSelectProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -37,25 +39,26 @@ export function MultiSelect({ label, options, values, onChange }: MultiSelectPro
   };
 
   const currentLabel = hasSelections 
-    ? `${values.length} SELECIONADOS` 
-    : (options.find(o => o.v === 'all')?.l || 'TODOS');
+    ? `${values.length} selecionados` 
+    : (options.find(o => o.v === 'all')?.l || 'Todos');
 
   return (
-    <div className="flex flex-col gap-1.5 text-center relative" ref={ref}>
-      <label className="text-[10px] font-ui font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider px-2">{label}</label>
-      <button 
-        onClick={() => setOpen(!open)}
-        type="button"
-        className={`flex items-center justify-between gap-2 border rounded-xl px-3.5 py-2.5 text-xs font-ui font-semibold outline-none transition-all w-full cursor-pointer
-          ${open 
-            ? 'border-bradesco-red bg-white dark:bg-slate-900 shadow-neu-raised ring-2 ring-red-50 dark:ring-red-950/30' 
-            : 'bg-white dark:bg-slate-800/90 border-gray-200 dark:border-slate-700 text-gray-800 dark:text-slate-200 shadow-neu-raised hover:border-gray-300 dark:hover:border-slate-600'}
-          ${hasSelections ? 'bg-red-50/40 dark:bg-red-950/20 text-bradesco-red dark:text-red-400 border-red-200 dark:border-red-900/50' : ''}
-        `}
-      >
-        <span className="truncate">{currentLabel}</span>
-        <ChevronDown className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 shrink-0" />
-      </button>
+    <div className="relative" ref={ref}>
+      <FilterField label={label} icon={icon}>
+        <button 
+          onClick={() => setOpen(!open)}
+          type="button"
+          className={`neu-input w-full px-3 py-2 rounded-xl text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 bg-gray-50/80 dark:bg-slate-800/80 border outline-none cursor-pointer flex items-center justify-between gap-2 text-left
+            ${open 
+              ? 'border-bradesco-red ring-1 ring-bradesco-red' 
+              : 'border-gray-200 dark:border-slate-700 focus:border-bradesco-red'}
+            ${hasSelections ? 'border-bradesco-red/40 text-bradesco-red' : ''}
+          `}
+        >
+          <span className="truncate">{currentLabel}</span>
+          <ChevronDown className="w-4 h-4 text-gray-400 dark:text-slate-500 shrink-0" />
+        </button>
+      </FilterField>
 
       {open && (
         <div className="absolute top-full left-0 mt-1.5 w-[230px] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 shadow-neu-card rounded-xl z-[100] overflow-hidden flex flex-col text-left">

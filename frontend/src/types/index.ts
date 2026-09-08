@@ -123,6 +123,7 @@ export interface Artifact {
   total_screens?: number;
   homologado?: boolean;
   status_divergent?: boolean;
+  divergence_reason?: string;
   parameter_summary?: ParameterSummaryItem[];
   pattern_summary?: PatternSummaryItem[];
   gtm_ids?: string[];
