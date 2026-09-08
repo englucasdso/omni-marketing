@@ -443,7 +443,7 @@ const AuthScreen = ({ onLogin, onCancel }: { onLogin: (u: string, p: string) => 
                 onClick={onCancel}
                 className="px-8 py-3 rounded-full font-bold transition-colors text-sm uppercase tracking-wider bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:bg-slate-700 w-full"
               >
-                Voltar para busca
+                Cancelar
               </button>
             </div>
           </form>
@@ -516,28 +516,6 @@ const SyncWidget = ({ job, onCancel }: { job: any, onCancel: () => void }) => {
   );
 };
 
-const AIReveal = ({ isLoading, children }: { isLoading: boolean, children: React.ReactNode }) => {
-  return (
-    <div className="relative w-full flex-1 flex flex-col min-h-screen">
-      {children}
-      <AnimatePresence>
-        {isLoading && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-0 z-40 pointer-events-none bg-white dark:bg-slate-900 dark:border-slate-800/40 backdrop-blur-[1px]"
-          >
-             <div className="absolute top-0 left-0 w-full h-[2px] overflow-hidden">
-               <div className="w-full h-full bg-gradient-to-r from-transparent via-purple-500/50 to-transparent animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
-             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
 
 export default function App() {
   useEffect(() => {
@@ -629,7 +607,7 @@ export default function App() {
 
   const [showSummary, setShowSummary] = useState(false);
   const [capturePlatform, setCapturePlatform] = useState<string | null>(null);
-  const [syncCredentials, setSyncCredentials] = useState({ username: "", password: "" });
+  const [isSyncAuthOpen, setIsSyncAuthOpen] = useState(false);
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [tableFilter, setTableFilter] = useState("");
@@ -1018,18 +996,6 @@ export default function App() {
     const q = overrideQuery ?? query;
     if (!q.trim()) return;
 
-    const normalizedQ = normalizar(q);
-    const syncIntents = [
-      "atualizar inventario", "atualizar inventário", "atualizar confluence", "atualizar confluencia", "atualizar confluência",
-      "sincronizar confluence", "sincronizar confluencia", "sincronizar confluência", "sincronizar inventario", "sincronizar inventário",
-      "sync confluence", "atualizar base"
-    ];
-
-    if (syncIntents.some(intent => normalizedQ.includes(normalizar(intent)))) {
-      setAppState("auth");
-      return;
-    }
-
     isSearchingRef.current = true;
     setLoading(true);
     setAppState("results");
@@ -1038,9 +1004,6 @@ export default function App() {
     setInsightFilters({ ga: 'all', produto: 'all', subproduto: 'all' });
     setExecutiveSummaryResult(null);
     setInsightsActiveTab("indicadores");
-
-    // Artificial delay to show animations
-    await new Promise((resolve) => setTimeout(resolve, 1500));
 
     try {
       const normalizedQ = normalizar(q);
@@ -1473,15 +1436,15 @@ export default function App() {
       onNavigate={(item) => setAppState(item.id as any)}
       onHomeClick={() => { setAppState('initial'); setQuery(''); setTableFilter(''); }}
       lastSync={lastSync}
+      onSyncClick={() => setIsSyncAuthOpen(true)}
     >
-      <AIReveal isLoading={loading}>
+      <div className="relative w-full flex-1 flex flex-col min-h-screen">
         <AnimatePresence>
-        {appState === 'auth' && (
+        {isSyncAuthOpen && (
           <AuthScreen 
-            onCancel={() => { setAppState('initial'); setQuery(''); }} 
+            onCancel={() => { setIsSyncAuthOpen(false); }} 
             onLogin={(u, p) => {
-              setAppState('initial');
-              setQuery('');
+              setIsSyncAuthOpen(false);
               startBackgroundSync(u, p);
             }}
           />
@@ -1503,7 +1466,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <div className={`flex flex-col flex-1 w-full transition-all relative ${appState === 'auth' ? 'opacity-0 pointer-events-none absolute' : 'opacity-100 relative'}`}>
+      <div className={`flex flex-col flex-1 w-full transition-all relative opacity-100`}>
 
         {!hasPermission ? (
           <div className="flex flex-col items-center justify-center flex-1 py-32 text-center mt-32">
@@ -1734,24 +1697,12 @@ export default function App() {
         <section className={`content ${["initial", "catalog", "events_capture", "home", "operational_insights"].includes(appState) ? "hidden" : ""}`}>
           
           {/* Decision / Loading Area */}
-          <section className={`decision ${appState === "decision" || loading || appState === "empty" ? "flex flex-col items-center justify-center text-center py-24" : "hidden"}`}>
+          <section className={`decision ${appState === "decision" || appState === "empty" ? "flex flex-col items-center justify-center text-center py-24" : "hidden"}`}>
             <div className="mb-8 scale-150 transform transition-transform duration-500">
               <GradientSparkles className="w-12 h-12" animate={loading} />
             </div>
             
-            {loading ? (
-              <>
-                <p className="text-3xl font-bold tracking-tight text-gray-900 dark:text-slate-50 mb-6 font-sans">
-                  Buscando resultados para <strong className="text-[var(--bradesco-red)]">"{query}"</strong>...
-                </p>
-                <div className="flex flex-col gap-3 w-full max-w-md">
-                  <div className="shimmer-bg h-3 rounded-full w-full"></div>
-                  <div className="shimmer-bg h-3 rounded-full w-4/5 mx-auto"></div>
-                  <div className="shimmer-bg h-3 rounded-full w-3/4 mx-auto"></div>
-                </div>
-              
-              </>
-            ) : appState === "empty" ? (
+            {appState === "empty" ? (
               <div className="no-results flex flex-col items-center">
                 <div className="glass-card rounded-[40px] p-12 text-center max-w-lg border border-gray-100 dark:border-slate-700/50 shadow-2xl dark:shadow-none">
                   <h3 className="text-3xl font-bold mb-4 tracking-tight">Não foi possível encontrar resultados</h3>
@@ -2567,8 +2518,6 @@ export default function App() {
                     {filteredInventory.length} de {results.length} artefatos
                   </span>
                 }
-                showBack={true}
-                onBack={handleBack}
                 actions={
                   <button 
                     onClick={() => setShowExportModal(true)}
@@ -3109,7 +3058,7 @@ export default function App() {
         onClose={() => setDetailModalItem(null)} 
       />
 
-      </AIReveal>
+      </div>
     </AppShell>
   );
 }

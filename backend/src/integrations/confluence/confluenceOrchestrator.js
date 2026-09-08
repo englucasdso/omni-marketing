@@ -29,18 +29,31 @@ export class ConfluenceOrchestrator {
   }
 
   extrairProdutoSubprodutoDaTrilha(ancestorTitles = [], cabecalhoProduto = '') {
-    if (cabecalhoProduto) {
-      return {
-        produto: cabecalhoProduto,
-        subproduto: ancestorTitles.length > 2 ? ancestorTitles[ancestorTitles.length - 1] : ''
-      };
+    // A estrutura da árvore (ancestorTitles) é a fonte canônica principal.
+    // Índice 0 = Raiz
+    // Índice 1 = Produto (primeiro descendente da raiz)
+    // Índice 2 = Subproduto (primeiro agrupador interno do produto)
+    
+    let estruturalProduto = '';
+    let estruturalSubproduto = '';
+
+    if (ancestorTitles.length >= 2) {
+      estruturalProduto = ancestorTitles[1];
     }
+    if (ancestorTitles.length >= 3) {
+      estruturalSubproduto = ancestorTitles[2];
+    }
+
+    // Só usamos o cabeçalho como fallback se a trilha estrutural não estiver disponível
+    const produtoFinal = estruturalProduto || cabecalhoProduto || (ancestorTitles[0] || '');
     
-    // Sem fixar níveis rígidos: primeiro ancestral significativo após a raiz como área/produto
-    const produto = ancestorTitles.length >= 2 ? ancestorTitles[1] : (ancestorTitles[0] || '');
-    const subproduto = ancestorTitles.length >= 3 ? ancestorTitles[2] : '';
-    
-    return { produto, subproduto };
+    // Subproduto usa a estrutura, ou vazio se não houver níveis suficientes
+    const subprodutoFinal = estruturalSubproduto || '';
+
+    return { 
+      produto: produtoFinal, 
+      subproduto: subprodutoFinal 
+    };
   }
 
   async run(rootPageId, maxRows, username, password) {

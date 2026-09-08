@@ -3,6 +3,7 @@ import assert from 'node:assert';
 import { TreeCrawler } from '../src/integrations/confluence/treeCrawler.js';
 import { MapReader, extrairGtmIdsHelper, isGtmInstallationSnippetHelper } from '../src/integrations/confluence/mapReader.js';
 import { MeasurementClassifier } from '../src/services/classification/measurementClassifier.js';
+import { ConfluenceOrchestrator } from '../src/integrations/confluence/confluenceOrchestrator.js';
 
 describe('Evolução Estrutural do Confluence: Descoberta e Classificação Completa', () => {
 
@@ -309,6 +310,43 @@ describe('Evolução Estrutural do Confluence: Descoberta e Classificação Comp
     assert.strictEqual(unclassifiedMapResult.artifact_type, 'MAPA', 'Possui telas, logo é MAPA');
     assert.strictEqual(unclassifiedMapResult.measurement_class, 'NAO_CLASSIFICADO', 'Sem GA4/GA3, measurement_class permanece NAO_CLASSIFICADO');
     assert.strictEqual(classifier.classify(mapWithoutStandardPlatform), 'Não classificado');
+  });
+
+  describe('extrairProdutoSubprodutoDaTrilha - Cenários solicitados', () => {
+    it('Cenário 1: mapa diretamente dentro do produto', () => {
+      const orch = new ConfluenceOrchestrator(null);
+      const res = orch.extrairProdutoSubprodutoDaTrilha(['Raiz', 'Investimentos']);
+      assert.strictEqual(res.produto, 'Investimentos');
+      assert.strictEqual(res.subproduto, '');
+    });
+
+    it('Cenário 2: produto com subproduto', () => {
+      const orch = new ConfluenceOrchestrator(null);
+      const res = orch.extrairProdutoSubprodutoDaTrilha(['Raiz', 'Cartões', 'Cartões App']);
+      assert.strictEqual(res.produto, 'Cartões');
+      assert.strictEqual(res.subproduto, 'Cartões App');
+    });
+
+    it('Cenário 3: árvore profunda', () => {
+      const orch = new ConfluenceOrchestrator(null);
+      const res = orch.extrairProdutoSubprodutoDaTrilha(['Raiz', 'Créditos', 'Consignado', 'Contratação', 'Formalização']);
+      assert.strictEqual(res.produto, 'Créditos');
+      assert.strictEqual(res.subproduto, 'Consignado');
+    });
+
+    it('Cenário 4: fallback para cabeçalho somente se estrutura não informar', () => {
+      const orch = new ConfluenceOrchestrator(null);
+      const res = orch.extrairProdutoSubprodutoDaTrilha(['Raiz'], 'Produto Do Cabecalho');
+      assert.strictEqual(res.produto, 'Produto Do Cabecalho');
+      assert.strictEqual(res.subproduto, '');
+    });
+
+    it('Cenário 5: prioriza estrutura sobre o cabeçalho', () => {
+      const orch = new ConfluenceOrchestrator(null);
+      const res = orch.extrairProdutoSubprodutoDaTrilha(['Raiz', 'Cartões', 'Cartões App'], 'Outro Produto');
+      assert.strictEqual(res.produto, 'Cartões');
+      assert.strictEqual(res.subproduto, 'Cartões App');
+    });
   });
 
 });

@@ -6,6 +6,8 @@ import {
   Tag, 
   Sparkles, 
   Network, 
+  RefreshCw,
+  Plug,
   X,
   Compass
 } from 'lucide-react';
@@ -32,6 +34,7 @@ interface AppSidebarProps {
   onHomeClick: () => void;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
+  onSyncClick?: () => void;
 }
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({
@@ -40,6 +43,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   onHomeClick,
   isMobileOpen = false,
   onCloseMobile,
+  onSyncClick,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isFocusedWithin, setIsFocusedWithin] = useState(false);
@@ -103,7 +107,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                 onHomeClick();
                 if (onCloseMobile) onCloseMobile();
               }}
-              className="relative flex items-center w-full h-11 rounded-xl p-1 text-left transition-colors hover:bg-gray-50 dark:hover:bg-slate-800/60 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--omni-brand-primary)] overflow-hidden"
+              className="relative flex items-center w-full h-11 rounded-xl text-left transition-colors hover:bg-gray-50 dark:hover:bg-slate-800/60 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--omni-brand-primary)] overflow-hidden"
               title="Ir para o início"
               aria-label="Omni Marketing - Página inicial"
             >
@@ -151,7 +155,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           </div>
 
           {/* Navigation Links */}
-          <nav className="p-2 space-y-1 mt-3" aria-label="Seções do sistema">
+          <nav className="px-3 py-2 space-y-1 mt-3" aria-label="Seções do sistema">
             {NAV_ITEMS.map((item) => {
               const isActive = currentRouteId === item.id;
               const Icon = item.icon;
@@ -202,6 +206,67 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                 </div>
               );
             })}
+            
+            <div className="relative mt-6">
+              <button
+                onClick={() => {
+                  if (onSyncClick) onSyncClick();
+                  if (onCloseMobile) onCloseMobile();
+                }}
+                onMouseEnter={(e) => {
+                  if (!isExpanded && !isMobileOpen) {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setHoveredTooltip({
+                      id: 'sync',
+                      top: rect.top + rect.height / 2,
+                      label: 'Sincronização',
+                    });
+                  }
+                }}
+                onMouseLeave={() => setHoveredTooltip(null)}
+                aria-label="Sincronização"
+                className="flex items-center w-full h-11 rounded-xl transition-all duration-150 cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-omni-brand-accent text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-100/70 dark:hover:bg-slate-800/60 font-medium"
+              >
+                <div className="w-10 h-10 flex items-center justify-center shrink-0">
+                  <RefreshCw className="w-5 h-5 transition-transform duration-150 text-gray-500 dark:text-slate-400" />
+                </div>
+                <span className={`text-xs font-ui whitespace-nowrap ml-2 transition-all duration-150 truncate ${
+                  isExpanded || isMobileOpen ? 'opacity-100' : 'opacity-0 md:w-0'
+                }`}>
+                  Sincronização
+                </span>
+              </button>
+            </div>
+            
+            <div className="relative">
+              <button
+                disabled
+                aria-disabled="true"
+                onMouseEnter={(e) => {
+                  if (!isExpanded && !isMobileOpen) {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setHoveredTooltip({
+                      id: 'plugins',
+                      top: rect.top + rect.height / 2,
+                      label: 'Plugins',
+                    });
+                  }
+                }}
+                onMouseLeave={() => setHoveredTooltip(null)}
+                aria-label="Plugins"
+                className="flex items-center w-full h-11 rounded-xl transition-all duration-150 cursor-not-allowed text-left text-gray-400 dark:text-slate-600 opacity-60 font-medium"
+              >
+                <div className="w-10 h-10 flex items-center justify-center shrink-0">
+                  <Plug className="w-5 h-5 transition-transform duration-150 text-gray-400 dark:text-slate-600" />
+                </div>
+                <span className={`text-xs font-ui whitespace-nowrap ml-2 transition-all duration-150 truncate ${
+                  isExpanded || isMobileOpen ? 'opacity-100' : 'opacity-0 md:w-0'
+                }`}>
+                  Plugins
+                </span>
+              </button>
+            </div>
+            
           </nav>
         </div>
 
@@ -212,10 +277,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               onHomeClick();
               if (onCloseMobile) onCloseMobile();
             }}
-            className="flex items-center w-full h-10 rounded-xl text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors p-1"
+            className="flex items-center w-full h-10 rounded-xl text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
             title="Buscar novo termo"
             aria-label="Buscar novo termo"
-          >
+            >
             <div className="w-10 h-10 flex items-center justify-center shrink-0">
               <Compass className="w-4 h-4" />
             </div>

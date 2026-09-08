@@ -7,6 +7,7 @@ interface AppShellProps {
   onNavigate: (item: NavItem) => void;
   onHomeClick: () => void;
   lastSync?: string | null;
+  onSyncClick?: () => void;
   children: React.ReactNode;
 }
 
@@ -15,6 +16,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   onNavigate,
   onHomeClick,
   lastSync,
+  onSyncClick,
   children,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -28,6 +30,7 @@ export const AppShell: React.FC<AppShellProps> = ({
         onHomeClick={onHomeClick}
         isMobileOpen={isMobileMenuOpen}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
+        onSyncClick={onSyncClick}
       />
 
       {/* Main Content Area: Offset by 64px on desktop so expanded sidebar overlays it */}
