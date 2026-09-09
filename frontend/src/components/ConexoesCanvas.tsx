@@ -1,110 +1,130 @@
-import React, { useMemo, useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ReactFlow,
   Background,
   Controls,
+  MiniMap,
   Handle,
   Position,
   useNodesState,
   useEdgesState,
-  Edge,
+  useReactFlow,
   Node,
-  MiniMap
+  Edge,
+  ReactFlowProvider
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import * as d3 from 'd3';
-import { Info } from 'lucide-react';
+import dagre from 'dagre';
 import { Artifact } from '../types';
 
-const normalizar = (str: string) => str ? str.toLowerCase().trim() : '';
+// ==========================================
+// Custom Nodes
+// ==========================================
 
-const defaultEdgeOptions = {
-  type: 'smoothstep',
-  animated: false,
-  style: { stroke: '#94a3b8', strokeWidth: 2, opacity: 0.5 }
-};
+const ExpandButton = ({ isExpanded, onClick, count }: any) => (
+  <button 
+    onClick={(e) => { e.stopPropagation(); onClick(); }}
+    className="absolute -top-3 -right-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 text-[10px] font-ui font-bold min-w-[28px] h-[28px] flex items-center justify-center rounded-lg shadow-neu-raised z-20 hover:scale-105 active:scale-95 cursor-pointer transition-transform"
+    title={isExpanded ? "Recolher" : "Expandir"}
+  >
+    {count}
+  </button>
+);
 
-// Custom Product Node
-const ProdutoNode = React.memo(({ data }: any) => {
-  return (
-    <>
-      <div className="p-6 flat-card rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-850 shadow-neu-card min-w-[250px] relative transition-all hover:border-gray-300">
-        <button 
-          onClick={data.onToggle}
-          className="absolute -top-3 -right-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 text-xs font-ui font-semibold min-w-[32px] h-[32px] flex items-center justify-center rounded-xl shadow-neu-raised z-20 hover:scale-105 active:scale-95 cursor-pointer transition-transform"
-          title={data.isCollapsed ? "Expandir" : "Recolher"}
-        >
-          {data.count}
-        </button>
-        <span className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Produto</span>
-        <h4 className="text-base font-heading font-bold text-gray-900 dark:text-slate-50 tracking-tight leading-tight">{data.label}</h4>
-      </div>
-      <Handle type="source" position={Position.Right} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
-    </>
-  );
-});
+const ProdutoNode = React.memo(({ data }: any) => (
+  <>
+    <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800 opacity-0" />
+    <div className="p-5 flat-card rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-850 shadow-neu-card w-[260px] h-[92px] relative transition-all hover:border-[#7B0209] group flex flex-col justify-center">
+      {data.hasChildren && (
+        <ExpandButton isExpanded={data.isExpanded} onClick={data.onToggle} count={data.childrenCount} />
+      )}
+      <span className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Produto</span>
+      <h4 className="text-base font-heading font-bold text-gray-900 dark:text-slate-50 tracking-tight leading-tight line-clamp-2 group-hover:text-[#7B0209] transition-colors">{data.label}</h4>
+    </div>
+    <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-[#7B0209] !border-2 !border-white dark:!border-slate-800" />
+  </>
+));
 
-// Custom Subproduct Node
-const SubprodutoNode = React.memo(({ data }: any) => {
-  return (
-    <>
-      <Handle type="target" position={Position.Left} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
-      <div className="p-5 flat-card rounded-2xl border border-gray-200 dark:border-slate-800 bg-gray-50/90 dark:bg-slate-800/90 shadow-neu-card min-w-[240px] relative transition-all hover:border-gray-300">
-        <button 
-          onClick={data.onToggle}
-          className="absolute -top-3 -right-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 text-xs font-ui font-semibold min-w-[32px] h-[32px] flex items-center justify-center rounded-xl shadow-neu-raised z-20 hover:scale-105 active:scale-95 cursor-pointer transition-transform"
-          title={data.isCollapsed ? "Expandir" : "Recolher"}
-        >
-          {data.count}
-        </button>
-        <span className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Subproduto</span>
-        <h4 className="text-sm font-heading font-bold text-gray-800 dark:text-slate-100 tracking-tight">{data.label}</h4>
-      </div>
-      <Handle type="source" position={Position.Right} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
-    </>
-  );
-});
+const SubprodutoNode = React.memo(({ data }: any) => (
+  <>
+    <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
+    <div className="p-4 flat-card rounded-2xl border border-gray-200 dark:border-slate-800 bg-gray-50/90 dark:bg-slate-800/90 shadow-neu-card w-[250px] h-[86px] relative transition-all hover:border-[#E30328] group flex flex-col justify-center">
+      {data.hasChildren && (
+        <ExpandButton isExpanded={data.isExpanded} onClick={data.onToggle} count={data.childrenCount} />
+      )}
+      <span className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Subproduto</span>
+      <h4 className="text-sm font-heading font-bold text-gray-800 dark:text-slate-100 tracking-tight line-clamp-2 group-hover:text-[#E30328] transition-colors">{data.label}</h4>
+    </div>
+    <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
+  </>
+));
 
-// Custom Mapa Node
+const CategoriaNode = React.memo(({ data }: any) => (
+  <>
+    <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
+    <div className="p-4 flat-card rounded-2xl border border-gray-200 dark:border-slate-800 bg-gray-100/90 dark:bg-slate-900/90 shadow-neu-card w-[240px] h-[80px] relative transition-all hover:border-gray-400 group flex flex-col justify-center">
+      {data.hasChildren && (
+        <ExpandButton isExpanded={data.isExpanded} onClick={data.onToggle} count={data.childrenCount} />
+      )}
+      <span className="text-[9px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Categoria</span>
+      <h4 className="text-xs font-heading font-bold text-gray-800 dark:text-slate-100 tracking-tight line-clamp-2 transition-colors">{data.label}</h4>
+    </div>
+    <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
+  </>
+));
+
 const MapaNode = React.memo(({ data }: any) => {
-  const isSelected = data.selectedItemId === data.item.id;
-  const t = normalizar(data.item.tipo_mapa);
-  
+  const isSelected = data.isSelected;
   return (
     <>
-      <Handle type="target" position={Position.Left} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
-      <div className={`w-[340px] p-5 flat-card rounded-2xl border transition-all flex items-center justify-between bg-white dark:bg-slate-800 shadow-neu-card
-        ${isSelected ? 'border-bradesco-red shadow-neu-raised ring-1 ring-bradesco-red/30' : 'border-gray-200 dark:border-slate-700 hover:border-gray-300'}
-      `}>
-        <div className="flex-1 min-w-0 pr-3">
-          <h5 
-            onClick={(e) => { e.stopPropagation(); data.item.link && window.open(data.item.link, '_blank'); }}
-            className="text-sm font-ui font-bold text-gray-800 dark:text-slate-200 line-clamp-1 hover:text-bradesco-red transition-colors cursor-pointer mb-1.5"
-          >
-            {data.item.titulo}
-          </h5>
-          <div className="flex items-center gap-2">
-             <div className="neutral-badge text-[10px] font-ui">
-                {data.item.tipo_mapa || 'Doc'}
-             </div>
-             <span className="text-[10px] font-medium text-gray-400 dark:text-slate-500 font-mono">#{data.item.id}</span>
-          </div>
+      <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
+      <div 
+        className={`p-4 flat-card rounded-2xl border transition-all cursor-pointer w-[320px] h-[82px] flex flex-col justify-center ${
+          isSelected 
+            ? 'bg-red-50 dark:bg-red-900/20 border-[#EF4444] shadow-md ring-1 ring-[#EF4444]'
+            : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm hover:border-[#EF4444]'
+        }`}
+        onClick={data.onSelect}
+      >
+        <div className="flex items-center gap-2 mb-1">
+          <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-red-100 text-[#EF4444] dark:bg-red-900/40 dark:text-red-400">
+            Mapa
+          </span>
+          <span className="text-[10px] text-gray-400 font-mono truncate">{data.item?.id || ''}</span>
         </div>
-        <button 
-          onClick={(e) => { 
-            e.stopPropagation(); 
-            data.onSelect(data.item.id);
-          }}
-          className={`p-2.5 rounded-xl transition-all pointer-events-auto cursor-pointer
-            ${isSelected 
-              ? 'bg-bradesco-red text-white shadow-neu-raised' 
-              : 'btn-neu text-gray-400 hover:text-bradesco-red'}
-          `}
-          title="Ver detalhes"
-        >
-          <Info className="w-4 h-4" />
-        </button>
+        <h4 className={`text-xs font-bold leading-tight line-clamp-2 ${isSelected ? 'text-[#EF4444]' : 'text-gray-900 dark:text-slate-100'}`}>
+          {data.label}
+        </h4>
       </div>
+      <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800 opacity-0" />
+    </>
+  );
+});
+
+const DocumentoNode = React.memo(({ data }: any) => {
+  const isSelected = data.isSelected;
+  return (
+    <>
+      <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
+      <div 
+        className={`p-4 flat-card rounded-2xl border transition-all cursor-pointer w-[320px] h-[82px] flex flex-col justify-center ${
+          isSelected 
+            ? 'bg-slate-50 dark:bg-slate-700/50 border-[#64748B] shadow-md ring-1 ring-[#64748B]'
+            : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm hover:border-[#64748B]'
+        }`}
+        onClick={data.onSelect}
+      >
+        <div className="flex items-center gap-2 mb-1">
+          <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-slate-100 text-[#64748B] dark:bg-slate-800/40 dark:text-slate-400">
+            Documento
+          </span>
+          <span className="text-[10px] text-gray-400 font-mono truncate">{data.item?.id || ''}</span>
+        </div>
+        <h4 className={`text-xs font-bold leading-tight line-clamp-2 ${isSelected ? 'text-[#64748B]' : 'text-gray-900 dark:text-slate-100'}`}>
+          {data.label}
+        </h4>
+      </div>
+      <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800 opacity-0" />
     </>
   );
 });
@@ -112,290 +132,251 @@ const MapaNode = React.memo(({ data }: any) => {
 const nodeTypes = {
   produto: ProdutoNode,
   subproduto: SubprodutoNode,
+  categoria: CategoriaNode,
   mapa: MapaNode,
+  documento: DocumentoNode,
 };
 
-export const ConexoesCanvas = ({ 
-  data, 
-  selectedItemId, 
-  onSelectItem 
-}: { 
-  data: Artifact[], 
-  selectedItemId: string | null,
-  onSelectItem: (id: string | null) => void 
-}) => {
-  const [expandedProducts, setExpandedProducts] = React.useState<Set<string>>(new Set());
-  const [expandedSubproducts, setExpandedSubproducts] = React.useState<Set<string>>(new Set());
+// ==========================================
+// Layout Engine (Dagre)
+// ==========================================
 
+const getDagreLayout = (
+  nodes: Node[],
+  edges: Edge[],
+  clickedNodeId: string | null,
+  previousNodes: Node[]
+): Node[] => {
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+  dagreGraph.setGraph({ 
+    rankdir: 'TB', 
+    nodesep: 70, 
+    ranksep: 110, 
+    marginx: 40, 
+    marginy: 40 
+  });
+
+  dagreGraph.setNode('VIRTUAL_ROOT', { width: 1, height: 1 });
+
+  nodes.forEach((node) => {
+    let width = 240, height = 80;
+    if (node.type === 'produto') { width = 260; height = 92; }
+    else if (node.type === 'subproduto') { width = 250; height = 86; }
+    else if (node.type === 'mapa' || node.type === 'documento') { width = 320; height = 82; }
+    dagreGraph.setNode(node.id, { width, height });
+  });
+
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+
+  const hasIncoming = new Set<string>();
+  edges.forEach(e => hasIncoming.add(e.target));
+
+  nodes.forEach(n => {
+    if (!hasIncoming.has(n.id)) {
+      dagreGraph.setEdge('VIRTUAL_ROOT', n.id);
+    }
+  });
+
+  dagre.layout(dagreGraph);
+
+  let dx = 0, dy = 0;
+  if (clickedNodeId) {
+    const oldNode = previousNodes.find(n => n.id === clickedNodeId);
+    const newPos = dagreGraph.node(clickedNodeId);
+    if (oldNode && newPos) {
+      dx = oldNode.position.x - (newPos.x - newPos.width / 2);
+      dy = oldNode.position.y - (newPos.y - newPos.height / 2);
+    }
+  }
+
+  return nodes.map((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    const width = nodeWithPosition.width;
+    const height = nodeWithPosition.height;
+    return {
+      ...node,
+      position: {
+        x: nodeWithPosition.x - width / 2 + dx,
+        y: nodeWithPosition.y - height / 2 + dy,
+      },
+    };
+  });
+};
+
+// ==========================================
+// Inner Canvas Component
+// ==========================================
+
+interface ConexoesCanvasInnerProps {
+  onSelectItem?: (id: string) => void;
+  data: Artifact[];
+  selectedItemId?: string | null;
+  onOpenMap?: (map: Artifact) => void;
+}
+
+const ConexoesCanvasInner: React.FC<ConexoesCanvasInnerProps> = ({
+  data,
+  selectedItemId,
+  onOpenMap,
+  onSelectItem
+}) => {
+  const reactFlowInstance = useReactFlow();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   
-  const simulationRef = useRef<d3.Simulation<any, any> | null>(null);
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [lastClickedNode, setLastClickedNode] = useState<string | null>(null);
+  const [isFirstRender, setIsFirstRender] = useState(true);
 
-  const toggleProduct = useCallback((p: string) => {
-    setExpandedProducts(prev => {
+  // 1. Compute tree relationships securely
+  const { roots, byParent, byId } = useMemo(() => {
+    const mapByParent = new Map<string, Artifact[]>();
+    const mapById = new Map<string, Artifact>();
+    const rootsSet = new Set<Artifact>();
+
+    data.forEach(a => mapById.set(a.id, a));
+
+    data.forEach(a => {
+      if (a.parent_id && mapById.has(a.parent_id)) {
+        if (!mapByParent.has(a.parent_id)) mapByParent.set(a.parent_id, []);
+        mapByParent.get(a.parent_id)!.push(a);
+      } else {
+        rootsSet.add(a);
+      }
+    });
+    
+    const sortByTitleAndId = (arr: Artifact[]) => {
+      return arr.sort((a, b) => {
+        const titleA = (a.titulo || '').toLowerCase();
+        const titleB = (b.titulo || '').toLowerCase();
+        if (titleA < titleB) return -1;
+        if (titleA > titleB) return 1;
+        return a.id.localeCompare(b.id);
+      });
+    };
+
+    mapByParent.forEach((children, key) => {
+      mapByParent.set(key, sortByTitleAndId(children));
+    });
+
+    let topLevel = sortByTitleAndId(Array.from(rootsSet));
+    
+    // Skip single abstract RAIZ node to show actual products
+    if (topLevel.length === 1 && topLevel[0].artifact_type === 'RAIZ') {
+      topLevel = mapByParent.get(topLevel[0].id) || [];
+    }
+
+    return { roots: topLevel, byParent: mapByParent, byId: mapById };
+  }, [data]);
+
+  // 2. Action Handlers
+  const handleToggle = useCallback((nodeId: string) => {
+    setExpandedNodes(prev => {
       const next = new Set(prev);
-      if (next.has(p)) next.delete(p);
-      else next.add(p);
+      if (next.has(nodeId)) {
+        next.delete(nodeId);
+        // Recursively remove descendants from expanded set
+        const removeDescendants = (id: string) => {
+          const children = byParent.get(id) || [];
+          children.forEach(c => {
+            next.delete(c.id);
+            removeDescendants(c.id);
+          });
+        };
+        removeDescendants(nodeId);
+      } else {
+        next.add(nodeId);
+      }
       return next;
     });
-  }, []);
+    setLastClickedNode(nodeId);
+  }, [byParent]);
 
-  const toggleSubproduct = useCallback((s: string) => {
-    setExpandedSubproducts(prev => {
-      const next = new Set(prev);
-      if (next.has(s)) next.delete(s);
-      else next.add(s);
-      return next;
-    });
-  }, []);
+  // 3. Generate logical tree elements whenever state changes
+  const { newNodes, newEdges } = useMemo(() => {
+    const n: Node[] = [];
+    const e: Edge[] = [];
+    
+    const traverse = (item: Artifact, level: number) => {
+      const children = byParent.get(item.id) || [];
+      const hasChildren = children.length > 0;
+      const isExpanded = expandedNodes.has(item.id);
+      
+      let type = 'categoria';
+      if (level === 0) type = 'produto';
+      else if (level === 1) type = 'subproduto';
+      
+      if (item.artifact_type === 'MAPA') type = 'mapa';
+      else if (item.artifact_type === 'DOCUMENTACAO') type = 'documento';
+      
+      if (hasChildren && (type === 'mapa' || type === 'documento')) {
+         type = 'categoria';
+      }
 
-  // Structural generation and physics layout
-  useEffect(() => {
-    const initialNodes: Node[] = [];
-    const initialEdges: Edge[] = [];
-
-    const products = Array.from(new Set(data.map(i => i.produto || "Sem Produto"))).filter(Boolean);
-
-    products.forEach((product, pIdx) => {
-      const prodId = `prod-${product}`;
-      const productSubpros = Array.from(new Set(data.filter(i => i.produto === product).map(i => i.subproduto || "Sem Subproduto"))).filter(Boolean);
-      const isProdExpanded = expandedProducts.has(product);
-
-      initialNodes.push({
-        id: prodId,
-        type: 'produto',
-        position: { x: 0, y: pIdx * 250 }, // stack vertically by index
-        data: { 
-          label: product, 
-          count: data.filter(i => i.produto === product).length,
-          isCollapsed: !isProdExpanded,
-          onToggle: () => toggleProduct(product),
-          level: 0,
-          pIdx
+      n.push({
+        id: item.id,
+        type,
+        position: { x: 0, y: 0 },
+        data: {
+          label: item.titulo,
+          item,
+          hasChildren,
+          childrenCount: children.length,
+          isExpanded,
+          isSelected: selectedItemId === item.id,
+          onToggle: () => handleToggle(item.id),
+          onSelect: () => { if (onSelectItem) onSelectItem(item.id); if (onOpenMap) onOpenMap(item); }
         }
       });
 
-      if (isProdExpanded) {
-        productSubpros.forEach((sub, sIdx) => {
-          const subId = `sub-${product}-${sub}`;
-          const subMapas = data.filter(i => i.produto === product && i.subproduto === sub);
-          const isSubExpanded = expandedSubproducts.has(subId);
-
-          initialNodes.push({
-            id: subId,
-            type: 'subproduto',
-            position: { x: 0, y: Math.random() * 500 },
-            data: { 
-              label: sub, 
-              count: subMapas.length,
-              isCollapsed: !isSubExpanded,
-              onToggle: () => toggleSubproduct(subId),
-              level: 1
+      if (isExpanded && hasChildren) {
+        children.forEach(child => {
+          const childIsSelected = selectedItemId === child.id;
+          e.push({
+            id: `edge-${item.id}-${child.id}`,
+            source: item.id,
+            target: child.id,
+            type: 'smoothstep',
+            animated: false,
+            style: {
+              stroke: childIsSelected ? '#EF4444' : '#cbd5e1',
+              strokeWidth: childIsSelected ? 3 : 2,
+              zIndex: childIsSelected ? 10 : 0
             }
           });
-
-          initialEdges.push({
-            id: `e-${prodId}-${subId}`,
-            source: prodId,
-            target: subId,
-            ...defaultEdgeOptions
-          });
-
-          if (isSubExpanded) {
-            subMapas.forEach((mapa, mIdx) => {
-              const mapaId = `map-${mapa.id}`;
-              
-              initialNodes.push({
-                id: mapaId,
-                type: 'mapa',
-                position: { x: 0, y: Math.random() * 500 },
-                data: { 
-                  item: mapa, 
-                  selectedItemId,
-                  onSelect: onSelectItem,
-                  level: 2
-                }
-              });
-
-              initialEdges.push({
-                id: `e-${subId}-${mapaId}`,
-                source: subId,
-                target: mapaId,
-                type: 'smoothstep',
-                animated: false,
-                style: { 
-                  stroke: '#cbd5e1', 
-                  strokeWidth: 2,
-                  opacity: 0.5
-                }
-              });
-            });
-          }
+          traverse(child, level + 1);
         });
       }
-    });
-
-    // Start Physics Simulation
-    if (simulationRef.current) {
-        simulationRef.current.stop();
-    }
-
-    const simNodes = initialNodes.map(n => ({ 
-        id: n.id, 
-        x: n.position.x, 
-        y: n.position.y, 
-        type: n.type,
-        level: n.data.level,
-        pIdx: n.data.pIdx
-    }));
-    
-    // We only pass valid object references to d3.forceLink
-    const simEdges = initialEdges.map(e => ({ source: e.source, target: e.target, id: e.id }));
-
-    // Define dimensions for correct centering in nodes
-    const getW = (type: string) => type === 'mapa' ? 350 : 250;
-    const getH = () => 120;
-
-    let animationFrameId: number = 0;
-
-    const sim = d3.forceSimulation(simNodes as any)
-        .force('charge', d3.forceManyBody().strength((d: any) => d.type === 'mapa' ? -2000 : -3500).distanceMax(2000))
-        .force('collide', d3.forceCollide().radius((d: any) => d.type === 'mapa' ? 180 : 140).iterations(3))
-        // Stratified X positioning for lineage
-        .force('x', d3.forceX((d: any) => {
-            if (d.level === 0) return 0;
-            if (d.level === 1) return 450;
-            return 950;
-        }).strength(0.8))
-        // Gentle Y centering to pull everything into view, while products get stacked
-        .force('y', d3.forceY((d: any) => {
-            if (d.level === 0) return d.pIdx * 250;
-            return 0; // Others gently float around 0, guided by links and collisions
-        }).strength((d: any) => d.level === 0 ? 0.3 : 0.02))
-        .force('link', d3.forceLink(simEdges).id((d: any) => d.id).distance((d: any) => {
-             return d.target.type === 'mapa' ? 150 : 250;
-        }).strength(0.5))
-        .alphaDecay(0.02);
-
-    // Fast-forward simulation to avoid initial layout calculation spam
-    sim.tick(300);
-    
-    // Apply initial layout
-    initialNodes.forEach((n) => {
-       const sn = simNodes.find((s: any) => s.id === n.id) as any;
-       if (sn) {
-           n.position = { x: sn.x - getW(n.type)/2, y: sn.y - getH()/2 };
-       }
-    });
-
-    let lastUpdate = Date.now();
-    sim.on('tick', () => {
-        const now = Date.now();
-        // Throttle to ~30fps to avoid React overloading
-        if (now - lastUpdate < 30) return;
-        lastUpdate = now;
-
-        if (animationFrameId) return;
-        animationFrameId = requestAnimationFrame(() => {
-            setNodes((current) => {
-                let hasChanges = false;
-                const nextNodes = current.map((n) => {
-                    const sn = simNodes.find((s: any) => s.id === n.id) as any;
-                    // Only update if not dragged and moved significantly
-                    if (sn && !n.dragging) {
-                        const nextX = sn.x - getW(n.type)/2;
-                        const nextY = sn.y - getH()/2;
-                        if (Math.abs(n.position.x - nextX) > 1 || Math.abs(n.position.y - nextY) > 1) {
-                            hasChanges = true;
-                            return { ...n, position: { x: nextX, y: nextY } };
-                        }
-                    }
-                    return n;
-                });
-                return hasChanges ? nextNodes : current;
-            });
-            animationFrameId = 0;
-        });
-    });
-
-    simulationRef.current = sim;
-    setNodes(initialNodes);
-    setEdges(initialEdges);
-
-    return () => {
-        if (animationFrameId) cancelAnimationFrame(animationFrameId);
-        sim.stop();
     };
-  }, [data, expandedProducts, expandedSubproducts]);
 
-  // Handle Updates for Select Node (Highlighting)
+    roots.forEach(r => traverse(r, 0));
+
+    return { newNodes: n, newEdges: e };
+  }, [roots, byParent, expandedNodes, selectedItemId, handleToggle, onOpenMap]);
+
+  // 4. Apply Layout & Update React Flow State
   useEffect(() => {
-    setNodes((nds) => 
-      nds.map(node => {
-        if (node.type === 'mapa') {
-          return { ...node, data: { ...node.data, selectedItemId } };
-        }
-        return node;
-      })
-    );
+    if (newNodes.length === 0) return;
+
+    const currentReactFlowNodes = reactFlowInstance.getNodes();
+    const layouted = getDagreLayout(newNodes, newEdges, lastClickedNode, currentReactFlowNodes);
     
-    setEdges((eds) =>
-      eds.map(edge => {
-        if (edge.id.startsWith('e-sub-')) {
-          const mapaId = edge.target.replace('map-', '');
-          const isSelected = selectedItemId === mapaId;
-          return {
-            ...edge,
-            animated: isSelected, // animate edge naturally flowing to the node
-            style: {
-              ...edge.style,
-              stroke: isSelected ? '#cc092f' : '#cbd5e1',
-              strokeWidth: isSelected ? 3 : 2,
-              opacity: isSelected ? 1 : 0.5,
-              filter: isSelected ? 'drop-shadow(0 0 4px rgba(204,9,47,0.3))' : 'none'
-            }
-          };
-        }
-        return edge;
-      })
-    );
-  }, [selectedItemId]);
-
-  // Feed React Flow Drag Events back into D3 Force Simulation
-  const getSimNode = (id: string) => {
-     if (!simulationRef.current) return null;
-     return simulationRef.current.nodes().find((n: any) => n.id === id) as any;
-  }
-
-  const onNodeDragStart = useCallback((_: any, node: Node) => {
-    const sn = getSimNode(node.id);
-    if (sn && simulationRef.current) {
-        sn.fx = sn.x;
-        sn.fy = sn.y;
-        simulationRef.current.alphaTarget(0.3).restart();
+    setNodes(layouted);
+    setEdges(newEdges);
+    
+    if (isFirstRender) {
+      setTimeout(() => {
+        reactFlowInstance.fitView({ padding: 0.3, duration: 800, minZoom: 0.1, maxZoom: 1 });
+      }, 50);
+      setIsFirstRender(false);
+    } else if (lastClickedNode) {
+      // Optional: Gentle viewport correction if children spill too far out of view
+      // But preserving clicked node position is already handled by getDagreLayout dx/dy shift.
     }
-  }, []);
-
-  const onNodeDrag = useCallback((_: any, node: Node) => {
-    const sn = getSimNode(node.id);
-    if (sn) {
-        // translate back from top-left (react flow) to center point (d3)
-        const w = node.type === 'mapa' ? 350 : 250;
-        const h = 120;
-        sn.fx = node.position.x + w/2;
-        sn.fy = node.position.y + h/2;
-    }
-  }, []);
-
-  const onNodeDragStop = useCallback((_: any, node: Node) => {
-    const sn = getSimNode(node.id);
-    if (sn && simulationRef.current) {
-        sn.fx = null;
-        sn.fy = null;
-        simulationRef.current.alphaTarget(0); // cool down
-    }
-  }, []);
+  }, [newNodes, newEdges, reactFlowInstance, isFirstRender]);
 
   return (
     <div className="w-full h-full relative flex-1" style={{ width: '100%', height: '100%', minHeight: '600px' }}>
@@ -404,12 +385,7 @@ export const ConexoesCanvas = ({
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        onNodeDragStart={onNodeDragStart}
-        onNodeDrag={onNodeDrag}
-        onNodeDragStop={onNodeDragStop}
         nodeTypes={nodeTypes}
-        fitView
-        fitViewOptions={{ padding: 0.2 }}
         minZoom={0.05}
         maxZoom={2}
         panOnDrag={true}
@@ -418,20 +394,35 @@ export const ConexoesCanvas = ({
       >
         <Background gap={32} size={2} color="rgba(148, 163, 184, 0.2)" />
         <Controls 
-          className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-gray-100 dark:border-slate-700/50 shadow-2xl fill-gray-600 dark:fill-slate-300 rounded-2xl overflow-hidden p-1 gap-1" 
-          showInteractive={false}
+           className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-gray-100 dark:border-slate-700/50 shadow-2xl fill-gray-600 dark:fill-slate-300 rounded-2xl overflow-hidden p-1 gap-1"
+           showInteractive={false}
         />
         <MiniMap 
-          className="bg-white/80 dark:bg-slate-800/80 backdrop-blur border border-gray-100 dark:border-slate-700/50 shadow-2xl rounded-2xl overflow-hidden" 
+          className="bg-white/80 dark:bg-slate-800/80 backdrop-blur border border-gray-200 dark:border-slate-700/50 shadow-lg rounded-2xl overflow-hidden"
           nodeColor={(n) => {
-            if (n.type === 'produto') return '#c084fc';
-            if (n.type === 'subproduto') return '#60a5fa';
-            return '#f87171'; // red maps
+            if (n.type === 'produto') return '#7B0209';
+            if (n.type === 'subproduto') return '#E30328';
+            if (n.type === 'categoria') return '#B91C1C';
+            if (n.type === 'mapa') return '#EF4444';
+            if (n.type === 'documento') return '#64748B';
+            return '#94A3B8';
           }}
-          maskColor="rgba(0, 0, 0, 0.2)"
+          maskColor="rgba(255, 255, 255, 0.6)"
         />
       </ReactFlow>
     </div>
   );
 };
 
+export interface ConexoesCanvasProps {
+  onSelectItem?: (id: string) => void;
+  data: Artifact[];
+  selectedItemId?: string | null;
+  onOpenMap?: (map: Artifact) => void;
+}
+
+export const ConexoesCanvas: React.FC<ConexoesCanvasProps> = (props) => (
+  <ReactFlowProvider>
+    <ConexoesCanvasInner {...props} />
+  </ReactFlowProvider>
+);
