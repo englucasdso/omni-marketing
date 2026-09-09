@@ -160,18 +160,25 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
   }, [artifacts]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <PageHeader
-        title="Indicadores e Governança Analítica"
-        subtitle="Métricas canônicas da esteira de tagueamento, telas mapeadas e conformidade técnica."
-        actions={
+    <div className="space-y-6 animate-fade-in w-full min-w-0 max-w-full">
+      <header className="flex flex-col xl:grid xl:grid-cols-[minmax(0,1fr)_auto] items-start xl:items-center gap-6 pt-6 pb-6 mb-6 border-b border-gray-200/80 dark:border-slate-800/80 w-full transition-all">
+        <div className="min-w-0 w-full">
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-neu-raised">
+            <h1 className="text-2xl font-heading font-bold tracking-tight text-gray-900 dark:text-slate-50">
+              Indicadores e Governança Analítica
+            </h1>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 font-ui leading-relaxed">
+            Métricas canônicas da esteira de tagueamento, telas mapeadas e conformidade técnica.
+          </p>
+        </div>
+        <div className="flex items-center gap-2.5 shrink-0 flex-wrap min-w-0 w-full xl:w-auto">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-neu-raised min-w-0 max-w-full w-full sm:w-auto xl:max-w-[260px]">
               <Filter className="w-3.5 h-3.5 text-gray-400" />
-              <select
+              <select className="bg-transparent text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 outline-none cursor-pointer w-full min-w-0 max-w-full truncate"
                 value={selectedProductFilter}
                 onChange={(e) => setSelectedProductFilter(e.target.value)}
-                className="bg-transparent text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 outline-none cursor-pointer"
               >
                 <option value="all">TODOS OS PRODUTOS</option>
                 {uniqueProducts.map(p => (
@@ -180,11 +187,10 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
               </select>
             </div>
 
-            <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-neu-raised">
-              <select
+            <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-neu-raised min-w-0 max-w-full w-full sm:w-auto xl:max-w-[260px]">
+              <select className="bg-transparent text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 outline-none cursor-pointer w-full min-w-0 max-w-full truncate"
                 value={selectedMeasurementFilter}
                 onChange={(e) => setSelectedMeasurementFilter(e.target.value)}
-                className="bg-transparent text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 outline-none cursor-pointer"
               >
                 <option value="all">QUALQUER MENSURAÇÃO</option>
                 <option value="GA4">APENAS GA4</option>
@@ -193,13 +199,13 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
               </select>
             </div>
           </div>
-        }
-      />
+        </div>
+      </header>
 
       {/* Top 4 Primary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Card 1: Total Artefatos */}
-        <div className="flat-card p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card relative overflow-hidden">
+        <div className="flat-card min-w-0 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card relative overflow-hidden">
           <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-700 shadow-neu-raised flex items-center justify-center mb-3">
             <Target className="w-5 h-5" />
           </div>
@@ -218,7 +224,7 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
         </div>
 
         {/* Card 2: Telas & Snippets */}
-        <div className="flat-card p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card relative overflow-hidden">
+        <div className="flat-card min-w-0 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card relative overflow-hidden">
           <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-700 shadow-neu-raised flex items-center justify-center mb-3">
             <Layers className="w-5 h-5" />
           </div>
@@ -235,7 +241,7 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
         </div>
 
         {/* Card 3: Taxa de Homologação */}
-        <div className="flat-card p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card relative overflow-hidden">
+        <div className="flat-card min-w-0 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card relative overflow-hidden">
           <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 shadow-neu-raised flex items-center justify-center mb-3">
             <ShieldCheck className="w-5 h-5" />
           </div>
@@ -252,7 +258,7 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
         </div>
 
         {/* Card 4: Parâmetros Distintos */}
-        <div className="flat-card p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card relative overflow-hidden">
+        <div className="flat-card min-w-0 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card relative overflow-hidden">
           <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-700 shadow-neu-raised flex items-center justify-center mb-3">
             <Tag className="w-5 h-5" />
           </div>
@@ -407,7 +413,7 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
 
       {/* Row 4: Ranking de Produtos por Mapas e por Telas */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="flat-card p-6 md:p-8 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card space-y-4">
+        <div className="flat-card min-w-0 p-6 md:p-8 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card space-y-4">
           <h3 className="text-sm font-heading font-bold text-gray-900 dark:text-slate-50 uppercase tracking-wider">
             Ranking de Produtos por Quantidade de Mapas
           </h3>
@@ -431,7 +437,7 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
           </div>
         </div>
 
-        <div className="flat-card p-6 md:p-8 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card space-y-4">
+        <div className="flat-card min-w-0 p-6 md:p-8 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card space-y-4">
           <h3 className="text-sm font-heading font-bold text-gray-900 dark:text-slate-50 uppercase tracking-wider">
             Ranking de Produtos por Quantidade de Telas
           </h3>
