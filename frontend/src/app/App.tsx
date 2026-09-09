@@ -689,7 +689,7 @@ export default function App() {
 
   // Filtragem e ordenação combinadas para a tela de Cards
   const filteredAndSortedCards = useMemo(() => {
-    let list = [...cardSource];
+    let list = [...cardSource].filter(i => i.artifact_type !== 'RAIZ');
 
     // 1. Busca textual ampla (título, ID, produto, subproduto, responsável)
     const term = normalizar(cardSearch);
@@ -1086,7 +1086,7 @@ export default function App() {
 
   // Inventory Logic - Computed Filtered & Sorted Results
   const filteredInventory = useMemo(() => {
-    let base = [...results];
+    let base = [...results].filter(i => i.artifact_type !== 'RAIZ');
 
     // Global Search
     if (tableFilter) {
@@ -2182,6 +2182,7 @@ export default function App() {
                 let artifactLabel = 'Não classificado';
                 if (isDoc) artifactLabel = 'Documento';
                 else if (isMap) artifactLabel = 'Mapa';
+                else if (item.artifact_type === 'NO') artifactLabel = 'Nó';
                 
 
                 let homologationStatusLabel = '';
@@ -2556,8 +2557,9 @@ export default function App() {
                               
 
                               let artifactLabel = 'Não classificado';
-                              if (isDoc) artifactLabel = 'Documento';
-                              else if (isMap) artifactLabel = 'Mapa';
+                if (isDoc) artifactLabel = 'Documento';
+                else if (isMap) artifactLabel = 'Mapa';
+                else if (item.artifact_type === 'NO') artifactLabel = 'Nó';
                               
 
                               let classLabel = '—';

@@ -3,6 +3,7 @@ import { ConfluenceTransport } from './confluenceTransport.js';
 import { TreeCrawler } from './treeCrawler.js';
 import { MapReader } from './mapReader.js';
 import { MeasurementClassifier } from '../../services/classification/measurementClassifier.js';
+import { classifyTree } from "../../services/classification/treeClassifier.js";
 import { InventoryRepository } from '../../repositories/inventoryRepository.js';
 
 const CONFLUENCE_BASE_URL = 'https://confluence.bradesco.com.br:8443';
@@ -274,7 +275,8 @@ export class ConfluenceOrchestrator {
         console.error('[Orchestrator] ERRO: Coleta retornou 0 registros. Gravação bloqueada para proteger o inventário atual.');
         throw new Error('A coleta retornou 0 registros. Sincronização abortada para proteger a base.');
       }
-      this.repository.saveSafely(allRows);
+      const finalRows = classifyTree(allRows, rootPageId);
+      this.repository.saveSafely(finalRows);
       
       console.log('--- Resumo da Coleta ---');
       console.log(`Duração: Concluída.`);

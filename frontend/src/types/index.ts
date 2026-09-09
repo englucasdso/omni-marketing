@@ -1,4 +1,4 @@
-export type ArtifactType = 'MAPA' | 'DOCUMENTACAO' | 'NAO_CLASSIFICADO';
+export type ArtifactType = 'RAIZ' | 'NO' | 'MAPA' | 'DOCUMENTACAO' | 'NAO_CLASSIFICADO';
 export type MeasurementClass = 'GA4' | 'GA3' | 'HIBRIDO' | 'NAO_CLASSIFICADO';
 export type ScreenStatus = 'NOVO' | 'VALIDADO' | 'CORREÇÃO' | 'CORRECAO' | 'EXCLUIR' | 'DESCONTINUAR';
 export type ValueType = 'PLACEHOLDER' | 'HARDCODED' | 'JAVASCRIPT_REFERENCE' | 'BOOLEAN' | 'NUMBER' | 'NULL' | 'EMPTY' | 'UNKNOWN';
