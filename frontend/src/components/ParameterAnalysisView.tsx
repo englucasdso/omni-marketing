@@ -33,6 +33,7 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
     }>();
 
     artifacts.forEach(art => {
+      if (art.artifact_type !== 'MAPA') return;
       const artParams = art.parameter_summary || [];
       const prodName = art.produto || 'Sem Produto';
 

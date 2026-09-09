@@ -37,10 +37,19 @@ export const MapDetailModal: React.FC<MapDetailModalProps> = ({ item, onClose })
   const patterns = item.pattern_summary || [];
   const header = item.header || {};
   const isDoc = item.artifact_type === 'DOCUMENTACAO';
+  const isMap = item.artifact_type === 'MAPA';
+  const isNode = item.artifact_type === 'NO';
+  const isRoot = item.artifact_type === 'RAIZ';
+
+  let artifactBadgeLabel = 'Não classificado';
+  if (isDoc) artifactBadgeLabel = 'Documento';
+  else if (isMap) artifactBadgeLabel = 'Mapa';
+  else if (isNode) artifactBadgeLabel = 'Nó';
+  else if (isRoot) artifactBadgeLabel = 'Raiz';
 
   // Classificação de Mensuração (não é status)
   const getMeasurementLabel = () => {
-    if (isDoc) return null;
+    if (!isMap) return null; // Apenas mapas possuem classificação (GA4, GA3, Híbrido)
     const mc = item.measurement_class;
     if (mc === 'GA4') return 'GA4';
     if (mc === 'GA3') return 'GA3';
@@ -76,8 +85,8 @@ export const MapDetailModal: React.FC<MapDetailModalProps> = ({ item, onClose })
 
   // Badge de Homologação do Mapa (3 estados canônicos, nunca "Validado")
   let homologationBadge = null;
-  if (!isDoc) {
-    const status = item.homologation_status || (homologationPercentage === 100 ? 'HOMOLOGADO' : (homologationPercentage > 0 ? 'PARCIAL' : 'NAO_HOMOLOGADO'));
+  if (isMap) {
+    const status = item.homologation_status || (homologationPercentage === 100 && totalScreens > 0 ? 'HOMOLOGADO' : (homologationPercentage > 0 ? 'PARCIAL' : 'NAO_HOMOLOGADO'));
     if (status === 'HOMOLOGADO') {
       homologationBadge = {
         label: `Homologado · ${homologationPercentage}%`,
@@ -148,11 +157,10 @@ export const MapDetailModal: React.FC<MapDetailModalProps> = ({ item, onClose })
           <div className="flex items-start justify-between gap-4 mb-3">
             {/* Badges Semânticos: Classificação de Mensuração & Homologação */}
             <div className="flex flex-wrap items-center gap-2">
-              {isDoc ? (
-                <span className="px-2.5 py-1 text-[11px] font-ui font-semibold rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-700">
-                  DOCUMENTAÇÃO
-                </span>
-              ) : (
+              <span className="px-2.5 py-1 text-[11px] font-ui font-semibold rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-700">
+                {artifactBadgeLabel}
+              </span>
+              {isMap && (
                 <>
                   {measurementLabel && (
                     <span className="px-2.5 py-1 text-[11px] font-ui font-semibold rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-700">

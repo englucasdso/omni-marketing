@@ -78,6 +78,7 @@ export class TreeCrawler {
       // Fallback gracioso caso a chamada individual da raiz falhe ou seja mock
     }
 
+    // O título da raiz é derivado dos dados originais da página (ou opções de fallback)
     const rootTitle = String((rootPageData && rootPageData.title) || options.rootTitle || 'Raiz').trim();
     const rootSpace = (rootPageData && rootPageData.space && (rootPageData.space.name || rootPageData.space.key)) || '';
     const rootVersion = (rootPageData && rootPageData.version && rootPageData.version.number) || 1;

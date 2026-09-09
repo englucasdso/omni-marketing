@@ -28,26 +28,34 @@ export class ConfluenceOrchestrator {
     }
   }
 
-  extrairProdutoSubprodutoDaTrilha(ancestorTitles = [], cabecalhoProduto = '') {
+  extrairProdutoSubprodutoDaTrilha(ancestorTitles = [], depth = 0, nodeTitle = '', cabecalhoProduto = '') {
     // A estrutura da árvore (ancestorTitles) é a fonte canônica principal.
-    // Índice 0 = Raiz
-    // Índice 1 = Produto (primeiro descendente da raiz)
-    // Índice 2 = Subproduto (primeiro agrupador interno do produto)
+    // Índice 0 = Raiz (Nível 1, depth 0)
+    // Índice 1 = Produto (Nível 2, depth 1)
     
     let estruturalProduto = '';
     let estruturalSubproduto = '';
 
     if (ancestorTitles.length >= 2) {
+      // Produto está na posição 1 do array de ancestrais
       estruturalProduto = ancestorTitles[1];
+    } else if (depth === 1) {
+      // O nó atual é o próprio Produto (Nível 2)
+      estruturalProduto = nodeTitle;
     }
-    if (ancestorTitles.length >= 3) {
+    
+    // Nível 3 representa depth >= 2
+    // Se a profundidade for 3 ou maior (Nível 4 em diante), 
+    // o ancestral no nível 3 (posição 2) possui descendentes e atua como subproduto.
+    // Se a profundidade for 2 (Nível 3), deixamos vazio (um mapa no nível 3 não deve ter seu próprio nome como subproduto).
+    if (depth >= 3 && ancestorTitles.length >= 3) {
       estruturalSubproduto = ancestorTitles[2];
     }
 
     // Só usamos o cabeçalho como fallback se a trilha estrutural não estiver disponível
-    const produtoFinal = estruturalProduto || cabecalhoProduto || (ancestorTitles[0] || '');
+    const produtoFinal = estruturalProduto || cabecalhoProduto || '';
     
-    // Subproduto usa a estrutura, ou vazio se não houver níveis suficientes
+    // Subproduto usa a estrutura estritamente
     const subprodutoFinal = estruturalSubproduto || '';
 
     return { 
@@ -126,9 +134,17 @@ export class ConfluenceOrchestrator {
         const currentUpdated = String(node.ultima_atualizacao || (node.raw_page && node.raw_page.history && node.raw_page.history.lastUpdated && node.raw_page.history.lastUpdated.when) || '');
         
         const cached = invMap.get(idStr);
+        const CLASSIFICATION_VERSION = '2'; // Atualizado para invalidar cache incorreto antigo
         
         // Reutiliza se existe e versão não mudou (mantendo telas e metadados já capturados)
-        if (cached && String(cached.versao) === currentVersion && String(cached.ultima_atualizacao) === currentUpdated && cached.screens && cached.screens.length > 0) {
+        if (
+          cached && 
+          String(cached.versao) === currentVersion && 
+          String(cached.ultima_atualizacao) === currentUpdated && 
+          cached.screens && 
+          cached.screens.length > 0 &&
+          cached.classification_version === CLASSIFICATION_VERSION
+        ) {
           cabecalho = {
             produto_servico: cached.produto_servico,
             numero_task: cached.numero_da_task,
@@ -162,7 +178,7 @@ export class ConfluenceOrchestrator {
         } else {
           // Captura completa do conteúdo da página (independentemente de possuir filhos ou de prefixo MT -)
           try {
-            const tempEstrutura = this.extrairProdutoSubprodutoDaTrilha(ancestorTitles);
+            const tempEstrutura = this.extrairProdutoSubprodutoDaTrilha(ancestorTitles, node.depth !== undefined ? node.depth : depth, node.title || '');
             const details = await mapReader.readMapDetails(idStr, tempEstrutura.produto, tempEstrutura.subproduto);
             cabecalho = details.cabecalho || {};
             headerObj = details.header || {};
@@ -176,7 +192,10 @@ export class ConfluenceOrchestrator {
             const classification = this.classifier.classifyMap(telasDoMapa, cabecalho.status_homologacao, {
               hasTrackingScreens: telasDoMapa.length > 0,
               hasGtmIds: gtm_ids.length > 0,
-              hasDocContent: structural_metadata && structural_metadata.signals && structural_metadata.signals.has_documentation_signals
+              hasDocContent: structural_metadata && structural_metadata.signals && structural_metadata.signals.has_documentation_signals,
+              hasContent: structural_metadata && structural_metadata.signals && structural_metadata.signals.has_content,
+              isRoot: idStr === String(rootPageId),
+              hasChildren: node.has_children
             });
 
             artifact_type = classification.artifact_type;
@@ -202,7 +221,7 @@ export class ConfluenceOrchestrator {
           }
         }
 
-        const resolvedStructure = this.extrairProdutoSubprodutoDaTrilha(ancestorTitles, cabecalho.produto_servico);
+        const resolvedStructure = this.extrairProdutoSubprodutoDaTrilha(ancestorTitles, node.depth !== undefined ? node.depth : depth, node.title || '', cabecalho.produto_servico);
 
         const row = {
           id: idStr,
@@ -253,7 +272,8 @@ export class ConfluenceOrchestrator {
           propriedade_ga4_stream_id: cabecalho.ga4_stream_id || cabecalho.propriedade_ga4_stream_id || '',
           firebase: cabecalho.firebase || '',
           dominio_exclusivo_web: cabecalho.dominio || cabecalho.dominio_exclusivo_web || '',
-          tipo_mapa: tipo_mapa || 'Doc'
+          tipo_mapa: tipo_mapa || 'Doc',
+          classification_version: CLASSIFICATION_VERSION
         };
 
         allRows.push(row);

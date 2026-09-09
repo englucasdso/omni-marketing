@@ -709,10 +709,12 @@ export class MapReader {
     }
 
     // 6. Sinais
+    const has_content = this.verificarConteudoUtil(html);
     const signals = {
       has_gtm_ids: gtm_ids.length > 0,
       has_tracking_screens: telas.length > 0,
-      has_documentation_signals: html.length > 200 && telas.length === 0 && !gtm_ids.length
+      has_content: has_content,
+      has_documentation_signals: has_content && telas.length === 0 && !gtm_ids.length
     };
 
     // 7. Assinatura estrutural determinística (hash)
@@ -736,6 +738,29 @@ export class MapReader {
       signals,
       signature_hash
     };
+  }
+
+  /**
+   * Verifica se o HTML possui conteúdo útil real, desconsiderando navegação, comentários e espaços vazios.
+   */
+  verificarConteudoUtil(html) {
+    if (!html) return false;
+    
+    // Remove comentários e seções padrões do Confluence
+    let clean = html
+      .replace(/<div[^>]*class=["'][^"']*comments-section[^"']*["'][^>]*>[\s\S]*?<\/div>/gi, '')
+      .replace(/<div[^>]*id=["']comments["'][^>]*>[\s\S]*?<\/div>/gi, '')
+      .replace(/Escreva um comentário/gi, '')
+      .replace(/Write a comment/gi, '')
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<!--[\s\S]*?-->/g, '');
+
+    // Limpa tags HTML deixando só texto
+    clean = clean.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
+    // Se sobrou mais do que 30 caracteres de texto legível, consideramos útil
+    return clean.length > 30;
   }
 
   /**

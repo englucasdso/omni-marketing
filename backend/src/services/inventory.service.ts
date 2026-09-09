@@ -5,26 +5,24 @@ const DATA_FILE = path.join(process.cwd(), "backend/data/inventario.json");
 
 export function normalizeInventoryItem(item: any) {
   if (!item) return null;
-  const artifact_type = item.artifact_type || (item.tipo_mapa === 'Doc' ? 'DOCUMENTACAO' : 'MAPA');
-  let measurement_class = item.measurement_class || (
-    item.tipo_mapa === 'GA4' ? 'GA4' : 
-    (item.tipo_mapa === 'Universal Analytics' || item.tipo_mapa === 'GA3' ? 'GA3' : 'NAO_CLASSIFICADO')
-  );
   
-  if (measurement_class === 'MISTO') {
-    measurement_class = 'HIBRIDO';
-  }
+  // Confia estritamente no backend. Se não tiver, cai pra NAO_CLASSIFICADO.
+  const artifact_type = item.artifact_type || 'NAO_CLASSIFICADO';
+  
+  let measurement_class = item.measurement_class || 'NAO_CLASSIFICADO';
 
-  const screens = Array.isArray(item.screens) ? item.screens : [];
+  // Apenas mapas possuem telas e percentuais
+  const isMap = artifact_type === 'MAPA';
+  const screens = isMap && Array.isArray(item.screens) ? item.screens : [];
   const totalScreens = screens.length;
-  let validatedScreens = item.validated_screens !== undefined ? item.validated_screens : 
+  let validatedScreens = isMap && item.validated_screens !== undefined ? item.validated_screens : 
     (item.status_summary?.VALIDADO || 0);
 
-  let homologation_percentage = item.homologation_percentage !== undefined ? item.homologation_percentage : 
+  let homologation_percentage = isMap && item.homologation_percentage !== undefined ? item.homologation_percentage : 
     (totalScreens > 0 ? Math.round((validatedScreens / totalScreens) * 100) : 0);
 
-  let homologation_status = item.homologation_status;
-  if (!homologation_status) {
+  let homologation_status = isMap ? item.homologation_status : 'NAO_HOMOLOGADO';
+  if (isMap && !homologation_status) {
     if (totalScreens > 0 && validatedScreens === totalScreens) {
       homologation_status = 'HOMOLOGADO';
     } else if (validatedScreens > 0 && validatedScreens < totalScreens) {
@@ -104,7 +102,7 @@ export function calculateInsights(inventory: any[]) {
   };
 
   let totalScreens = 0;
-  let totalArtifacts = inventory.length;
+  let totalArtifacts = inventory.length; // Raiz + Nós + Mapas + Documentos
   let totalMaps = 0;
   let totalDocs = 0;
   let divergentCount = 0;
@@ -112,12 +110,15 @@ export function calculateInsights(inventory: any[]) {
   for (const item of inventory) {
     if (item.artifact_type === 'DOCUMENTACAO') {
       totalDocs++;
-    } else {
+    } else if (item.artifact_type === 'MAPA') {
       totalMaps++;
-      if (item.measurement_class && measurementCounts.hasOwnProperty(item.measurement_class)) {
-        measurementCounts[item.measurement_class as keyof typeof measurementCounts]++;
+      
+      if (item.measurement_class === 'HIBRIDO') {
+         measurementCounts.HIBRIDO++;
+      } else if (item.measurement_class && measurementCounts.hasOwnProperty(item.measurement_class)) {
+         measurementCounts[item.measurement_class as keyof typeof measurementCounts]++;
       } else {
-        measurementCounts.NAO_CLASSIFICADO++;
+         measurementCounts.NAO_CLASSIFICADO++;
       }
 
       if (item.status_divergent) {
@@ -147,6 +148,7 @@ export function calculateInsights(inventory: any[]) {
         }
       }
     }
+    // Raiz e Nós não entram nas métricas acima
   }
 
   const sumOfficial = statusCounts.VALIDADO + statusCounts['CORREÇÃO'] + statusCounts.NOVO + statusCounts.EXCLUIR + statusCounts.DESCONTINUAR;

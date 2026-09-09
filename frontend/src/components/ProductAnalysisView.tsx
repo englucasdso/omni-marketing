@@ -37,6 +37,8 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
     }>();
 
     artifacts.forEach(art => {
+      if (art.artifact_type !== 'MAPA') return; // Apenas mapas reais devem ser contabilizados
+
       const prodName = art.produto || 'Sem Produto';
       if (!map.has(prodName)) {
         map.set(prodName, {
@@ -54,7 +56,7 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
             EXCLUIR: 0,
             DESCONTINUAR: 0
           },
-          measurementCounts: { GA4: 0, GA3: 0, MISTO: 0, NAO_CLASSIFICADO: 0 },
+          measurementCounts: { GA4: 0, GA3: 0, HIBRIDO: 0, NAO_CLASSIFICADO: 0 },
           parametersMap: new Map()
         });
       }
@@ -84,7 +86,7 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
         pEntry.mapasSemTelas++;
       }
 
-      const mClass = art.measurement_class || (art.tipo_mapa?.toLowerCase().includes('ga4') ? 'GA4' : 'GA3');
+      let mClass = art.measurement_class || 'NAO_CLASSIFICADO';
       pEntry.measurementCounts[mClass] = (pEntry.measurementCounts[mClass] || 0) + 1;
 
       // Frequência de parâmetros
@@ -149,7 +151,7 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
     const measurementCounts: Record<string, number> = {
       GA4: 0,
       GA3: 0,
-      MISTO: 0,
+      HIBRIDO: 0,
       NAO_CLASSIFICADO: 0
     };
     let mapasComTelas = 0;
@@ -432,8 +434,8 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
                     <span className="text-base font-heading font-bold text-gray-800 dark:text-slate-100">{selectedMetrics.measurementCounts.GA3 || 0}</span>
                   </div>
                   <div className="p-3 bg-gray-50/80 dark:bg-slate-800/60 rounded-xl border border-gray-200 dark:border-slate-800 text-center">
-                    <span className="text-[11px] font-medium text-gray-500 dark:text-slate-400 block">Misto</span>
-                    <span className="text-base font-heading font-bold text-gray-800 dark:text-slate-100">{selectedMetrics.measurementCounts.MISTO || 0}</span>
+                    <span className="text-[11px] font-medium text-gray-500 dark:text-slate-400 block">Híbrido</span>
+                    <span className="text-base font-heading font-bold text-gray-800 dark:text-slate-100">{selectedMetrics.measurementCounts.HIBRIDO || 0}</span>
                   </div>
                   <div className="p-3 bg-gray-50/80 dark:bg-slate-800/60 rounded-xl border border-gray-200 dark:border-slate-800 text-center">
                     <span className="text-[11px] font-medium text-gray-500 dark:text-slate-400 block">Não Classif.</span>

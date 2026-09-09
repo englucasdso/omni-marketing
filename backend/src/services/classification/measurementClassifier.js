@@ -85,21 +85,35 @@ export class MeasurementClassifier {
       }
     }
 
-    // Tipo de artefato:
-    // - MAPA: possui telas estruturadas ou snippets de tagueamento analítico
-    // - DOCUMENTACAO: possui conteúdo textual ou painéis de documentação sem snippets analíticos
-    // - NAO_CLASSIFICADO: quando não há evidência suficiente nem de mapa nem de documentação
+    // Classificação Canônica dos Tipos de Artefato
     let artifact_type = 'NAO_CLASSIFICADO';
-    if (screens.length > 0 || totalSnippets > 0 || context.hasTrackingScreens) {
+    if (context.isRoot) {
+      artifact_type = 'RAIZ';
+    } else if (context.hasChildren) {
+      artifact_type = 'NO';
+    } else if (screens.length > 0 || totalSnippets > 0 || context.hasTrackingScreens) {
       artifact_type = 'MAPA';
-    } else if (context.isAmbiguous) {
-      artifact_type = 'NAO_CLASSIFICADO';
-    } else if (context.hasDocContent || context.isDoc || (context.htmlLength && context.htmlLength > 200)) {
-      artifact_type = 'DOCUMENTACAO';
-    } else if (context.hasContent === false && !declaredStatus) {
-      artifact_type = 'NAO_CLASSIFICADO';
+    } else if (context.hasContent === false) {
+      artifact_type = 'NO';
     } else {
-      artifact_type = declaredStatus ? 'DOCUMENTACAO' : 'NAO_CLASSIFICADO';
+      artifact_type = 'DOCUMENTACAO';
+    }
+
+    // Se não for MAPA, não tem status ou classificação de medição
+    if (artifact_type !== 'MAPA') {
+      return {
+        artifact_type,
+        measurement_class: 'NAO_CLASSIFICADO',
+        status_summary: {},
+        declared_status: null,
+        calculated_status: 'NAO_IDENTIFICADO',
+        homologation_status: 'NAO_HOMOLOGADO',
+        homologation_percentage: 0,
+        validated_screens: 0,
+        total_screens: 0,
+        status_divergent: false,
+        homologado: false
+      };
     }
 
     // Classificação de mensuração:

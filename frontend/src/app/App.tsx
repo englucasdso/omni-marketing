@@ -704,11 +704,14 @@ export default function App() {
       });
     }
 
+    // Filtra RAIZ
+    list = list.filter(i => i.artifact_type !== 'RAIZ');
+
     // 2. Filtro de Artefato (Todos, Mapas, Documentações)
     if (cardArtifactType === "mapas") {
-      list = list.filter(i => (i.artifact_type === 'MAPA' || (normalizar(i.tipo_mapa || '') !== 'doc' && i.artifact_type !== 'DOCUMENTACAO')));
+      list = list.filter(i => i.artifact_type === 'MAPA');
     } else if (cardArtifactType === "docs") {
-      list = list.filter(i => (i.artifact_type === 'DOCUMENTACAO' || normalizar(i.tipo_mapa || '') === 'doc'));
+      list = list.filter(i => i.artifact_type === 'DOCUMENTACAO');
     }
 
     // 3. Filtro de Responsável
@@ -1108,15 +1111,18 @@ export default function App() {
     }
 
     // Independent Multidimensional Filters
+    // Filtra RAIZ
+    base = base.filter(i => i.artifact_type !== 'RAIZ');
+
     if (inventoryFilters.tipo_mapa && inventoryFilters.tipo_mapa.length > 0) {
       base = base.filter(i => {
-        const t = (i.artifact_type || (normalizar(i.tipo_mapa) === 'doc' ? 'DOCUMENTACAO' : 'MAPA')).toUpperCase();
+        const t = (i.artifact_type || 'NAO_CLASSIFICADO').toUpperCase();
         return inventoryFilters.tipo_mapa.includes(t);
       });
     }
     if (inventoryFilters.measurement_class && inventoryFilters.measurement_class.length > 0) {
       base = base.filter(i => {
-        const m = (i.measurement_class || (normalizar(i.tipo_mapa) === 'ga4' ? 'GA4' : normalizar(i.tipo_mapa) === 'universal analytics' ? 'GA3' : 'NAO_CLASSIFICADO')).toUpperCase();
+        const m = (i.measurement_class || 'NAO_CLASSIFICADO').toUpperCase();
         return inventoryFilters.measurement_class.includes(m);
       });
     }
@@ -1145,11 +1151,11 @@ export default function App() {
         let valA = '';
         let valB = '';
         if (inventorySort.field === 'artifact_type') {
-          valA = (a.artifact_type === 'DOCUMENTACAO' || normalizar(a.tipo_mapa) === 'doc') ? 'Documentação' : 'Mapa';
-          valB = (b.artifact_type === 'DOCUMENTACAO' || normalizar(b.tipo_mapa) === 'doc') ? 'Documentação' : 'Mapa';
+          valA = a.artifact_type || 'NAO_CLASSIFICADO';
+          valB = b.artifact_type || 'NAO_CLASSIFICADO';
         } else if (inventorySort.field === 'measurement_class') {
-          valA = a.measurement_class || (normalizar(a.tipo_mapa) === 'ga4' ? 'GA4' : normalizar(a.tipo_mapa) === 'universal analytics' ? 'GA3' : '');
-          valB = b.measurement_class || (normalizar(b.tipo_mapa) === 'ga4' ? 'GA4' : normalizar(b.tipo_mapa) === 'universal analytics' ? 'GA3' : '');
+          valA = a.measurement_class || 'NAO_CLASSIFICADO';
+          valB = b.measurement_class || 'NAO_CLASSIFICADO';
         } else {
           valA = String(a[inventorySort.field as keyof Artifact] || "");
           valB = String(b[inventorySort.field as keyof Artifact] || "");
@@ -1273,10 +1279,10 @@ export default function App() {
       if (i.produto) prodCounts.set(i.produto, (prodCounts.get(i.produto) || 0) + 1);
       if (i.subproduto) subCounts.set(i.subproduto, (subCounts.get(i.subproduto) || 0) + 1);
 
-      const mc = (i.measurement_class || (normalizar(i.tipo_mapa) === 'ga4' ? 'GA4' : normalizar(i.tipo_mapa) === 'universal analytics' ? 'GA3' : 'NAO_CLASSIFICADO')).toUpperCase();
+      const mc = (i.measurement_class || 'NAO_CLASSIFICADO').toUpperCase();
       measurementCounts.set(mc, (measurementCounts.get(mc) || 0) + 1);
 
-      const tp = (i.artifact_type || (normalizar(i.tipo_mapa) === 'doc' ? 'DOCUMENTACAO' : 'MAPA')).toUpperCase();
+      const tp = (i.artifact_type || 'NAO_CLASSIFICADO').toUpperCase();
       typeCounts.set(tp, (typeCounts.get(tp) || 0) + 1);
 
       (i.parameter_summary || []).forEach(p => {
@@ -1297,7 +1303,8 @@ export default function App() {
       tipoArtefato: [
         { v: 'all', l: 'Todos' },
         { v: 'MAPA', l: `Mapas (${typeCounts.get('MAPA') || 0})` },
-        { v: 'DOCUMENTACAO', l: `Documentações (${typeCounts.get('DOCUMENTACAO') || 0})` }
+        { v: 'DOCUMENTACAO', l: `Documentações (${typeCounts.get('DOCUMENTACAO') || 0})` },
+        { v: 'NO', l: `Nós (${typeCounts.get('NO') || 0})` }
       ],
       classificacao: [
         { v: 'all', l: 'Todos' },
@@ -2173,35 +2180,29 @@ export default function App() {
               <AnimatePresence>
                 {paginatedCards.map((item, index) => {
                 const isDoc = item.artifact_type === 'DOCUMENTACAO';
+                const isMap = item.artifact_type === 'MAPA';
+                const isNode = item.artifact_type === 'NO';
+                const isRoot = item.artifact_type === 'RAIZ';
                 
-                let homologationBadge = null;
-                
-                if (!isDoc) {
+                let artifactLabel = 'Não classificado';
+                if (isDoc) artifactLabel = 'Documento';
+                else if (isMap) artifactLabel = 'Mapa';
+                else if (isNode) artifactLabel = 'Nó';
+                else if (isRoot) artifactLabel = 'Raiz';
+
+                let homologationStatusLabel = '';
+                let statusColorClass = 'text-gray-800 dark:text-slate-200';
+                if (isMap) {
                   const homologationStatus = item.homologation_status || 'NAO_HOMOLOGADO';
                   if (homologationStatus === 'HOMOLOGADO') {
-                    homologationBadge = {
-                      label: 'Homologado',
-                      bg: 'bg-emerald-50 dark:bg-emerald-950/40',
-                      border: 'border-emerald-200 dark:border-emerald-800',
-                      color: 'text-emerald-700 dark:text-emerald-300',
-                      icon: <CheckCircle2 className="w-3 h-3" />
-                    };
+                    homologationStatusLabel = 'Homologado';
+                    statusColorClass = 'text-emerald-600 dark:text-emerald-400';
                   } else if (homologationStatus === 'PARCIAL') {
-                    homologationBadge = {
-                      label: 'Parcial',
-                      bg: 'bg-amber-50 dark:bg-amber-950/40',
-                      border: 'border-amber-200 dark:border-amber-800',
-                      color: 'text-amber-800 dark:text-amber-300',
-                      icon: <AlertTriangle className="w-3 h-3" />
-                    };
+                    homologationStatusLabel = 'Parcial';
+                    statusColorClass = 'text-amber-600 dark:text-amber-400';
                   } else {
-                    homologationBadge = {
-                      label: 'Não homologado',
-                      bg: 'bg-transparent',
-                      border: 'border-gray-300 dark:border-slate-600',
-                      color: 'text-gray-500 dark:text-slate-400',
-                      icon: <Info className="w-3 h-3" />
-                    };
+                    homologationStatusLabel = 'Não homologado';
+                    statusColorClass = 'text-gray-500 dark:text-slate-400';
                   }
                 }
 
@@ -2215,19 +2216,8 @@ export default function App() {
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="red-badge font-ui">
-                        {isDoc ? "DOCUMENTO" : "MAPA"}
-                      </span>
                       {item.produto && <span className="red-badge font-ui">{item.produto}</span>}
                       {item.subproduto && <span className="red-badge font-ui">{item.subproduto}</span>}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {homologationBadge && (
-                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-neu-raised text-[10px] font-ui font-semibold uppercase tracking-widest cursor-default ${homologationBadge.bg} ${homologationBadge.border} ${homologationBadge.color}`}>
-                          {homologationBadge.icon} {homologationBadge.label}
-                        </div>
-                      )}
                     </div>
                   </div>
 
@@ -2244,17 +2234,21 @@ export default function App() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6 p-4 rounded-xl bg-gray-50/50 dark:bg-slate-800/30 border border-gray-100 dark:border-slate-800">
                     <div className="flex flex-col gap-1">
-                      <span className="text-[10px] font-ui font-semibold uppercase text-gray-400 dark:text-slate-500 tracking-wider">Identificador</span>
-                      <span className="text-sm font-heading font-bold text-gray-800 dark:text-slate-200 tabular-nums">{item.id}</span>
+                      <span className="text-[10px] font-ui font-semibold uppercase text-gray-400 dark:text-slate-500 tracking-wider">Artefato</span>
+                      <span className="text-sm font-heading font-bold text-gray-800 dark:text-slate-200 tabular-nums">{artifactLabel}</span>
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] font-ui font-semibold uppercase text-gray-400 dark:text-slate-500 tracking-wider">Responsável</span>
-                      <span className="text-sm font-ui font-semibold text-gray-800 dark:text-slate-200">{item.responsavel || "N/A"}</span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] font-ui font-semibold uppercase text-gray-400 dark:text-slate-500 tracking-wider">Versão</span>
-                      <span className="text-sm font-heading font-bold text-gray-800 dark:text-slate-200 tabular-nums">{item.versao || "1"}</span>
-                    </div>
+                    {isMap && (
+                      <>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] font-ui font-semibold uppercase text-gray-400 dark:text-slate-500 tracking-wider">Status</span>
+                          <span className={`text-sm font-heading font-bold tabular-nums ${statusColorClass}`}>{homologationStatusLabel}</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] font-ui font-semibold uppercase text-gray-400 dark:text-slate-500 tracking-wider">Responsável</span>
+                          <span className="text-sm font-ui font-semibold text-gray-800 dark:text-slate-200">{item.responsavel || "—"}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-gray-100 dark:border-slate-800">
@@ -2267,10 +2261,6 @@ export default function App() {
                         <ChevronRight className="w-4 h-4 ml-1" />
                       </button>
                     </div>
-
-                    <p className="text-xs font-ui text-gray-400 dark:text-slate-500 tabular-nums">
-                      Atualizado em: {formatDataBR(item.ultima_atualizacao)}
-                    </p>
                   </div>
                 </motion.article>
                 );
@@ -2567,23 +2557,32 @@ export default function App() {
                             </tr>
                           ) : (
                             filteredInventory.map((item) => {
-                              const isDoc = item.artifact_type === 'DOCUMENTACAO' || normalizar(item.tipo_mapa) === 'doc';
-                              const artifactLabel = isDoc ? 'Documentação' : 'Mapa';
+                              const isDoc = item.artifact_type === 'DOCUMENTACAO';
+                              const isMap = item.artifact_type === 'MAPA';
+                              const isNode = item.artifact_type === 'NO';
+                              const isRoot = item.artifact_type === 'RAIZ';
 
-                              const mRaw = (item.measurement_class || '').toUpperCase();
-                              const tRaw = normalizar(item.tipo_mapa || '');
+                              let artifactLabel = 'Não classificado';
+                              if (isDoc) artifactLabel = 'Documento';
+                              else if (isMap) artifactLabel = 'Mapa';
+                              else if (isNode) artifactLabel = 'Nó';
+                              else if (isRoot) artifactLabel = 'Raiz';
+
                               let classLabel = '—';
                               let classStyle = 'text-gray-400 dark:text-slate-500';
 
-                              if (mRaw === 'GA4' || tRaw === 'ga4') {
-                                classLabel = 'GA4';
-                                classStyle = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300';
-                              } else if (mRaw === 'GA3' || tRaw === 'ga3' || tRaw === 'universal analytics') {
-                                classLabel = 'GA3';
-                                classStyle = 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300';
-                              } else if (mRaw === 'HIBRIDO' || tRaw === 'hibrido' || tRaw === 'híbrido' || tRaw === 'misto') {
-                                classLabel = 'Híbrido';
-                                classStyle = 'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300';
+                              if (isMap) {
+                                const mRaw = (item.measurement_class || '').toUpperCase();
+                                if (mRaw === 'GA4') {
+                                  classLabel = 'GA4';
+                                  classStyle = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300';
+                                } else if (mRaw === 'GA3') {
+                                  classLabel = 'GA3';
+                                  classStyle = 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300';
+                                } else if (mRaw === 'HIBRIDO') {
+                                  classLabel = 'Híbrido';
+                                  classStyle = 'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300';
+                                }
                               }
 
                               return (

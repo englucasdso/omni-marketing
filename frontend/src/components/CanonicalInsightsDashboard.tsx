@@ -51,7 +51,7 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
     const measurementCounts: Record<string, number> = {
       GA4: 0,
       GA3: 0,
-      MISTO: 0,
+      HIBRIDO: 0,
       NAO_CLASSIFICADO: 0
     };
 
@@ -189,7 +189,7 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
                 <option value="all">QUALQUER MENSURAÇÃO</option>
                 <option value="GA4">APENAS GA4</option>
                 <option value="GA3">APENAS GA3 / UNIVERSAL</option>
-                <option value="MISTO">APENAS MISTO</option>
+                <option value="HIBRIDO">APENAS HÍBRIDO</option>
               </select>
             </div>
           </div>
@@ -323,9 +323,9 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
               <span className="text-[10px] text-gray-400 block mt-1">Legado</span>
             </div>
             <div className="p-4 rounded-xl bg-gray-50/80 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700 text-center shadow-neu-raised">
-              <span className="text-[10px] font-medium uppercase text-gray-500 dark:text-slate-400 block">Misto</span>
-              <span className="text-2xl font-heading font-bold text-gray-900 dark:text-slate-100 tabular-nums">{stats.measurementCounts.MISTO || 0}</span>
-              <span className="text-[10px] text-gray-400 block mt-1">Híbrido</span>
+              <span className="text-[10px] font-medium uppercase text-gray-500 dark:text-slate-400 block">Híbrido</span>
+              <span className="text-2xl font-heading font-bold text-gray-900 dark:text-slate-100 tabular-nums">{stats.measurementCounts.HIBRIDO || 0}</span>
+              <span className="text-[10px] text-gray-400 block mt-1">Transição</span>
             </div>
             <div className="p-4 rounded-xl bg-gray-50/80 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700 text-center shadow-neu-raised">
               <span className="text-[10px] font-medium uppercase text-gray-500 dark:text-slate-400 block">Não Classificado</span>
