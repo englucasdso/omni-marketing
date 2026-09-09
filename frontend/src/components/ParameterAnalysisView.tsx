@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
-  Tag, Search, Filter, Code2, Layers, ChevronRight, 
+  Tag, Search, Filter, Code2, Layers, ChevronRight, ChevronDown,
   Sparkles, Database, FileText, Check
 } from 'lucide-react';
 import { Artifact, ParameterSummaryItem } from '../types';
@@ -18,6 +18,9 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedParamKey, setSelectedParamKey] = useState<string | null>(null);
   const [selectedDistinctValue, setSelectedDistinctValue] = useState<string | null>(null);
+  
+  const [isDistinctValuesExpanded, setIsDistinctValuesExpanded] = useState(false);
+  const [isMapsExpanded, setIsMapsExpanded] = useState(false);
 
   // Consolidated parameter dictionary
   const parametersCatalog = useMemo(() => {
@@ -96,13 +99,16 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
     ? parametersCatalog.find(p => p.name === selectedParamKey) 
     : filteredCatalog[0] || null;
 
-  // Clear distinct value when param changes
+  // Clear drill-down states when param changes
   useEffect(() => {
     setSelectedDistinctValue(null);
+    setIsDistinctValuesExpanded(false);
+    setIsMapsExpanded(false);
   }, [activeParam?.name]);
 
   const handleSelectDistinctValue = (val: string) => {
     setSelectedDistinctValue(prev => prev === val ? null : val);
+    setIsMapsExpanded(false);
   };
 
   const activeParamFilteredMaps = useMemo(() => {
@@ -117,6 +123,50 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
       );
     });
   }, [activeParam, selectedDistinctValue]);
+
+  // Derived Values for UI states
+  const displayedDistinctValues = useMemo(() => {
+    if (!activeParam) return [];
+    let list = [...activeParam.distinctValuesList];
+    
+    const term = searchTerm.trim().toLowerCase();
+    if (term) {
+      list.sort((a, b) => {
+        const aMatch = a.toLowerCase().includes(term);
+        const bMatch = b.toLowerCase().includes(term);
+        if (aMatch && !bMatch) return -1;
+        if (!aMatch && bMatch) return 1;
+        return 0;
+      });
+    }
+
+    if (!isDistinctValuesExpanded && list.length > 10) {
+      let preview = list.slice(0, 10);
+      if (selectedDistinctValue && !preview.includes(selectedDistinctValue)) {
+        preview = [selectedDistinctValue, ...preview.slice(0, 9)];
+      }
+      return preview;
+    }
+    return list;
+  }, [activeParam, searchTerm, isDistinctValuesExpanded, selectedDistinctValue]);
+
+  const displayedMaps = useMemo(() => {
+    if (isMapsExpanded) return activeParamFilteredMaps;
+    return activeParamFilteredMaps.slice(0, 3);
+  }, [activeParamFilteredMaps, isMapsExpanded]);
+
+  const highlightText = (text: string, highlight: string) => {
+    if (!highlight.trim()) return text;
+    const regex = new RegExp(`(${highlight})`, 'gi');
+    const parts = text.split(regex);
+    return (
+      <span className="break-all">
+        {parts.map((part, i) => 
+          regex.test(part) ? <span key={i} className="bg-yellow-200 dark:bg-yellow-900/60 text-gray-900 dark:text-white rounded-sm px-[1px]">{part}</span> : part
+        )}
+      </span>
+    );
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -168,10 +218,12 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
                       {param.occurrences}x
                     </span>
                   </div>
-                  <div className="flex items-center gap-4 text-[11px] font-ui text-gray-500 dark:text-slate-400">
+                  <div className="flex items-center gap-4 text-[11px] font-ui text-gray-500 dark:text-slate-400 flex-wrap">
                     <span className="tabular-nums">{param.screensCount} telas</span>
                     <span>•</span>
                     <span className="tabular-nums">{param.mapsCount} mapas</span>
+                    <span>•</span>
+                    <span className="tabular-nums">{param.distinctValuesList.length} {param.distinctValuesList.length === 1 ? 'valor distinto' : 'valores distintos'}</span>
                   </div>
                 </div>
               );
@@ -215,24 +267,36 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
                 <h4 className="text-xs font-ui font-semibold uppercase text-gray-500 dark:text-slate-400 tracking-wider mb-2">
                   Valores Distintos Identificados ({activeParam.distinctValuesList.length})
                 </h4>
-                <div className="flex flex-wrap gap-1.5 p-3 bg-gray-50/80 dark:bg-slate-800/60 rounded-2xl border border-gray-200 dark:border-slate-700">
-                  {activeParam.distinctValuesList.map((val, idx) => {
+                <div className={`flex flex-wrap gap-1.5 p-3 bg-gray-50/80 dark:bg-slate-800/60 rounded-2xl border border-gray-200 dark:border-slate-700 ${isDistinctValuesExpanded ? 'max-h-[320px] overflow-y-auto custom-scrollbar' : ''}`}>
+                  {displayedDistinctValues.map((val, idx) => {
                     const isSelected = selectedDistinctValue === val;
                     return (
                       <button 
                         key={idx}
                         onClick={() => handleSelectDistinctValue(val)}
-                        className={`px-3 py-1.5 border rounded-lg text-xs font-mono transition-all outline-none focus:ring-2 focus:ring-bradesco-red/20 ${
+                        className={`px-3 py-1.5 border rounded-lg text-xs font-mono transition-all outline-none focus:ring-2 focus:ring-bradesco-red/20 text-left ${
                           isSelected 
                             ? 'bg-bradesco-red text-white border-bradesco-red shadow-md' 
                             : 'bg-white dark:bg-slate-700 border-gray-200 dark:border-slate-600 text-gray-800 dark:text-slate-200 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-600 cursor-pointer'
                         }`}
                       >
-                        {val}
+                        {highlightText(val, searchTerm)}
                       </button>
                     );
                   })}
                 </div>
+                
+                {activeParam.distinctValuesList.length > 10 && (
+                  <div className="flex justify-end mt-2">
+                    <button
+                      onClick={() => setIsDistinctValuesExpanded(!isDistinctValuesExpanded)}
+                      className="flex items-center gap-1 text-[11px] font-ui text-gray-500 hover:text-bradesco-red transition-colors px-2 py-1 rounded cursor-pointer"
+                    >
+                      {isDistinctValuesExpanded ? 'Recolher valores' : `Ver todos os valores (${activeParam.distinctValuesList.length})`}
+                      <ChevronDown className={`w-3 h-3 transition-transform ${isDistinctValuesExpanded ? 'rotate-180' : ''}`} />
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Associated Maps */}
@@ -255,27 +319,41 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
                     Nenhum mapa encontrado com este valor.
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {activeParamFilteredMaps.map(mapItem => (
-                      <div 
-                        key={mapItem.id}
-                        onClick={() => onOpenMap(mapItem)}
-                        className={`p-3 bg-gray-50/80 dark:bg-slate-800 hover:bg-red-50/50 dark:hover:bg-slate-750 rounded-xl border flex items-center justify-between cursor-pointer transition-colors group ${
-                          selectedDistinctValue ? 'border-l-4 border-l-bradesco-red border-y-gray-200 border-r-gray-200 dark:border-y-slate-700 dark:border-r-slate-700' : 'border-gray-200 dark:border-slate-700'
-                        }`}
-                      >
-                        <div className="overflow-hidden pr-2">
-                          <p className="text-xs font-bold text-gray-900 dark:text-slate-100 group-hover:text-bradesco-red transition-colors truncate">
-                            {mapItem.titulo}
-                          </p>
-                          <span className="text-[10px] text-gray-400">
-                            {mapItem.produto} • {mapItem.subproduto || 'Geral'}
-                          </span>
+                  <>
+                    <div className={`space-y-2 ${isMapsExpanded ? 'max-h-[60vh] overflow-y-auto custom-scrollbar' : ''}`}>
+                      {displayedMaps.map(mapItem => (
+                        <div 
+                          key={mapItem.id}
+                          onClick={() => onOpenMap(mapItem)}
+                          className={`p-3 bg-gray-50/80 dark:bg-slate-800 hover:bg-red-50/50 dark:hover:bg-slate-750 rounded-xl border flex items-center justify-between cursor-pointer transition-colors group ${
+                            selectedDistinctValue ? 'border-l-4 border-l-bradesco-red border-y-gray-200 border-r-gray-200 dark:border-y-slate-700 dark:border-r-slate-700' : 'border-gray-200 dark:border-slate-700'
+                          }`}
+                        >
+                          <div className="overflow-hidden pr-2">
+                            <p className="text-xs font-bold text-gray-900 dark:text-slate-100 group-hover:text-bradesco-red transition-colors truncate">
+                              {mapItem.titulo}
+                            </p>
+                            <span className="text-[10px] text-gray-400">
+                              {mapItem.produto} • {mapItem.subproduto || 'Geral'}
+                            </span>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-bradesco-red shrink-0" />
                         </div>
-                        <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-bradesco-red shrink-0" />
+                      ))}
+                    </div>
+                    
+                    {activeParamFilteredMaps.length > 3 && (
+                      <div className="flex justify-end mt-2">
+                        <button
+                          onClick={() => setIsMapsExpanded(!isMapsExpanded)}
+                          className="flex items-center gap-1 text-[11px] font-ui text-gray-500 hover:text-bradesco-red transition-colors px-2 py-1 rounded cursor-pointer"
+                        >
+                          {isMapsExpanded ? 'Recolher mapas' : `Ver todos os mapas (${activeParamFilteredMaps.length})`}
+                          <ChevronDown className={`w-3 h-3 transition-transform ${isMapsExpanded ? 'rotate-180' : ''}`} />
+                        </button>
                       </div>
-                    ))}
-                  </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
