@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Tag, Search, Filter, Code2, Layers, ChevronRight, 
   Sparkles, Database, FileText, Check
@@ -17,7 +17,7 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedParamKey, setSelectedParamKey] = useState<string | null>(null);
-  const [filterType, setFilterType] = useState<string>('all');
+  const [selectedDistinctValue, setSelectedDistinctValue] = useState<string | null>(null);
 
   // Consolidated parameter dictionary
   const parametersCatalog = useMemo(() => {
@@ -50,14 +50,14 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
             products: new Set()
           });
         }
-
+        
         const entry = map.get(param.name)!;
         entry.occurrences += param.occurrences;
         entry.screensCount += param.screens_count;
         entry.mapsCount += 1;
         entry.associatedMaps.push(art);
         if (prodName) entry.products.add(prodName);
-
+        
         (param.distinct_values || []).forEach(v => entry.distinctValues.add(v));
         
         Object.entries(param.value_types || {}).forEach(([vType, count]) => {
@@ -67,99 +67,82 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
     });
 
     return Array.from(map.values()).map(p => {
-      // Determine predominant value type
-      const predominantType = Object.entries(p.valueTypes)
-        .sort((a, b) => b[1] - a[1])[0]?.[0] || 'STRING';
+      // Deduplicate associated maps
+      const uniqueMaps = Array.from(new Map(p.associatedMaps.map(m => [m.id, m])).values());
 
       return {
         ...p,
         distinctValuesList: Array.from(p.distinctValues),
         productsList: Array.from(p.products),
-        predominantType
+        associatedMaps: uniqueMaps
       };
     }).sort((a, b) => b.occurrences - a.occurrences);
   }, [artifacts]);
 
   const filteredCatalog = useMemo(() => {
     let result = parametersCatalog;
-
-    if (filterType !== 'all') {
-      result = result.filter(p => p.predominantType === filterType);
-    }
-
+    
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       result = result.filter(p => 
         p.name.toLowerCase().includes(term) ||
-        p.distinctValuesList.some(v => v.toLowerCase().includes(term)) ||
-        p.productsList.some(pr => pr.toLowerCase().includes(term))
+        p.distinctValuesList.some(v => v.toLowerCase().includes(term))
       );
     }
-
     return result;
-  }, [parametersCatalog, searchTerm, filterType]);
+  }, [parametersCatalog, searchTerm]);
 
   const activeParam = selectedParamKey 
     ? parametersCatalog.find(p => p.name === selectedParamKey) 
     : filteredCatalog[0] || null;
 
-  const getValueBadge = (type: string) => {
-    switch (type) {
-      case 'PLACEHOLDER':
-        return 'bg-amber-50/60 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200/80 dark:border-amber-800/80';
-      case 'HARDCODED':
-        return 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
-      case 'JAVASCRIPT_REFERENCE':
-        return 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700';
-      default:
-        return 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700';
-    }
+  // Clear distinct value when param changes
+  useEffect(() => {
+    setSelectedDistinctValue(null);
+  }, [activeParam?.name]);
+
+  const handleSelectDistinctValue = (val: string) => {
+    setSelectedDistinctValue(prev => prev === val ? null : val);
   };
+
+  const activeParamFilteredMaps = useMemo(() => {
+    if (!activeParam) return [];
+    if (!selectedDistinctValue) return activeParam.associatedMaps;
+    
+    return activeParam.associatedMaps.filter(mapItem => {
+      const paramSummaries = mapItem.parameter_summary || [];
+      return paramSummaries.some(ps => 
+        ps.name === activeParam.name && 
+        (ps.distinct_values || []).includes(selectedDistinctValue)
+      );
+    });
+  }, [activeParam, selectedDistinctValue]);
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageHeader
-        title="Catálogo e Dicionário de Parâmetros"
-        subtitle={`Total de ${parametersCatalog.length} parâmetros mapeados em todos os snippets dataLayer catalogados.`}
-        actions={
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* Quick filter by predominant value type */}
-            <div className="flex bg-gray-100 dark:bg-slate-800/80 p-1 rounded-xl border border-gray-200 dark:border-slate-700 text-xs font-ui font-semibold">
-              {['all', 'PLACEHOLDER', 'HARDCODED', 'JAVASCRIPT_REFERENCE'].map(t => (
-                <button
-                  key={t}
-                  onClick={() => setFilterType(t)}
-                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                    filterType === t 
-                      ? 'bg-white dark:bg-slate-900 text-bradesco-red shadow-neu-raised font-bold border border-gray-200 dark:border-slate-700' 
-                      : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200'
-                  }`}
-                >
-                  {t === 'all' ? 'Todos' : t === 'PLACEHOLDER' ? 'Placeholder' : t === 'HARDCODED' ? 'Hardcoded' : 'JS Ref'}
-                </button>
-              ))}
-            </div>
+      <PageHeader 
+        title="Análise por Parâmetro"
+        subtitle="Frequência, mapeamento de tipos e valores distintos utilizados no disparo de eventos."
+      />
 
-            <div className="w-full sm:w-64 relative">
-              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input 
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left side: Parameter List */}
+        <div className="lg:col-span-5 flex flex-col gap-3">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
                 type="text"
                 placeholder="Buscar parâmetro ou valor..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="neu-input w-full pl-9 pr-4 py-2 rounded-xl text-xs font-ui font-medium text-gray-800 dark:text-slate-200 outline-none"
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-bradesco-red/20 outline-none transition-all dark:text-slate-200 placeholder:text-gray-400"
               />
             </div>
           </div>
-        }
-      />
 
-      {/* Main Grid: Parameters list + Detail Inspector */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left side: Parameter list */}
-        <div className="lg:col-span-6 space-y-2.5 max-h-[750px] overflow-y-auto custom-scrollbar pr-2">
           {filteredCatalog.length === 0 ? (
-            <div className="p-12 text-center text-gray-400 flat-card rounded-2xl border border-gray-200 dark:border-slate-800 font-ui text-sm">
+            <div className="p-8 text-center text-gray-400 flat-card rounded-2xl border border-gray-200 dark:border-slate-800 font-ui text-sm">
               Nenhum parâmetro encontrado com os filtros atuais.
             </div>
           ) : (
@@ -171,7 +154,7 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
                   onClick={() => setSelectedParamKey(param.name)}
                   className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                     isSelected 
-                      ? 'bg-white dark:bg-slate-800/90 border-bradesco-red shadow-neu-raised ring-1 ring-bradesco-red/20 -translate-x-0.5' 
+                      ? 'bg-red-50/50 dark:bg-slate-800/80 border-bradesco-red shadow-neu-raised ring-1 ring-inset ring-bradesco-red' 
                       : 'flat-card border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 shadow-neu-card'
                   }`}
                 >
@@ -180,22 +163,15 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
                       <span className="font-mono text-xs font-semibold text-gray-900 dark:text-slate-100">
                         {param.name}
                       </span>
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-ui font-medium border ${getValueBadge(param.predominantType)}`}>
-                        {param.predominantType}
-                      </span>
                     </div>
-
                     <span className="text-[11px] font-ui font-medium text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-gray-200 dark:border-slate-700 tabular-nums">
                       {param.occurrences}x
                     </span>
                   </div>
-
                   <div className="flex items-center gap-4 text-[11px] font-ui text-gray-500 dark:text-slate-400">
                     <span className="tabular-nums">{param.screensCount} telas</span>
                     <span>•</span>
                     <span className="tabular-nums">{param.mapsCount} mapas</span>
-                    <span>•</span>
-                    <span className="tabular-nums">{param.productsList.length} produtos</span>
                   </div>
                 </div>
               );
@@ -204,9 +180,9 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
         </div>
 
         {/* Right side: Parameter Details */}
-        <div className="lg:col-span-6">
+        <div className="lg:col-span-7">
           {activeParam ? (
-            <div className="flat-card rounded-2xl border border-gray-200 dark:border-slate-800 p-6 md:p-8 space-y-6 sticky top-6 shadow-neu-card">
+            <div className="flat-card rounded-2xl border border-gray-200 dark:border-slate-800 p-6 md:p-8 space-y-6 shadow-neu-card">
               <div className="pb-6 border-b border-gray-100 dark:border-slate-800">
                 <span className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
                   Detalhes do Parâmetro
@@ -215,9 +191,6 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
                   <h3 className="text-2xl font-mono font-bold text-gray-900 dark:text-slate-50 tracking-tight">
                     {activeParam.name}
                   </h3>
-                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-ui font-medium border ${getValueBadge(activeParam.predominantType)}`}>
-                    Predominante: {activeParam.predominantType}
-                  </span>
                 </div>
               </div>
 
@@ -242,59 +215,68 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
                 <h4 className="text-xs font-ui font-semibold uppercase text-gray-500 dark:text-slate-400 tracking-wider mb-2">
                   Valores Distintos Identificados ({activeParam.distinctValuesList.length})
                 </h4>
-                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto custom-scrollbar p-2 bg-gray-50/80 dark:bg-slate-800/60 rounded-2xl border border-gray-200 dark:border-slate-700">
-                  {activeParam.distinctValuesList.map((val, idx) => (
-                    <span 
-                      key={idx}
-                      className="px-2.5 py-1 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-xs font-mono text-gray-800 dark:text-slate-200"
-                    >
-                      {val}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Products utilizing this parameter */}
-              <div>
-                <h4 className="text-xs font-ui font-semibold uppercase text-gray-500 dark:text-slate-400 tracking-wider mb-2">
-                  Produtos e Jornadas que Utilizam ({activeParam.productsList.length})
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {activeParam.productsList.map(prod => (
-                    <span 
-                      key={prod}
-                      className="px-3 py-1 bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-ui font-medium text-gray-700 dark:text-slate-300"
-                    >
-                      {prod}
-                    </span>
-                  ))}
+                <div className="flex flex-wrap gap-1.5 p-3 bg-gray-50/80 dark:bg-slate-800/60 rounded-2xl border border-gray-200 dark:border-slate-700">
+                  {activeParam.distinctValuesList.map((val, idx) => {
+                    const isSelected = selectedDistinctValue === val;
+                    return (
+                      <button 
+                        key={idx}
+                        onClick={() => handleSelectDistinctValue(val)}
+                        className={`px-3 py-1.5 border rounded-lg text-xs font-mono transition-all outline-none focus:ring-2 focus:ring-bradesco-red/20 ${
+                          isSelected 
+                            ? 'bg-bradesco-red text-white border-bradesco-red shadow-md' 
+                            : 'bg-white dark:bg-slate-700 border-gray-200 dark:border-slate-600 text-gray-800 dark:text-slate-200 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-600 cursor-pointer'
+                        }`}
+                      >
+                        {val}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               {/* Associated Maps */}
               <div>
-                <h4 className="text-xs font-ui font-semibold uppercase text-gray-500 dark:text-slate-400 tracking-wider mb-2">
-                  Mapas onde o Parâmetro Está Presente
-                </h4>
-                <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
-                  {activeParam.associatedMaps.map(mapItem => (
-                    <div 
-                      key={mapItem.id}
-                      onClick={() => onOpenMap(mapItem)}
-                      className="p-3 bg-gray-50/80 dark:bg-slate-800 hover:bg-red-50/50 dark:hover:bg-slate-750 rounded-xl border border-gray-200 dark:border-slate-700 flex items-center justify-between cursor-pointer transition-colors group"
-                    >
-                      <div className="overflow-hidden pr-2">
-                        <p className="text-xs font-bold text-gray-900 dark:text-slate-100 group-hover:text-bradesco-red transition-colors truncate">
-                          {mapItem.titulo}
-                        </p>
-                        <span className="text-[10px] text-gray-400">
-                          {mapItem.produto} • {mapItem.subproduto || 'Geral'}
-                        </span>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-bradesco-red shrink-0" />
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-xs font-ui font-semibold uppercase text-gray-500 dark:text-slate-400 tracking-wider">
+                    {selectedDistinctValue 
+                      ? 'Mapas com o valor selecionado' 
+                      : 'Mapas onde o parâmetro está presente'}
+                  </h4>
+                  {selectedDistinctValue && (
+                    <span className="text-[10px] font-medium bg-red-100 text-bradesco-red dark:bg-red-900/30 px-2 py-0.5 rounded-full border border-red-200 dark:border-red-900/50">
+                      {activeParamFilteredMaps.length} encontrados
+                    </span>
+                  )}
                 </div>
+                
+                {activeParamFilteredMaps.length === 0 ? (
+                  <div className="p-6 text-center bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-gray-200 dark:border-slate-700 text-sm text-gray-500 dark:text-slate-400">
+                    Nenhum mapa encontrado com este valor.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {activeParamFilteredMaps.map(mapItem => (
+                      <div 
+                        key={mapItem.id}
+                        onClick={() => onOpenMap(mapItem)}
+                        className={`p-3 bg-gray-50/80 dark:bg-slate-800 hover:bg-red-50/50 dark:hover:bg-slate-750 rounded-xl border flex items-center justify-between cursor-pointer transition-colors group ${
+                          selectedDistinctValue ? 'border-l-4 border-l-bradesco-red border-y-gray-200 border-r-gray-200 dark:border-y-slate-700 dark:border-r-slate-700' : 'border-gray-200 dark:border-slate-700'
+                        }`}
+                      >
+                        <div className="overflow-hidden pr-2">
+                          <p className="text-xs font-bold text-gray-900 dark:text-slate-100 group-hover:text-bradesco-red transition-colors truncate">
+                            {mapItem.titulo}
+                          </p>
+                          <span className="text-[10px] text-gray-400">
+                            {mapItem.produto} • {mapItem.subproduto || 'Geral'}
+                          </span>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-bradesco-red shrink-0" />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           ) : (

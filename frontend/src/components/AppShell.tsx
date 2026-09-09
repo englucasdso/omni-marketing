@@ -61,7 +61,7 @@ export const AppShell: React.FC<AppShellProps> = ({
         </div>
 
         {/* Inner Content Wrapper - Wide desktop container without horizontal scroll */}
-        <main className="flex-1 flex flex-col w-full max-w-7xl mx-auto px-4 sm:px-8 py-6">
+        <main className="flex-1 flex flex-col w-full max-w-none px-4 sm:px-6 md:px-8 py-6">
           {children}
         </main>
 
