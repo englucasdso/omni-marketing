@@ -11,7 +11,7 @@
  * devem morar no Backend. O frontend repassa ordens (api.ts) e obedece
  * os dados JSON que voltam da porta 3000.
  */
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useNavigate, useLocation, Routes, Route } from "react-router-dom";
 import { X, AlertTriangle, Target, Network, Filter, CheckCircle2, AlertCircle, Clock, User, Info, Shield, LogOut, Trash2, Plus, Settings, Landmark, LayoutList, RefreshCw, Check, Loader2, KeyRound, Activity, ArrowRight, Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ExternalLink, Download, Sparkles, FileText, Layers, Tag, Code2, Eye, ArrowUpDown, Calendar, RotateCcw } from "lucide-react";
@@ -54,124 +54,31 @@ const INITIAL_USERS: UserType[] = [
 
 const GraphView = ({ data, isEmbedded = false, onClose, onOpenMap }: { data: Artifact[], isEmbedded?: boolean, onClose?: () => void, onOpenMap?: (item: Artifact) => void }) => {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const selectedItem = data.find(i => i.id === selectedItemId);
+
+  const handleSelectItem = useCallback((id: string | null) => {
+    setSelectedItemId(id);
+
+    if (!id) return;
+
+    const item = data.find(artifact => String(artifact.id) === String(id));
+
+    if (
+      item &&
+      (
+        item.artifact_type === 'MAPA' ||
+        item.artifact_type === 'DOCUMENTACAO'
+      )
+    ) {
+      onOpenMap?.(item);
+    }
+  }, [data, onOpenMap]);
 
   const content = (
-    <>
-      <div className="flex-1 rounded-[40px] overflow-hidden border border-gray-100 dark:border-slate-700/50 shadow-sm relative w-full h-[calc(100vh-250px)] min-h-[600px] flex">
-        <ConexoesCanvas data={data} selectedItemId={selectedItemId} onSelectItem={setSelectedItemId} />
-      </div>
-
-      {/* Details side panel remains same or slightly adjusted */}
-      <AnimatePresence>
-        {selectedItemId && selectedItem && (
-          <motion.div 
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 100 }}
-            className={`fixed top-0 right-0 h-full w-[500px] bg-white dark:bg-slate-900 dark:border-slate-800 border-l border-gray-100 dark:border-slate-700 shadow-2xl dark:shadow-none p-10 flex flex-col custom-scrollbar overflow-auto transition-all ${isEmbedded ? 'z-[90]' : 'z-[70]'}`}
-          >
-            <div className="flex justify-between items-center mb-10">
-              <div className="px-5 py-2 bg-red-50 text-bradesco-red rounded-full text-[10px] font-black uppercase tracking-widest border border-red-100">
-                Detalhamento do Mapa
-              </div>
-              <button onClick={() => setSelectedItemId(null)} className="p-3 hover:bg-gray-100 dark:bg-slate-700 rounded-full transition-colors">
-                <X className="w-6 h-6 text-gray-400 dark:text-slate-500" />
-              </button>
-            </div>
-
-            <h3 className="text-3xl font-black text-gray-900 dark:text-slate-50 leading-tight mb-8 tracking-tight">
-              {selectedItem.titulo}
-            </h3>
-
-            <div className="space-y-8">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-6 bg-gray-50 dark:bg-slate-800 rounded-[32px] border border-gray-100 dark:border-slate-700">
-                  <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-1">ID do Mapa</p>
-                  <p className="text-sm font-bold text-gray-800 dark:text-slate-200">{selectedItem.id}</p>
-                </div>
-                <div className="p-6 bg-gray-50 dark:bg-slate-800 rounded-[32px] border border-gray-100 dark:border-slate-700">
-                  <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-1">Nível de Taxonomia</p>
-                  <p className="text-sm font-bold text-gray-800 dark:text-slate-200">{selectedItem.taxonomy_depth || selectedItem.nivel || "1"}</p>
-                </div>
-              </div>
-
-              <div className="p-8 glass-card rounded-[40px] border border-gray-100 dark:border-slate-700">
-                 <div className="flex items-center gap-4 mb-8">
-                    <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600">
-                       <Landmark className="w-6 h-6" />
-                    </div>
-                    <div>
-                       <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">Produto / Subproduto</p>
-                       <p className="text-base font-bold text-gray-800 dark:text-slate-200">{selectedItem.produto} → {selectedItem.subproduto}</p>
-                    </div>
-                 </div>
-
-                 <div className="pt-8 border-t border-gray-100 dark:border-slate-700 grid grid-cols-2 gap-8">
-                    <div>
-                       <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-2">GTM ID</p>
-                       <p className="text-[13px] font-mono font-bold text-[#cc092f] bg-red-50 px-3 py-1.5 rounded-xl inline-block border border-red-100">{selectedItem.gtm_id || "-"}</p>
-                    </div>
-                    <div>
-                       <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-2">Responsável Técnica</p>
-                       <p className="text-[13px] font-bold text-gray-800 dark:text-slate-200">{selectedItem.responsavel || "N/A"}</p>
-                    </div>
-                    
-                    <div className="col-span-2 pt-6 border-t border-gray-50 dark:border-slate-800 grid grid-cols-2 gap-8">
-                      <div>
-                         <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-2">GA4 Stream ID</p>
-                         <p className="text-[13px] font-mono font-bold text-gray-800 dark:text-slate-200">{selectedItem.propriedade_ga4_stream_id || "-"}</p>
-                      </div>
-                      <div>
-                         <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-2">Firebase</p>
-                         <p className="text-[13px] font-mono font-bold text-gray-800 dark:text-slate-200">{selectedItem.firebase || "-"}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="col-span-2 pt-6 border-t border-gray-50 dark:border-slate-800 flex flex-col gap-4">
-                      <div>
-                         <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-2">Nº Task</p>
-                         <p className="text-[13px] font-bold text-gray-800 dark:text-slate-200">{selectedItem.numero_da_task || "-"}</p>
-                      </div>
-                      {selectedItem.figma_xd && selectedItem.figma_xd !== "-" && (
-                        <div>
-                           <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-2">Figma / UI</p>
-                           <a href={selectedItem.figma_xd} target="_blank" rel="noreferrer" className="text-[13px] font-black text-purple-600 hover:text-purple-800 hover:underline">
-                             Abrir Protótipo Visual
-                           </a>
-                        </div>
-                      )}
-                    </div>
-                 </div>
-              </div>
-
-              <button 
-                type="button"
-                onClick={() => onOpenMap?.(selectedItem)}
-                className="w-full py-4 px-4 rounded-[28px] border border-gray-200 dark:border-slate-700 text-xs font-ui font-bold text-gray-800 dark:text-slate-100 hover:text-bradesco-red hover:border-bradesco-red/40 bg-white dark:bg-slate-800 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
-              >
-                <FileText className="w-4 h-4 text-bradesco-red" />
-                Ver detalhes completos do mapa
-              </button>
-
-              {selectedItem.link && (
-                <button 
-                  onClick={() => window.open(selectedItem.link, '_blank')}
-                  className="w-full py-6 bg-bradesco-gradient text-white rounded-[32px] font-black text-xs uppercase tracking-widest shadow-xl dark:shadow-none shadow-red-200 hover:opacity-95 transition-all flex items-center justify-center gap-2"
-                >
-                  Abrir Documentação GA <ExternalLink className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-            
-            <div className="mt-auto pt-10 text-center">
-              <p className="text-[10px] font-black text-gray-200 uppercase tracking-[0.3em]">Hub de Artefatos</p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+    <div className="flex-1 rounded-[40px] overflow-hidden border border-gray-100 dark:border-slate-700/50 shadow-sm relative w-full h-[calc(100vh-250px)] min-h-[600px] flex">
+      <ConexoesCanvas data={data} selectedItemId={selectedItemId} onSelectItem={handleSelectItem} />
+    </div>
   );
+
   if (isEmbedded) {
     return <div className="flex flex-col h-[800px] min-h-[800px]">{content}</div>;
   }
@@ -653,7 +560,7 @@ export default function App() {
   // Estados e controle exclusivos da tela de Cards
   const [cardSearch, setCardSearch] = useState("");
   const [cardSort, setCardSort] = useState<"recentes" | "antigos" | "az" | "za">("recentes");
-  const [cardArtifactType, setCardArtifactType] = useState<"todos" | "mapas" | "docs">("todos");
+  const [cardArtifactType, setCardArtifactType] = useState<"todos" | "mapas" | "docs" | "nos">("todos");
   const [cardResponsible, setCardResponsible] = useState<string>("todos");
   const [cardYear, setCardYear] = useState<string>("todas");
   const [cardPage, setCardPage] = useState<number>(1);
@@ -706,11 +613,13 @@ export default function App() {
 
     
 
-    // 2. Filtro de Artefato (Todos, Mapas, Documentações)
+    // 2. Filtro de Artefato (Todos, Mapas, Documentações, Nós)
     if (cardArtifactType === "mapas") {
       list = list.filter(i => i.artifact_type === 'MAPA');
     } else if (cardArtifactType === "docs") {
       list = list.filter(i => i.artifact_type === 'DOCUMENTACAO');
+    } else if (cardArtifactType === "nos") {
+      list = list.filter(i => i.artifact_type === 'NO');
     }
 
     // 3. Filtro de Responsável
@@ -2085,6 +1994,7 @@ export default function App() {
                     <option value="todos">Todos</option>
                     <option value="mapas">Mapas</option>
                     <option value="docs">Documentações</option>
+                    <option value="nos">Nós</option>
                   </select>
                 </FilterField>
 
@@ -2622,7 +2532,9 @@ export default function App() {
                                     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold tracking-tight ${
                                       isDoc 
                                         ? 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' 
-                                        : 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300'
+                                        : item.artifact_type === 'NO'
+                                          ? 'bg-gray-100 text-gray-500 dark:bg-slate-800 dark:text-slate-400'
+                                          : 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300'
                                     }`}>
                                       {artifactLabel}
                                     </span>

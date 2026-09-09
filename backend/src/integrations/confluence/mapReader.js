@@ -650,7 +650,10 @@ export class MapReader {
         signals: {
           has_gtm_ids: false,
           has_tracking_screens: false,
-          has_documentation_signals: false
+          has_tracking_snippets: false,
+          has_content: false,
+          has_documentation_signals: false,
+          is_empty_page: true
         },
         signature_hash: 'empty'
       };
@@ -709,10 +712,24 @@ export class MapReader {
     }
 
     // 6. Sinais
+    const has_tracking_snippets = telas.some(screen =>
+      Array.isArray(screen.snippets) &&
+      screen.snippets.some(snippet =>
+        Boolean(String(snippet.raw_code || '').trim())
+      )
+    );
+
+    const has_content = this.verificarConteudoUtil(html);
+    const has_documentation_signals = has_content && !has_tracking_snippets;
+    const is_empty_page = !has_content && !has_tracking_snippets;
+
     const signals = {
       has_gtm_ids: gtm_ids.length > 0,
       has_tracking_screens: telas.length > 0,
-      has_documentation_signals: telas.length === 0 && !gtm_ids.length && html.length > 500
+      has_tracking_snippets,
+      has_content,
+      has_documentation_signals,
+      is_empty_page
     };
 
     // 7. Assinatura estrutural determinística (hash)
@@ -725,6 +742,7 @@ export class MapReader {
       gtm_ids.length > 0 ? 'GTM' : 'NO_GTM'
     ].join('##');
 
+    const crypto = require('crypto');
     const signature_hash = crypto.createHash('sha256').update(sigSeed).digest('hex').slice(0, 16);
 
     return {
@@ -743,16 +761,31 @@ export class MapReader {
    */
   verificarConteudoUtil(html) {
     if (!html) return false;
-    
+
+    // Isola área principal, se disponível
+    let targetHtml = html;
+    const mainContentMatch = html.match(/<div[^>]*id=["']main-content["'][^>]*>([\s\S]*?)<\/div>/i);
+    if (mainContentMatch) {
+      targetHtml = mainContentMatch[1];
+    } else {
+      const wikiContentMatch = html.match(/<div[^>]*class=["'][^"']*wiki-content[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
+      if (wikiContentMatch) {
+        targetHtml = wikiContentMatch[1];
+      }
+    }
+
     // Remove comentários e seções padrões do Confluence
-    let clean = html
+    let clean = targetHtml
       .replace(/<div[^>]*class=["'][^"']*comments-section[^"']*["'][^>]*>[\s\S]*?<\/div>/gi, '')
       .replace(/<div[^>]*id=["']comments["'][^>]*>[\s\S]*?<\/div>/gi, '')
-      .replace(/Escreva um comentário/gi, '')
-      .replace(/Write a comment/gi, '')
+      .replace(/<div[^>]*class=["'][^"']*page-metadata[^"']*["'][^>]*>[\s\S]*?<\/div>/gi, '')
       .replace(/<script[\s\S]*?<\/script>/gi, '')
       .replace(/<style[\s\S]*?<\/style>/gi, '')
-      .replace(/<!--[\s\S]*?-->/g, '');
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/Escreva um comentário/gi, '')
+      .replace(/Write a comment/gi, '')
+      .replace(/Seja o primeiro a curtir isto/gi, '')
+      .replace(/Sem rótulos/gi, '');
 
     // Limpa tags HTML deixando só texto
     clean = clean.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();

@@ -289,7 +289,7 @@ export class ConfluenceOrchestrator {
       console.log(`Erros HTTP: ${this.transport.metrics.totalErrors}`);
       console.log('------------------------');
 
-      return allRows;
+      return finalRows;
     } finally {
       if (this.session) {
         await this.session.close();

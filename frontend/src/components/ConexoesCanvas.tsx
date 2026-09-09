@@ -79,12 +79,20 @@ const MapaNode = React.memo(({ data }: any) => {
     <>
       <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
       <div 
-        className={`p-4 flat-card rounded-2xl border transition-all cursor-pointer w-[320px] h-[82px] flex flex-col justify-center ${
+        role="button"
+        tabIndex={0}
+        className={`p-4 flat-card rounded-2xl border transition-all cursor-pointer w-[320px] h-[82px] flex flex-col justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-bradesco-red ${
           isSelected 
             ? 'bg-red-50 dark:bg-red-900/20 border-[#EF4444] shadow-md ring-1 ring-[#EF4444]'
             : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm hover:border-[#EF4444]'
         }`}
         onClick={data.onSelect}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            data.onSelect?.();
+          }
+        }}
       >
         <div className="flex items-center gap-2 mb-1">
           <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-red-100 text-[#EF4444] dark:bg-red-900/40 dark:text-red-400">
@@ -326,7 +334,7 @@ const ConexoesCanvasInner: React.FC<ConexoesCanvasInnerProps> = ({
           hasChildren,
           childrenCount: children.length,
           isExpanded,
-          isSelected: selectedItemId === item.id,
+          isSelected: false, // Updated by selection effect
           onToggle: () => handleToggle(item.id),
           onSelect: () => { if (onSelectItem) onSelectItem(item.id); if (onOpenMap) onOpenMap(item); }
         }
@@ -334,7 +342,7 @@ const ConexoesCanvasInner: React.FC<ConexoesCanvasInnerProps> = ({
 
       if (isExpanded && hasChildren) {
         children.forEach(child => {
-          const childIsSelected = selectedItemId === child.id;
+          const childIsSelected = false;
           e.push({
             id: `edge-${item.id}-${child.id}`,
             source: item.id,
@@ -355,7 +363,7 @@ const ConexoesCanvasInner: React.FC<ConexoesCanvasInnerProps> = ({
     roots.forEach(r => traverse(r, 0));
 
     return { newNodes: n, newEdges: e };
-  }, [roots, byParent, expandedNodes, selectedItemId, handleToggle, onOpenMap]);
+  }, [roots, byParent, expandedNodes, handleToggle, onOpenMap]);
 
   // 4. Apply Layout & Update React Flow State
   useEffect(() => {
@@ -377,6 +385,27 @@ const ConexoesCanvasInner: React.FC<ConexoesCanvasInnerProps> = ({
       // But preserving clicked node position is already handled by getDagreLayout dx/dy shift.
     }
   }, [newNodes, newEdges, reactFlowInstance, isFirstRender]);
+
+
+  // Update selection without triggering layout recalculation
+  useEffect(() => {
+    setNodes(nds => nds.map(n => ({
+      ...n,
+      data: { ...n.data, isSelected: n.id === selectedItemId }
+    })));
+    setEdges(eds => eds.map(e => {
+      const childIsSelected = selectedItemId === e.target;
+      return {
+        ...e,
+        style: {
+          ...e.style,
+          stroke: childIsSelected ? '#EF4444' : '#cbd5e1',
+          strokeWidth: childIsSelected ? 3 : 2,
+          zIndex: childIsSelected ? 10 : 0
+        }
+      };
+    }));
+  }, [selectedItemId, setNodes, setEdges]);
 
   return (
     <div className="w-full h-full relative flex-1" style={{ width: '100%', height: '100%', minHeight: '600px' }}>
