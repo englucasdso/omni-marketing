@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { Artifact } from '../types';
 import { PageHeader } from './PageHeader';
+import { SearchFilterToolbar } from './SearchFilterToolbar';
 import { normalizarStatus, OfficialStatus, STATUS_CONFIGS } from '../utils/statusUtils';
 
 interface ProductAnalysisViewProps {
@@ -212,18 +213,12 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
       <PageHeader
         title="Análise por Produto e Subproduto"
         subtitle="Visão consolidada da esteira analítica dividida por canais, jornadas e serviços."
-        actions={
-          <div className="w-full sm:w-72 relative">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input 
-              type="text"
-              placeholder="Filtrar por produto ou subproduto..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="neu-input w-full pl-9 pr-4 py-2 rounded-xl text-xs font-ui font-medium text-gray-800 dark:text-slate-200 outline-none"
-            />
-          </div>
-        }
+      />
+
+      <SearchFilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={(val) => setSearchTerm(val)}
+        searchPlaceholder="Filtrar por produto ou subproduto..."
       />
 
       {/* Main Grid: Left List + Right Product Deep Dive */}

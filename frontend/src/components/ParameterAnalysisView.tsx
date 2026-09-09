@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { Artifact, ParameterSummaryItem } from '../types';
 import { PageHeader } from './PageHeader';
+import { SearchFilterToolbar } from './SearchFilterToolbar';
 
 interface ParameterAnalysisViewProps {
   artifacts: Artifact[];
@@ -175,21 +176,15 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
         subtitle="Frequência, mapeamento de tipos e valores distintos utilizados no disparo de eventos."
       />
 
+      <SearchFilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={(val) => setSearchTerm(val)}
+        searchPlaceholder="Buscar parâmetro ou valor..."
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left side: Parameter List */}
         <div className="lg:col-span-5 flex flex-col gap-3">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Buscar parâmetro ou valor..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-bradesco-red/20 outline-none transition-all dark:text-slate-200 placeholder:text-gray-400"
-              />
-            </div>
-          </div>
 
           {filteredCatalog.length === 0 ? (
             <div className="p-8 text-center text-gray-400 flat-card rounded-2xl border border-gray-200 dark:border-slate-800 font-ui text-sm">

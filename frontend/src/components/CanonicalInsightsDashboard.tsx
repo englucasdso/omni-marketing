@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Artifact } from '../types';
 import { PageHeader } from './PageHeader';
+import { SearchFilterToolbar } from './SearchFilterToolbar';
 import { normalizarStatus, OfficialStatus } from '../utils/statusUtils';
 
 interface CanonicalInsightsDashboardProps {
@@ -161,20 +162,16 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
 
   return (
     <div className="space-y-6 animate-fade-in w-full min-w-0 max-w-full overflow-x-hidden">
-      <header className="flex flex-col xl:grid xl:grid-cols-[minmax(0,1fr)_auto] items-start xl:items-center gap-6 pt-6 pb-6 mb-6 border-b border-gray-200/80 dark:border-slate-800/80 w-full transition-all">
-        <div className="min-w-0 w-full">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-heading font-bold tracking-tight text-gray-900 dark:text-slate-50">
-              Indicadores e Governança Analítica
-            </h1>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 font-ui leading-relaxed">
-            Métricas canônicas da esteira de tagueamento, telas mapeadas e conformidade técnica.
-          </p>
-        </div>
-        <div className="flex items-center gap-2.5 shrink-0 flex-wrap min-w-0 w-full xl:w-auto">
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-neu-raised min-w-0 max-w-full w-full sm:w-auto xl:max-w-[260px]">
+      <PageHeader
+        title="Indicadores e Governança Analítica"
+        subtitle="Métricas canônicas da esteira de tagueamento, telas mapeadas e conformidade técnica."
+      />
+
+      <SearchFilterToolbar
+        insightsMode={true}
+        filters={
+          <>
+            <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-neu-raised min-w-0 max-w-full w-full sm:w-auto md:max-w-[260px]">
               <Filter className="w-3.5 h-3.5 text-gray-400" />
               <select className="bg-transparent text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 outline-none cursor-pointer w-full min-w-0 max-w-full truncate"
                 value={selectedProductFilter}
@@ -187,7 +184,7 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
               </select>
             </div>
 
-            <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-neu-raised min-w-0 max-w-full w-full sm:w-auto xl:max-w-[260px]">
+            <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-neu-raised min-w-0 max-w-full w-full sm:w-auto md:max-w-[260px]">
               <select className="bg-transparent text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 outline-none cursor-pointer w-full min-w-0 max-w-full truncate"
                 value={selectedMeasurementFilter}
                 onChange={(e) => setSelectedMeasurementFilter(e.target.value)}
@@ -198,9 +195,9 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
                 <option value="HIBRIDO">APENAS HÍBRIDO</option>
               </select>
             </div>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {/* Top 4 Primary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
