@@ -704,8 +704,7 @@ export default function App() {
       });
     }
 
-    // Filtra RAIZ
-    list = list.filter(i => i.artifact_type !== 'RAIZ');
+    
 
     // 2. Filtro de Artefato (Todos, Mapas, Documentações)
     if (cardArtifactType === "mapas") {
@@ -1111,8 +1110,7 @@ export default function App() {
     }
 
     // Independent Multidimensional Filters
-    // Filtra RAIZ
-    base = base.filter(i => i.artifact_type !== 'RAIZ');
+    
 
     if (inventoryFilters.tipo_mapa && inventoryFilters.tipo_mapa.length > 0) {
       base = base.filter(i => {
@@ -1303,9 +1301,7 @@ export default function App() {
       tipoArtefato: [
         { v: 'all', l: 'Todos' },
         { v: 'MAPA', l: `Mapas (${typeCounts.get('MAPA') || 0})` },
-        { v: 'DOCUMENTACAO', l: `Documentações (${typeCounts.get('DOCUMENTACAO') || 0})` },
-        { v: 'NO', l: `Nós (${typeCounts.get('NO') || 0})` }
-      ],
+        { v: 'DOCUMENTACAO', l: `Documentações (${typeCounts.get('DOCUMENTACAO') || 0})` }],
       classificacao: [
         { v: 'all', l: 'Todos' },
         { v: 'GA4', l: `GA4 (${measurementCounts.get('GA4') || 0})` },
@@ -2181,14 +2177,12 @@ export default function App() {
                 {paginatedCards.map((item, index) => {
                 const isDoc = item.artifact_type === 'DOCUMENTACAO';
                 const isMap = item.artifact_type === 'MAPA';
-                const isNode = item.artifact_type === 'NO';
-                const isRoot = item.artifact_type === 'RAIZ';
+                
                 
                 let artifactLabel = 'Não classificado';
                 if (isDoc) artifactLabel = 'Documento';
                 else if (isMap) artifactLabel = 'Mapa';
-                else if (isNode) artifactLabel = 'Nó';
-                else if (isRoot) artifactLabel = 'Raiz';
+                
 
                 let homologationStatusLabel = '';
                 let statusColorClass = 'text-gray-800 dark:text-slate-200';
@@ -2559,14 +2553,12 @@ export default function App() {
                             filteredInventory.map((item) => {
                               const isDoc = item.artifact_type === 'DOCUMENTACAO';
                               const isMap = item.artifact_type === 'MAPA';
-                              const isNode = item.artifact_type === 'NO';
-                              const isRoot = item.artifact_type === 'RAIZ';
+                              
 
                               let artifactLabel = 'Não classificado';
                               if (isDoc) artifactLabel = 'Documento';
                               else if (isMap) artifactLabel = 'Mapa';
-                              else if (isNode) artifactLabel = 'Nó';
-                              else if (isRoot) artifactLabel = 'Raiz';
+                              
 
                               let classLabel = '—';
                               let classStyle = 'text-gray-400 dark:text-slate-500';

@@ -28,34 +28,18 @@ export class ConfluenceOrchestrator {
     }
   }
 
-  extrairProdutoSubprodutoDaTrilha(ancestorTitles = [], depth = 0, nodeTitle = '', cabecalhoProduto = '') {
-    // A estrutura da árvore (ancestorTitles) é a fonte canônica principal.
-    // Índice 0 = Raiz (Nível 1, depth 0)
-    // Índice 1 = Produto (Nível 2, depth 1)
-    
+  extrairProdutoSubprodutoDaTrilha(ancestorTitles = [], cabecalhoProduto = '') {
     let estruturalProduto = '';
     let estruturalSubproduto = '';
 
     if (ancestorTitles.length >= 2) {
-      // Produto está na posição 1 do array de ancestrais
       estruturalProduto = ancestorTitles[1];
-    } else if (depth === 1) {
-      // O nó atual é o próprio Produto (Nível 2)
-      estruturalProduto = nodeTitle;
     }
-    
-    // Nível 3 representa depth >= 2
-    // Se a profundidade for 3 ou maior (Nível 4 em diante), 
-    // o ancestral no nível 3 (posição 2) possui descendentes e atua como subproduto.
-    // Se a profundidade for 2 (Nível 3), deixamos vazio (um mapa no nível 3 não deve ter seu próprio nome como subproduto).
-    if (depth >= 3 && ancestorTitles.length >= 3) {
+    if (ancestorTitles.length >= 3) {
       estruturalSubproduto = ancestorTitles[2];
     }
 
-    // Só usamos o cabeçalho como fallback se a trilha estrutural não estiver disponível
-    const produtoFinal = estruturalProduto || cabecalhoProduto || '';
-    
-    // Subproduto usa a estrutura estritamente
+    const produtoFinal = estruturalProduto || cabecalhoProduto || (ancestorTitles[0] || '');
     const subprodutoFinal = estruturalSubproduto || '';
 
     return { 
@@ -134,7 +118,7 @@ export class ConfluenceOrchestrator {
         const currentUpdated = String(node.ultima_atualizacao || (node.raw_page && node.raw_page.history && node.raw_page.history.lastUpdated && node.raw_page.history.lastUpdated.when) || '');
         
         const cached = invMap.get(idStr);
-        const CLASSIFICATION_VERSION = '2'; // Atualizado para invalidar cache incorreto antigo
+        
         
         // Reutiliza se existe e versão não mudou (mantendo telas e metadados já capturados)
         if (
@@ -142,8 +126,8 @@ export class ConfluenceOrchestrator {
           String(cached.versao) === currentVersion && 
           String(cached.ultima_atualizacao) === currentUpdated && 
           cached.screens && 
-          cached.screens.length > 0 &&
-          cached.classification_version === CLASSIFICATION_VERSION
+          cached.screens.length > 0
+          
         ) {
           cabecalho = {
             produto_servico: cached.produto_servico,
@@ -176,9 +160,9 @@ export class ConfluenceOrchestrator {
           signature_hash = cached.signature_hash || (structural_metadata && structural_metadata.signature_hash) || '';
           stats.reused++;
         } else {
-          // Captura completa do conteúdo da página (independentemente de possuir filhos ou de prefixo MT -)
+          if (isLeaf || (node.title && node.title.startsWith('MT -'))) {
           try {
-            const tempEstrutura = this.extrairProdutoSubprodutoDaTrilha(ancestorTitles, node.depth !== undefined ? node.depth : depth, node.title || '');
+            const tempEstrutura = this.extrairProdutoSubprodutoDaTrilha(ancestorTitles);
             const details = await mapReader.readMapDetails(idStr, tempEstrutura.produto, tempEstrutura.subproduto);
             cabecalho = details.cabecalho || {};
             headerObj = details.header || {};
@@ -220,8 +204,9 @@ export class ConfluenceOrchestrator {
             tipo_mapa = 'Não classificado';
           }
         }
+        } // end isLeaf check
 
-        const resolvedStructure = this.extrairProdutoSubprodutoDaTrilha(ancestorTitles, node.depth !== undefined ? node.depth : depth, node.title || '', cabecalho.produto_servico);
+        const resolvedStructure = this.extrairProdutoSubprodutoDaTrilha(ancestorTitles, cabecalho.produto_servico);
 
         const row = {
           id: idStr,
@@ -273,7 +258,7 @@ export class ConfluenceOrchestrator {
           firebase: cabecalho.firebase || '',
           dominio_exclusivo_web: cabecalho.dominio || cabecalho.dominio_exclusivo_web || '',
           tipo_mapa: tipo_mapa || 'Doc',
-          classification_version: CLASSIFICATION_VERSION
+          
         };
 
         allRows.push(row);
@@ -285,6 +270,10 @@ export class ConfluenceOrchestrator {
       }, maxRows);
 
       // 4. Salva de forma segura usando o repositório diretamente no inventario.json
+      if (allRows.length === 0) {
+        console.error('[Orchestrator] ERRO: Coleta retornou 0 registros. Gravação bloqueada para proteger o inventário atual.');
+        throw new Error('A coleta retornou 0 registros. Sincronização abortada para proteger a base.');
+      }
       this.repository.saveSafely(allRows);
       
       console.log('--- Resumo da Coleta ---');

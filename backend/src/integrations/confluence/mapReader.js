@@ -709,12 +709,10 @@ export class MapReader {
     }
 
     // 6. Sinais
-    const has_content = this.verificarConteudoUtil(html);
     const signals = {
       has_gtm_ids: gtm_ids.length > 0,
       has_tracking_screens: telas.length > 0,
-      has_content: has_content,
-      has_documentation_signals: has_content && telas.length === 0 && !gtm_ids.length
+      has_documentation_signals: telas.length === 0 && !gtm_ids.length && html.length > 500
     };
 
     // 7. Assinatura estrutural determinística (hash)

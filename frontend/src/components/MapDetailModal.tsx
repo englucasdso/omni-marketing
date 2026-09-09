@@ -38,14 +38,12 @@ export const MapDetailModal: React.FC<MapDetailModalProps> = ({ item, onClose })
   const header = item.header || {};
   const isDoc = item.artifact_type === 'DOCUMENTACAO';
   const isMap = item.artifact_type === 'MAPA';
-  const isNode = item.artifact_type === 'NO';
-  const isRoot = item.artifact_type === 'RAIZ';
+  
 
   let artifactBadgeLabel = 'Não classificado';
   if (isDoc) artifactBadgeLabel = 'Documento';
   else if (isMap) artifactBadgeLabel = 'Mapa';
-  else if (isNode) artifactBadgeLabel = 'Nó';
-  else if (isRoot) artifactBadgeLabel = 'Raiz';
+  
 
   // Classificação de Mensuração (não é status)
   const getMeasurementLabel = () => {
