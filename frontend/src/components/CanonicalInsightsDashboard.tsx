@@ -160,7 +160,7 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
   }, [artifacts]);
 
   return (
-    <div className="space-y-6 animate-fade-in w-full min-w-0 max-w-full">
+    <div className="space-y-6 animate-fade-in w-full min-w-0 max-w-full overflow-x-hidden">
       <header className="flex flex-col xl:grid xl:grid-cols-[minmax(0,1fr)_auto] items-start xl:items-center gap-6 pt-6 pb-6 mb-6 border-b border-gray-200/80 dark:border-slate-800/80 w-full transition-all">
         <div className="min-w-0 w-full">
           <div className="flex items-center gap-3 flex-wrap">
@@ -391,17 +391,23 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
               stats.topPatterns.map((pat) => (
                 <div 
                   key={pat.id}
-                  className="p-3.5 bg-gray-50/80 dark:bg-slate-800/80 rounded-xl border border-gray-200 dark:border-slate-700 flex items-center justify-between shadow-neu-raised"
+                  className="p-3.5 bg-gray-50/80 dark:bg-slate-800/80 rounded-xl border border-gray-200 dark:border-slate-700 shadow-neu-raised grid w-full min-w-0 max-w-full grid-cols-[minmax(0,1fr)_auto] items-start gap-3 overflow-hidden"
                 >
-                  <div>
+                  <div className="min-w-0 w-full max-w-full overflow-hidden">
                     <span className="font-mono text-xs font-semibold text-gray-900 dark:text-slate-100 block">
                       {pat.event || pat.id}
                     </span>
-                    <span className="text-[10px] font-ui font-medium text-gray-500 dark:text-slate-400">
+                    <span 
+                      className="text-[10px] font-ui font-medium text-gray-500 dark:text-slate-400 block min-w-0 max-w-full whitespace-normal"
+                      style={{
+                        overflowWrap: 'anywhere',
+                        wordBreak: 'break-all'
+                      }}
+                    >
                       ID: {pat.id}
                     </span>
                   </div>
-                  <span className="px-2.5 py-1 bg-white dark:bg-slate-700 text-xs font-heading font-bold text-gray-800 dark:text-slate-200 rounded-lg border border-gray-200 dark:border-slate-600 shadow-neu-raised tabular-nums">
+                  <span className="shrink-0 whitespace-nowrap px-2.5 py-1 bg-white dark:bg-slate-700 text-xs font-heading font-bold text-gray-800 dark:text-slate-200 rounded-lg border border-gray-200 dark:border-slate-600 shadow-neu-raised tabular-nums">
                     {pat.count}x
                   </span>
                 </div>
