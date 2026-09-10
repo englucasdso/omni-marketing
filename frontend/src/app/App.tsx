@@ -11,7 +11,7 @@
  * devem morar no Backend. O frontend repassa ordens (api.ts) e obedece
  * os dados JSON que voltam da porta 3000.
  */
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback, useDeferredValue } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useNavigate, useLocation, Routes, Route } from "react-router-dom";
 import { X, AlertTriangle, Target, Network, Filter, CheckCircle2, AlertCircle, Clock, User, Info, Shield, LogOut, Trash2, Plus, Settings, Landmark, LayoutList, RefreshCw, Check, Loader2, KeyRound, Activity, ArrowRight, Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ExternalLink, Download, Sparkles, FileText, Layers, Tag, Code2, Eye, ArrowUpDown, Calendar, RotateCcw } from "lucide-react";
@@ -20,6 +20,8 @@ import { getOperationalInsights } from "../utils/inventoryHelpers";
 import { fetchInventory, searchContent, fetchUsers, createUser, updateUser, deleteUser } from "../services/api";
 import { Artifact, Insights, SearchResponse, User as UserType, UserRole, UserStatus } from "../types";
 import { normalizar, formatDataBR, getFilteredInsights } from "../utils/helpers";
+import { evaluateRecordMatch } from "../utils/contextualSearch";
+import { ContextualEmptyState } from "../components/ContextualEmptyState";
 import { MultiSelect } from "../components/MultiSelect";
 import { FilterField } from "../components/FilterField";
 import { TypewriterText } from "../components/TypewriterText";
@@ -595,50 +597,66 @@ export default function App() {
     return years.sort((a, b) => Number(b) - Number(a));
   }, [cardSource]);
 
+  const deferredCardSearch = useDeferredValue(cardSearch);
+
   // Filtragem e ordenação combinadas para a tela de Cards
   const filteredAndSortedCards = useMemo(() => {
     let list = [...cardSource].filter(i => i.artifact_type !== 'RAIZ');
 
-    // 1. Busca textual ampla (título, ID, produto, subproduto, responsável)
-    const term = normalizar(cardSearch);
-    if (term) {
-      list = list.filter(item => {
-        const matchTitulo = normalizar(item.titulo).includes(term);
-        const matchId = normalizar(item.id).includes(term);
-        const matchProduto = normalizar(item.produto || "").includes(term);
-        const matchSubproduto = normalizar(item.subproduto || "").includes(term);
-        const matchResponsavel = normalizar(item.responsavel || "").includes(term);
-        return matchTitulo || matchId || matchProduto || matchSubproduto || matchResponsavel;
-      });
-    }
+    // 1. Busca textual inteligente (título, ID, produto, subproduto, responsável, parâmetros, valores)
+    const isSearchActive = Boolean(deferredCardSearch.trim());
+    let scoredList: { item: Artifact; score: number }[] = [];
 
-    
+    if (isSearchActive) {
+      for (const item of list) {
+        const paramNames = (item.parameter_summary || []).map(p => p.name);
+        const paramValues = (item.parameter_summary || []).flatMap(p => p.distinct_values || []);
+
+        const matchRes = evaluateRecordMatch(deferredCardSearch, {
+          id: item.id,
+          title: item.titulo,
+          product: item.produto,
+          subproduct: item.subproduto,
+          responsible: item.responsavel,
+          artifactType: item.artifact_type,
+          classification: item.measurement_class,
+          parameters: paramNames,
+          values: paramValues,
+        });
+
+        if (matchRes.matches) {
+          scoredList.push({ item, score: matchRes.score });
+        }
+      }
+    } else {
+      scoredList = list.map(item => ({ item, score: 0 }));
+    }
 
     // 2. Filtro de Artefato (Todos, Mapas, Documentações, Nós)
     if (cardArtifactType === "mapas") {
-      list = list.filter(i => i.artifact_type === 'MAPA');
+      scoredList = scoredList.filter(({ item: i }) => i.artifact_type === 'MAPA');
     } else if (cardArtifactType === "docs") {
-      list = list.filter(i => i.artifact_type === 'DOCUMENTACAO');
+      scoredList = scoredList.filter(({ item: i }) => i.artifact_type === 'DOCUMENTACAO');
     } else if (cardArtifactType === "nos") {
-      list = list.filter(i => i.artifact_type === 'NO');
+      scoredList = scoredList.filter(({ item: i }) => i.artifact_type === 'NO');
     }
 
     // 3. Filtro de Responsável
     if (cardResponsible !== "todos") {
-      list = list.filter(i => (i.responsavel || "").trim() === cardResponsible);
+      scoredList = scoredList.filter(({ item: i }) => (i.responsavel || "").trim() === cardResponsible);
     }
 
     // 4. Filtro de Data (Ano)
     if (cardYear !== "todas") {
-      list = list.filter(i => {
+      scoredList = scoredList.filter(({ item: i }) => {
         if (!i.ultima_atualizacao) return false;
         const d = new Date(i.ultima_atualizacao);
         return !isNaN(d.getTime()) && d.getFullYear().toString() === cardYear;
       });
     }
 
-    // 5. Ordenação
-    list.sort((a, b) => {
+    // Função auxiliar para ordenação secundária
+    const compareBySortPreference = (a: Artifact, b: Artifact) => {
       if (cardSort === "recentes") {
         const timeA = a.ultima_atualizacao ? new Date(a.ultima_atualizacao).getTime() : 0;
         const timeB = b.ultima_atualizacao ? new Date(b.ultima_atualizacao).getTime() : 0;
@@ -656,10 +674,18 @@ export default function App() {
         return (b.titulo || "").localeCompare(a.titulo || "", "pt-BR");
       }
       return 0;
+    };
+
+    // 5. Ordenação: por score de relevância em primeiro lugar se houver busca, depois critério do usuário
+    scoredList.sort((a, b) => {
+      if (isSearchActive && b.score !== a.score) {
+        return b.score - a.score;
+      }
+      return compareBySortPreference(a.item, b.item);
     });
 
-    return list;
-  }, [cardSource, cardSearch, cardArtifactType, cardResponsible, cardYear, cardSort]);
+    return scoredList.map(({ item }) => item);
+  }, [cardSource, deferredCardSearch, cardArtifactType, cardResponsible, cardYear, cardSort]);
 
   const totalCardsCount = filteredAndSortedCards.length;
   const totalCardPages = Math.max(1, Math.ceil(totalCardsCount / cardsPerPage));
@@ -687,6 +713,15 @@ export default function App() {
       cardYear !== "todas"
     );
   }, [cardSearch, cardSort, cardArtifactType, cardResponsible, cardYear]);
+
+  const hasActiveCardFilters = cardArtifactType !== "todos" || cardResponsible !== "todos" || cardYear !== "todas";
+
+  const clearOnlyCardFilters = () => {
+    setCardArtifactType("todos");
+    setCardResponsible("todos");
+    setCardYear("todas");
+    setCardPage(1);
+  };
 
   const resetCardFilters = () => {
     setCardSearch("");
@@ -994,68 +1029,91 @@ export default function App() {
     }
   };
 
+  const deferredTableFilter = useDeferredValue(tableFilter);
+
   // Inventory Logic - Computed Filtered & Sorted Results
   const filteredInventory = useMemo(() => {
     let base = [...results].filter(i => i.artifact_type !== 'RAIZ');
 
-    // Global Search
-    if (tableFilter) {
-      const lowFilter = normalizar(tableFilter);
-      const searchWords = lowFilter.split(/\s+/).filter(Boolean);
-      base = base.filter(item => {
-        const rowContent = normalizar(Object.values(item).join(" "));
-        return searchWords.every(word => rowContent.includes(word));
-      });
+    // Busca contextual inteligente
+    const isSearchActive = Boolean(deferredTableFilter.trim());
+    let scoredBase: { item: Artifact; score: number }[] = [];
+
+    if (isSearchActive) {
+      for (const item of base) {
+        const paramNames = (item.parameter_summary || []).map(p => p.name);
+        const paramValues = (item.parameter_summary || []).flatMap(p => p.distinct_values || []);
+        const screenNames = (item.screens || []).map(s => `${s.instruction || ''} ${s.screen_id || ''} ${s.additional_information || ''}`).join(' ');
+
+        const matchRes = evaluateRecordMatch(deferredTableFilter, {
+          id: item.id,
+          title: item.titulo,
+          product: item.produto,
+          subproduct: item.subproduto,
+          responsible: item.responsavel,
+          artifactType: item.artifact_type,
+          classification: item.measurement_class,
+          parameters: paramNames,
+          values: paramValues,
+          extraText: screenNames,
+        });
+
+        if (matchRes.matches) {
+          scoredBase.push({ item, score: matchRes.score });
+        }
+      }
+    } else {
+      scoredBase = base.map(item => ({ item, score: 0 }));
     }
 
     // Secondary Detailed Filters
     if (onlyWithoutResponsible) {
-      base = base.filter(i => !i.responsavel || i.responsavel === '-');
+      scoredBase = scoredBase.filter(({ item: i }) => !i.responsavel || i.responsavel === '-');
     }
     if (onlyWithoutSubproduct) {
-      base = base.filter(i => !i.subproduto || i.subproduto === '-');
+      scoredBase = scoredBase.filter(({ item: i }) => !i.subproduto || i.subproduto === '-');
     }
     if (onlyDivergent) {
-      base = base.filter(i => i.status_divergent === true);
+      scoredBase = scoredBase.filter(({ item: i }) => i.status_divergent === true);
     }
 
     // Independent Multidimensional Filters
-    
-
     if (inventoryFilters.tipo_mapa && inventoryFilters.tipo_mapa.length > 0) {
-      base = base.filter(i => {
+      scoredBase = scoredBase.filter(({ item: i }) => {
         const t = (i.artifact_type || 'NAO_CLASSIFICADO').toUpperCase();
         return inventoryFilters.tipo_mapa.includes(t);
       });
     }
     if (inventoryFilters.measurement_class && inventoryFilters.measurement_class.length > 0) {
-      base = base.filter(i => {
+      scoredBase = scoredBase.filter(({ item: i }) => {
         const m = (i.measurement_class || 'NAO_CLASSIFICADO').toUpperCase();
         return inventoryFilters.measurement_class.includes(m);
       });
     }
     if (inventoryFilters.produto && inventoryFilters.produto.length > 0) {
-      base = base.filter(i => inventoryFilters.produto.includes(i.produto || ""));
+      scoredBase = scoredBase.filter(({ item: i }) => inventoryFilters.produto.includes(i.produto || ""));
     }
     if (inventoryFilters.subproduto && inventoryFilters.subproduto.length > 0) {
-      base = base.filter(i => inventoryFilters.subproduto.includes(i.subproduto || ""));
+      scoredBase = scoredBase.filter(({ item: i }) => inventoryFilters.subproduto.includes(i.subproduto || ""));
     }
     if (inventoryFilters.responsavel && inventoryFilters.responsavel.length > 0) {
-      base = base.filter(i => inventoryFilters.responsavel.includes(i.responsavel || ""));
+      scoredBase = scoredBase.filter(({ item: i }) => inventoryFilters.responsavel.includes(i.responsavel || ""));
     }
     if (inventoryFilters.parametro && inventoryFilters.parametro.length > 0) {
-      base = base.filter(i => (i.parameter_summary || []).some(p => inventoryFilters.parametro.includes(p.name)));
+      scoredBase = scoredBase.filter(({ item: i }) => (i.parameter_summary || []).some(p => inventoryFilters.parametro.includes(p.name)));
     }
     if (inventoryFilters.ano && inventoryFilters.ano.length > 0) {
-      base = base.filter(i => {
+      scoredBase = scoredBase.filter(({ item: i }) => {
         const date = new Date(i.ultima_atualizacao);
         return inventoryFilters.ano.includes(date.getFullYear().toString());
       });
     }
 
-    // Sorting
+    // Sorting: se o usuário selecionou uma coluna, respeitar a coluna. Caso contrário, se houver busca, ordenar por relevância.
     if (inventorySort.field !== 'null') {
-      base.sort((a, b) => {
+      scoredBase.sort((aObj, bObj) => {
+        const a = aObj.item;
+        const b = bObj.item;
         let valA = '';
         let valB = '';
         if (inventorySort.field === 'artifact_type') {
@@ -1075,10 +1133,12 @@ export default function App() {
           return valB.localeCompare(valA, 'pt-BR', { numeric: true });
         }
       });
+    } else if (isSearchActive) {
+      scoredBase.sort((a, b) => b.score - a.score);
     }
 
-    return base;
-  }, [results, tableFilter, inventoryFilters, inventorySort, onlyDivergent, onlyWithoutResponsible, onlyWithoutSubproduct]);
+    return scoredBase.map(({ item }) => item);
+  }, [results, deferredTableFilter, inventoryFilters, inventorySort, onlyDivergent, onlyWithoutResponsible, onlyWithoutSubproduct]);
 
   const currentInventoryInsights = useMemo(() => {
     return getFilteredInsights(filteredInventory, tableFilter || query);
@@ -1156,6 +1216,28 @@ export default function App() {
       const el = document.getElementById(`row-${id}`);
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 300);
+  };
+
+  const hasActiveInventoryFilters = useMemo(() => {
+    return Object.values(inventoryFilters).some(arr => arr.length > 0) ||
+      onlyDivergent ||
+      onlyWithoutResponsible ||
+      onlyWithoutSubproduct;
+  }, [inventoryFilters, onlyDivergent, onlyWithoutResponsible, onlyWithoutSubproduct]);
+
+  const clearOnlyInventoryFilters = () => {
+    setInventoryFilters({
+      tipo_mapa: [],
+      produto: [],
+      subproduto: [],
+      responsavel: [],
+      measurement_class: [],
+      parametro: [],
+      ano: []
+    });
+    setOnlyDivergent(false);
+    setOnlyWithoutResponsible(false);
+    setOnlyWithoutSubproduct(false);
   };
 
   const resetInventoryFilters = () => {
@@ -2087,37 +2169,24 @@ export default function App() {
             {/* Âncora para rolagem suave ao trocar de página */}
             <div ref={cardsListRef} className="scroll-mt-6" />
 
-            {/* Contador de Resultados */}
-            <div className="flex items-center justify-between px-1 text-xs font-ui text-gray-500 dark:text-slate-400">
-              <span className="tabular-nums">
-                {totalCardsCount > 0 ? (
-                  <>Exibindo <strong className="font-semibold text-gray-800 dark:text-slate-200">{(cardPage - 1) * cardsPerPage + 1}–{Math.min(cardPage * cardsPerPage, totalCardsCount)}</strong> de <strong className="font-semibold text-gray-800 dark:text-slate-200">{totalCardsCount}</strong> resultados</>
-                ) : (
-                  <>Nenhum resultado encontrado</>
-                )}
-              </span>
-            </div>
-
-            {/* Mensagem quando não houver resultado */}
-            {totalCardsCount === 0 && (
-              <div className="flat-card border border-gray-200 dark:border-slate-800 rounded-2xl p-10 text-center shadow-neu-card">
-                <div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-950/30 text-bradesco-red flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-7 h-7" />
-                </div>
-                <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-slate-100 mb-2">
-                  Nenhum artefato encontrado
-                </h3>
-                <p className="text-sm font-ui text-gray-500 dark:text-slate-400 max-w-md mx-auto mb-6">
-                  Não encontramos nenhum card com os critérios de busca e filtros selecionados.
-                </p>
-                <button
-                  onClick={resetCardFilters}
-                  className="btn-neu inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-ui font-semibold text-bradesco-red hover:text-bradesco-red-hover cursor-pointer"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Limpar filtros e busca
-                </button>
+            {/* Contador de Resultados (somente quando houver resultados) */}
+            {totalCardsCount > 0 && (
+              <div className="flex items-center justify-between px-1 text-xs font-ui text-gray-500 dark:text-slate-400">
+                <span className="tabular-nums">
+                  Exibindo <strong className="font-semibold text-gray-800 dark:text-slate-200">{(cardPage - 1) * cardsPerPage + 1}–{Math.min(cardPage * cardsPerPage, totalCardsCount)}</strong> de <strong className="font-semibold text-gray-800 dark:text-slate-200">{totalCardsCount}</strong> resultados
+                </span>
               </div>
+            )}
+
+            {/* Mensagem padronizada quando não houver resultado */}
+            {totalCardsCount === 0 && (
+              <ContextualEmptyState
+                searchTerm={cardSearch}
+                hasActiveFilters={hasActiveCardFilters}
+                onClearSearch={() => setCardSearch("")}
+                onClearFilters={clearOnlyCardFilters}
+                onClearAll={resetCardFilters}
+              />
             )}
 
             {/* 5. Lista de Cards (Coluna única, máximo 20 por página) */}
@@ -2311,20 +2380,25 @@ export default function App() {
                 }
               />
 
-              {/* Single Counter Label Before Table */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 border-b border-gray-200 dark:border-slate-800 mb-6">
-                <div className="text-xs font-ui text-gray-500 dark:text-slate-400 tabular-nums">
-                   {filteredInventory.length === 0 ? (
-                     "Nenhum resultado encontrado"
-                   ) : (
-                     <>
-                       Exibindo <strong className="font-semibold text-gray-800 dark:text-slate-200">{filteredInventory.length}</strong> de <strong className="font-semibold text-gray-800 dark:text-slate-200">{results.length}</strong> resultados
-                     </>
-                   )}
-                </div>
-              </div>
+              {/* Quando não houver resultados no Inventário */}
+              {filteredInventory.length === 0 ? (
+                <ContextualEmptyState
+                  searchTerm={tableFilter}
+                  hasActiveFilters={hasActiveInventoryFilters}
+                  onClearSearch={() => setTableFilter("")}
+                  onClearFilters={clearOnlyInventoryFilters}
+                  onClearAll={resetInventoryFilters}
+                />
+              ) : (
+                <>
+                  {/* Single Counter Label Before Table */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 border-b border-gray-200 dark:border-slate-800 mb-6">
+                    <div className="text-xs font-ui text-gray-500 dark:text-slate-400 tabular-nums">
+                      Exibindo <strong className="font-semibold text-gray-800 dark:text-slate-200">{filteredInventory.length}</strong> de <strong className="font-semibold text-gray-800 dark:text-slate-200">{results.length}</strong> resultados
+                    </div>
+                  </div>
 
-              {/* Main Content Area: Table or Panel */}
+                  {/* Main Content Area: Table or Panel */}
               <AnimatePresence mode="wait">
                 {inventoryViewMode === 'table' ? (
                   <motion.div 
@@ -2620,6 +2694,8 @@ export default function App() {
                   </motion.div>
                 )}
               </AnimatePresence>
+                </>
+              )}
             </motion.section>
           )}
         </section>

@@ -1,10 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useDeferredValue } from 'react';
 import { 
-  Search, ChevronRight, ArrowUpRight, Filter, AlertTriangle
+  ChevronRight, ArrowUpRight, Filter, AlertTriangle
 } from 'lucide-react';
 import { Artifact } from '../types';
 import { PageHeader } from './PageHeader';
 import { normalizarStatus, OfficialStatus, STATUS_CONFIGS } from '../utils/statusUtils';
+import { evaluateRecordMatch } from '../utils/contextualSearch';
+import { ContextualEmptyState } from './ContextualEmptyState';
 
 interface ProductAnalysisViewProps {
   artifacts: Artifact[];
@@ -129,17 +131,34 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
     }).sort((a, b) => b.totalMaps - a.totalMaps);
   }, [artifacts]);
 
+  const deferredSearch = useDeferredValue(effectiveSearchTerm);
+
   const filteredProducts = useMemo(() => {
-    if (!effectiveSearchTerm.trim()) return productsSummary;
-    const term = effectiveSearchTerm.toLowerCase();
-    return productsSummary.filter(p => 
-      p.produto.toLowerCase().includes(term) ||
-      p.subprodutosList.some(s => s.toLowerCase().includes(term))
-    );
-  }, [productsSummary, effectiveSearchTerm]);
+    if (!deferredSearch.trim()) return productsSummary;
+
+    const scored = productsSummary
+      .map(p => {
+        const extraText = p.mapas
+          .map(m => `${m.id} ${m.titulo} ${(m.parameter_summary || []).map(ps => ps.name).join(' ')}`)
+          .join(' ');
+
+        const matchRes = evaluateRecordMatch(deferredSearch, {
+          product: p.produto,
+          subproduct: p.subprodutosList.join(' '),
+          extraText
+        });
+
+        return { product: p, ...matchRes };
+      })
+      .filter(item => item.matches);
+
+    // Ordena por maior relevância quando há busca
+    scored.sort((a, b) => b.score - a.score);
+    return scored.map(item => item.product);
+  }, [productsSummary, deferredSearch]);
 
   const activeProduct = selectedProductKey 
-    ? productsSummary.find(p => p.produto === selectedProductKey) || filteredProducts[0] || null
+    ? filteredProducts.find(p => p.produto === selectedProductKey) || filteredProducts[0] || null
     : filteredProducts[0] || null;
 
   // Filtro por subproduto dentro do produto ativo
@@ -226,8 +245,25 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
         subtitle="Visão consolidada da esteira analítica dividida por canais, jornadas e serviços."
       />
 
-      {/* Main Grid: Left List + Right Product Deep Dive */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* Quando não houver produtos encontrados */}
+      {filteredProducts.length === 0 ? (
+        <ContextualEmptyState
+          searchTerm={effectiveSearchTerm}
+          hasActiveFilters={effectiveSubproduto !== 'TODOS'}
+          onClearSearch={() => {
+            if (onSearchChange) onSearchChange('');
+            setLocalSearchTerm('');
+          }}
+          onClearFilters={() => setEffectiveSubproduto('TODOS')}
+          onClearAll={() => {
+            if (onSearchChange) onSearchChange('');
+            setLocalSearchTerm('');
+            setEffectiveSubproduto('TODOS');
+          }}
+        />
+      ) : (
+        /* Main Grid: Left List + Right Product Deep Dive */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Product Cards List */}
         <div className="lg:col-span-5 space-y-3">
           {filteredProducts.map(prod => {
@@ -499,6 +535,7 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
           )}
         </div>
       </div>
+      )}
     </div>
   );
 };

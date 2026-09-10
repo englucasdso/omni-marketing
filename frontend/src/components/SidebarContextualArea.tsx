@@ -1,22 +1,17 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   Search, 
   X, 
   SlidersHorizontal, 
-  ChevronDown, 
-  ChevronUp, 
   RotateCcw, 
-  AlertTriangle,
-  ArrowUpDown,
-  FileText,
-  User,
-  Calendar,
-  Layers,
-  Landmark,
-  Tag,
-  Code2
+  AlertTriangle 
 } from 'lucide-react';
-import { MultiSelect } from './MultiSelect';
+import { 
+  SidebarFilterPopover, 
+  FilterSegmentedRow, 
+  FilterSearchableSingle, 
+  FilterMultiSelectSearchable 
+} from './SidebarFilterPopover';
 
 export interface SidebarContextualAreaProps {
   currentRouteId: string;
@@ -155,11 +150,9 @@ export const SidebarContextualArea: React.FC<SidebarContextualAreaProps> = ({
   isInsightsFilterActive,
   onResetInsightsFilters,
 }) => {
-  // Collapsible states for filters - initially collapsed
-  const [isCardsFiltersOpen, setIsCardsFiltersOpen] = useState(false);
-  const [isInventoryFiltersOpen, setIsInventoryFiltersOpen] = useState(false);
-  const [isProductFiltersOpen, setIsProductFiltersOpen] = useState(false);
-  const [isInsightsFiltersOpen, setIsInsightsFiltersOpen] = useState(false);
+  // Estado para controlar abertura do popover flutuante
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const filterButtonRef = useRef<HTMLButtonElement>(null);
 
   // 1. CARDS (results)
   if (currentRouteId === 'results') {
@@ -171,7 +164,7 @@ export const SidebarContextualArea: React.FC<SidebarContextualAreaProps> = ({
 
     return (
       <div className="flex flex-col gap-2 w-full min-w-0" id="sidebar-contextual-cards">
-        {/* Campo de Busca */}
+        {/* Campo de Busca Reativo (Filtro Imediato na tela de Cards) */}
         <div className="relative w-full">
           <Search className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none shrink-0" />
           <input
@@ -179,10 +172,11 @@ export const SidebarContextualArea: React.FC<SidebarContextualAreaProps> = ({
             placeholder="Buscar cards..."
             value={cardSearch}
             onChange={(e) => onCardSearchChange(e.target.value)}
-            className="w-full pl-8 pr-7 py-1.5 bg-gray-50/90 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 rounded-lg text-xs font-ui text-gray-800 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-bradesco-red focus:border-bradesco-red transition-all truncate"
+            className="w-full pl-8 pr-7 py-1.5 bg-gray-50/90 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 rounded-lg text-xs font-ui text-gray-800 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-slate-600 focus:border-gray-400 dark:focus:border-slate-500 transition-all truncate"
           />
           {cardSearch && (
             <button
+              type="button"
               onClick={() => onCardSearchChange('')}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 p-0.5"
               title="Limpar busca"
@@ -193,13 +187,15 @@ export const SidebarContextualArea: React.FC<SidebarContextualAreaProps> = ({
           )}
         </div>
 
-        {/* Botão de Filtros */}
+        {/* Botão de Filtros (Abre o Popover Flutuante) */}
         <button
+          ref={filterButtonRef}
           type="button"
-          onClick={() => setIsCardsFiltersOpen(!isCardsFiltersOpen)}
+          onClick={() => setIsPopoverOpen(!isPopoverOpen)}
+          aria-expanded={isPopoverOpen}
           className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-ui font-semibold transition-all border cursor-pointer ${
-            isCardsFiltersOpen || activeFiltersCount > 0
-              ? 'bg-red-50/60 dark:bg-red-950/30 border-red-200 dark:border-red-900/50 text-bradesco-red'
+            isPopoverOpen || activeFiltersCount > 0
+              ? 'bg-red-50/70 dark:bg-red-950/30 border-[#7B0209]/30 text-[#7B0209]'
               : 'bg-gray-50/80 dark:bg-slate-800/80 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
           }`}
         >
@@ -207,98 +203,68 @@ export const SidebarContextualArea: React.FC<SidebarContextualAreaProps> = ({
             <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate">Filtros</span>
             {activeFiltersCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-bradesco-red text-white">
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-[#7B0209] text-white">
                 {activeFiltersCount}
               </span>
             )}
           </div>
-          {isCardsFiltersOpen ? <ChevronUp className="w-3.5 h-3.5 shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 shrink-0" />}
         </button>
 
-        {/* Filtros Expansíveis */}
-        {isCardsFiltersOpen && (
-          <div className="flex flex-col gap-2 pt-1">
-            {/* Ordenação */}
-            <div>
-              <label className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">
-                Ordenação
-              </label>
-              <select
-                value={cardSort}
-                onChange={(e) => onCardSortChange(e.target.value as any)}
-                className="w-full px-2 py-1.5 rounded-lg text-xs font-ui font-medium bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-slate-200 outline-none cursor-pointer focus:border-bradesco-red truncate"
-              >
-                <option value="recentes">Mais recentes</option>
-                <option value="antigos">Mais antigos</option>
-                <option value="az">Título de A a Z</option>
-                <option value="za">Título de Z a A</option>
-              </select>
-            </div>
+        {/* Popover Flutuante rendered via Portal */}
+        <SidebarFilterPopover
+          isOpen={isPopoverOpen}
+          onClose={() => setIsPopoverOpen(false)}
+          anchorRef={filterButtonRef}
+          title="Filtros de Cards"
+          activeCount={activeFiltersCount}
+          onResetAll={onResetCardFilters}
+        >
+          {/* Ordenação */}
+          <FilterSegmentedRow
+            label="Ordenação"
+            value={cardSort}
+            onChange={(v) => onCardSortChange(v)}
+            options={[
+              { value: 'recentes', label: 'Mais recentes' },
+              { value: 'antigos', label: 'Mais antigos' },
+              { value: 'az', label: 'A a Z' },
+              { value: 'za', label: 'Z a A' },
+            ]}
+          />
 
-            {/* Artefato */}
-            <div>
-              <label className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">
-                Artefato
-              </label>
-              <select
-                value={cardArtifactType}
-                onChange={(e) => onCardArtifactTypeChange(e.target.value as any)}
-                className="w-full px-2 py-1.5 rounded-lg text-xs font-ui font-medium bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-slate-200 outline-none cursor-pointer focus:border-bradesco-red truncate"
-              >
-                <option value="todos">Todos os tipos</option>
-                <option value="mapas">Mapas</option>
-                <option value="docs">Documentações</option>
-                <option value="nos">Nós</option>
-              </select>
-            </div>
+          {/* Tipo de Artefato */}
+          <FilterSegmentedRow
+            label="Tipo de Artefato"
+            value={cardArtifactType}
+            onChange={(v) => onCardArtifactTypeChange(v)}
+            options={[
+              { value: 'todos', label: 'Todos' },
+              { value: 'mapas', label: 'Mapas' },
+              { value: 'docs', label: 'Docs' },
+              { value: 'nos', label: 'Nós' },
+            ]}
+          />
 
-            {/* Responsável */}
-            <div>
-              <label className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">
-                Responsável
-              </label>
-              <select
-                value={cardResponsible}
-                onChange={(e) => onCardResponsibleChange(e.target.value)}
-                className="w-full px-2 py-1.5 rounded-lg text-xs font-ui font-medium bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-slate-200 outline-none cursor-pointer focus:border-bradesco-red truncate"
-              >
-                <option value="todos">Todos os responsáveis</option>
-                {availableResponsibles.map((resp) => (
-                  <option key={resp} value={resp}>{resp}</option>
-                ))}
-              </select>
-            </div>
+          {/* Responsável */}
+          <FilterSearchableSingle
+            label="Responsável"
+            options={availableResponsibles}
+            value={cardResponsible}
+            onChange={onCardResponsibleChange}
+            allOptionLabel="Todos os responsáveis"
+            placeholder="Buscar responsável..."
+          />
 
-            {/* Ano */}
-            <div>
-              <label className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">
-                Data (Ano)
-              </label>
-              <select
-                value={cardYear}
-                onChange={(e) => onCardYearChange(e.target.value)}
-                className="w-full px-2 py-1.5 rounded-lg text-xs font-ui font-medium bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-slate-200 outline-none cursor-pointer focus:border-bradesco-red truncate"
-              >
-                <option value="todas">Todos os anos</option>
-                {availableYears.map((yr) => (
-                  <option key={yr} value={yr}>{yr}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Limpar filtros */}
-            {isCardFilterActive && (
-              <button
-                type="button"
-                onClick={onResetCardFilters}
-                className="mt-1 flex items-center justify-center gap-1.5 px-2.5 py-1 text-xs font-ui font-medium text-gray-500 hover:text-bradesco-red dark:text-slate-400 transition-colors"
-              >
-                <RotateCcw className="w-3 h-3 text-bradesco-red" />
-                Limpar filtros
-              </button>
-            )}
-          </div>
-        )}
+          {/* Ano */}
+          <FilterSearchableSingle
+            label="Data (Ano)"
+            options={availableYears}
+            value={cardYear}
+            onChange={onCardYearChange}
+            allOptionLabel="Todos os anos"
+            placeholder="Buscar ano..."
+          />
+        </SidebarFilterPopover>
       </div>
     );
   }
@@ -313,7 +279,7 @@ export const SidebarContextualArea: React.FC<SidebarContextualAreaProps> = ({
 
     return (
       <div className="flex flex-col gap-2 w-full min-w-0" id="sidebar-contextual-inventory">
-        {/* Campo de Busca */}
+        {/* Campo de Busca Reativo */}
         <div className="relative w-full">
           <Search className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none shrink-0" />
           <input
@@ -321,10 +287,11 @@ export const SidebarContextualArea: React.FC<SidebarContextualAreaProps> = ({
             placeholder="Buscar inventário..."
             value={tableFilter}
             onChange={(e) => onTableFilterChange(e.target.value)}
-            className="w-full pl-8 pr-7 py-1.5 bg-gray-50/90 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 rounded-lg text-xs font-ui text-gray-800 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-bradesco-red focus:border-bradesco-red transition-all truncate"
+            className="w-full pl-8 pr-7 py-1.5 bg-gray-50/90 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 rounded-lg text-xs font-ui text-gray-800 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-slate-600 focus:border-gray-400 dark:focus:border-slate-500 transition-all truncate"
           />
           {tableFilter && (
             <button
+              type="button"
               onClick={() => onTableFilterChange('')}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 p-0.5"
               title="Limpar busca"
@@ -337,11 +304,13 @@ export const SidebarContextualArea: React.FC<SidebarContextualAreaProps> = ({
 
         {/* Botão de Filtros */}
         <button
+          ref={filterButtonRef}
           type="button"
-          onClick={() => setIsInventoryFiltersOpen(!isInventoryFiltersOpen)}
+          onClick={() => setIsPopoverOpen(!isPopoverOpen)}
+          aria-expanded={isPopoverOpen}
           className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-ui font-semibold transition-all border cursor-pointer ${
-            isInventoryFiltersOpen || totalActiveCount > 0
-              ? 'bg-red-50/60 dark:bg-red-950/30 border-red-200 dark:border-red-900/50 text-bradesco-red'
+            isPopoverOpen || totalActiveCount > 0
+              ? 'bg-red-50/70 dark:bg-red-950/30 border-[#7B0209]/30 text-[#7B0209]'
               : 'bg-gray-50/80 dark:bg-slate-800/80 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
           }`}
         >
@@ -349,135 +318,130 @@ export const SidebarContextualArea: React.FC<SidebarContextualAreaProps> = ({
             <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate">Filtros</span>
             {totalActiveCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-bradesco-red text-white">
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-[#7B0209] text-white">
                 {totalActiveCount}
               </span>
             )}
           </div>
-          {isInventoryFiltersOpen ? <ChevronUp className="w-3.5 h-3.5 shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 shrink-0" />}
         </button>
 
-        {/* Filtros Expansíveis */}
-        {isInventoryFiltersOpen && (
-          <div className="flex flex-col gap-2 pt-1">
-            {/* MultiSelects compactos */}
-            <div className="flex flex-col gap-2">
-              <MultiSelect
-                label="Artefato"
-                icon={FileText}
-                options={filterOptions.tipoArtefato}
-                values={inventoryFilters.tipo_mapa || []}
-                onChange={(vals) => onInventoryFiltersChange({ ...inventoryFilters, tipo_mapa: vals })}
-              />
-
-              <MultiSelect
-                label="Classificação"
-                icon={Layers}
-                options={filterOptions.classificacao}
-                values={inventoryFilters.measurement_class || []}
-                onChange={(vals) => onInventoryFiltersChange({ ...inventoryFilters, measurement_class: vals })}
-              />
-
-              <MultiSelect
-                label="Produto"
-                icon={Landmark}
-                options={filterOptions.produtos}
-                values={inventoryFilters.produto || []}
-                onChange={(vals) => onInventoryFiltersChange({ ...inventoryFilters, produto: vals })}
-              />
-
-              <MultiSelect
-                label="Subproduto"
-                icon={Tag}
-                options={filterOptions.subprodutos}
-                values={inventoryFilters.subproduto || []}
-                onChange={(vals) => onInventoryFiltersChange({ ...inventoryFilters, subproduto: vals })}
-              />
-
-              <MultiSelect
-                label="Parâmetro"
-                icon={Code2}
-                options={filterOptions.parametros}
-                values={inventoryFilters.parametro || []}
-                onChange={(vals) => onInventoryFiltersChange({ ...inventoryFilters, parametro: vals })}
-              />
-
-              <MultiSelect
-                label="Ano"
-                icon={Calendar}
-                options={filterOptions.anos}
-                values={inventoryFilters.ano || []}
-                onChange={(vals) => onInventoryFiltersChange({ ...inventoryFilters, ano: vals })}
-              />
-            </div>
-
-            {/* Toggles Rápidos */}
-            <div className="flex flex-col gap-1.5 pt-1 border-t border-gray-100 dark:border-slate-800">
-              <span className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
-                Exceções e Status
-              </span>
-              <div className="flex flex-wrap gap-1">
-                <button
-                  type="button"
-                  onClick={onToggleOnlyWithoutResponsible}
-                  className={`px-2 py-1 rounded-md text-[11px] font-ui font-medium border transition-colors cursor-pointer ${
-                    onlyWithoutResponsible
-                      ? 'bg-red-50 dark:bg-red-950/30 text-bradesco-red border-red-300 dark:border-red-900/60'
-                      : 'bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-700 hover:bg-gray-100'
-                  }`}
-                >
-                  Sem responsável
-                </button>
-                <button
-                  type="button"
-                  onClick={onToggleOnlyWithoutSubproduct}
-                  className={`px-2 py-1 rounded-md text-[11px] font-ui font-medium border transition-colors cursor-pointer ${
-                    onlyWithoutSubproduct
-                      ? 'bg-red-50 dark:bg-red-950/30 text-bradesco-red border-red-300 dark:border-red-900/60'
-                      : 'bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-700 hover:bg-gray-100'
-                  }`}
-                >
-                  Sem subproduto
-                </button>
-                <button
-                  type="button"
-                  onClick={onToggleOnlyDivergent}
-                  className={`px-2 py-1 rounded-md text-[11px] font-ui font-medium border transition-colors cursor-pointer flex items-center gap-1 ${
-                    onlyDivergent
-                      ? 'bg-red-50 dark:bg-red-950/30 text-bradesco-red border-red-300 dark:border-red-900/60'
-                      : 'bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <AlertTriangle className="w-3 h-3" />
-                  Divergentes
-                </button>
-              </div>
-            </div>
-
-            {/* Limpar filtros */}
-            {isInventoryFilterActive && (
+        {/* Popover Flutuante */}
+        <SidebarFilterPopover
+          isOpen={isPopoverOpen}
+          onClose={() => setIsPopoverOpen(false)}
+          anchorRef={filterButtonRef}
+          title="Filtros do Inventário"
+          activeCount={totalActiveCount}
+          onResetAll={onResetInventoryFilters}
+        >
+          {/* Toggles Rápidos */}
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block">
+              Exceções e Status
+            </span>
+            <div className="flex flex-wrap gap-1.5">
               <button
                 type="button"
-                onClick={onResetInventoryFilters}
-                className="mt-1 flex items-center justify-center gap-1.5 px-2.5 py-1 text-xs font-ui font-medium text-gray-500 hover:text-bradesco-red dark:text-slate-400 transition-colors cursor-pointer"
+                onClick={onToggleOnlyWithoutResponsible}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-ui font-medium border transition-colors cursor-pointer ${
+                  onlyWithoutResponsible
+                    ? 'bg-red-50 dark:bg-red-950/40 text-[#7B0209] border-[#7B0209]/40 font-semibold'
+                    : 'bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:bg-gray-100'
+                }`}
               >
-                <RotateCcw className="w-3 h-3 text-bradesco-red" />
-                Limpar filtros
+                Sem responsável
               </button>
-            )}
+              <button
+                type="button"
+                onClick={onToggleOnlyWithoutSubproduct}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-ui font-medium border transition-colors cursor-pointer ${
+                  onlyWithoutSubproduct
+                    ? 'bg-red-50 dark:bg-red-950/40 text-[#7B0209] border-[#7B0209]/40 font-semibold'
+                    : 'bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:bg-gray-100'
+                }`}
+              >
+                Sem subproduto
+              </button>
+              <button
+                type="button"
+                onClick={onToggleOnlyDivergent}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-ui font-medium border transition-colors cursor-pointer flex items-center gap-1 ${
+                  onlyDivergent
+                    ? 'bg-red-50 dark:bg-red-950/40 text-[#7B0209] border-[#7B0209]/40 font-semibold'
+                    : 'bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:bg-gray-100'
+                }`}
+              >
+                <AlertTriangle className="w-3 h-3 text-[#7B0209]" />
+                Divergentes
+              </button>
+            </div>
           </div>
-        )}
+
+          {/* Artefato */}
+          <FilterMultiSelectSearchable
+            label="Tipo de Artefato"
+            options={filterOptions.tipoArtefato}
+            values={inventoryFilters.tipo_mapa || []}
+            onChange={(vals) => onInventoryFiltersChange({ ...inventoryFilters, tipo_mapa: vals })}
+            placeholder="Buscar tipo de artefato..."
+          />
+
+          {/* Classificação */}
+          <FilterMultiSelectSearchable
+            label="Classificação"
+            options={filterOptions.classificacao}
+            values={inventoryFilters.measurement_class || []}
+            onChange={(vals) => onInventoryFiltersChange({ ...inventoryFilters, measurement_class: vals })}
+            placeholder="Buscar classificação..."
+          />
+
+          {/* Produto */}
+          <FilterMultiSelectSearchable
+            label="Produto"
+            options={filterOptions.produtos}
+            values={inventoryFilters.produto || []}
+            onChange={(vals) => onInventoryFiltersChange({ ...inventoryFilters, produto: vals })}
+            placeholder="Buscar produto..."
+          />
+
+          {/* Subproduto */}
+          <FilterMultiSelectSearchable
+            label="Subproduto"
+            options={filterOptions.subprodutos}
+            values={inventoryFilters.subproduto || []}
+            onChange={(vals) => onInventoryFiltersChange({ ...inventoryFilters, subproduto: vals })}
+            placeholder="Buscar subproduto..."
+          />
+
+          {/* Parâmetro */}
+          <FilterMultiSelectSearchable
+            label="Parâmetro"
+            options={filterOptions.parametros}
+            values={inventoryFilters.parametro || []}
+            onChange={(vals) => onInventoryFiltersChange({ ...inventoryFilters, parametro: vals })}
+            placeholder="Buscar parâmetro..."
+          />
+
+          {/* Ano */}
+          <FilterMultiSelectSearchable
+            label="Ano"
+            options={filterOptions.anos}
+            values={inventoryFilters.ano || []}
+            onChange={(vals) => onInventoryFiltersChange({ ...inventoryFilters, ano: vals })}
+            placeholder="Buscar ano..."
+          />
+        </SidebarFilterPopover>
       </div>
     );
   }
 
   // 3. POR PRODUTO (produtos_analise)
   if (currentRouteId === 'produtos_analise') {
-    const isFiltered = productSubprodutoFilter !== 'TODOS';
+    const isFiltered = productSubprodutoFilter !== 'TODOS' && productSubprodutoFilter !== 'all';
 
     return (
       <div className="flex flex-col gap-2 w-full min-w-0" id="sidebar-contextual-product">
-        {/* Campo de Busca */}
+        {/* Campo de Busca Reativo */}
         <div className="relative w-full">
           <Search className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none shrink-0" />
           <input
@@ -485,10 +449,11 @@ export const SidebarContextualArea: React.FC<SidebarContextualAreaProps> = ({
             placeholder="Filtrar produtos..."
             value={productSearch}
             onChange={(e) => onProductSearchChange(e.target.value)}
-            className="w-full pl-8 pr-7 py-1.5 bg-gray-50/90 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 rounded-lg text-xs font-ui text-gray-800 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-bradesco-red focus:border-bradesco-red transition-all truncate"
+            className="w-full pl-8 pr-7 py-1.5 bg-gray-50/90 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 rounded-lg text-xs font-ui text-gray-800 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-slate-600 focus:border-gray-400 dark:focus:border-slate-500 transition-all truncate"
           />
           {productSearch && (
             <button
+              type="button"
               onClick={() => onProductSearchChange('')}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 p-0.5"
               title="Limpar busca"
@@ -501,11 +466,13 @@ export const SidebarContextualArea: React.FC<SidebarContextualAreaProps> = ({
 
         {/* Botão de Filtros */}
         <button
+          ref={filterButtonRef}
           type="button"
-          onClick={() => setIsProductFiltersOpen(!isProductFiltersOpen)}
+          onClick={() => setIsPopoverOpen(!isPopoverOpen)}
+          aria-expanded={isPopoverOpen}
           className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-ui font-semibold transition-all border cursor-pointer ${
-            isProductFiltersOpen || isFiltered
-              ? 'bg-red-50/60 dark:bg-red-950/30 border-red-200 dark:border-red-900/50 text-bradesco-red'
+            isPopoverOpen || isFiltered
+              ? 'bg-red-50/70 dark:bg-red-950/30 border-[#7B0209]/30 text-[#7B0209]'
               : 'bg-gray-50/80 dark:bg-slate-800/80 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
           }`}
         >
@@ -513,45 +480,31 @@ export const SidebarContextualArea: React.FC<SidebarContextualAreaProps> = ({
             <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate">Filtros</span>
             {isFiltered && (
-              <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-bradesco-red text-white">
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-[#7B0209] text-white">
                 1
               </span>
             )}
           </div>
-          {isProductFiltersOpen ? <ChevronUp className="w-3.5 h-3.5 shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 shrink-0" />}
         </button>
 
-        {/* Filtros Expansíveis */}
-        {isProductFiltersOpen && (
-          <div className="flex flex-col gap-2 pt-1">
-            <div>
-              <label className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">
-                Subproduto
-              </label>
-              <select
-                value={productSubprodutoFilter}
-                onChange={(e) => onProductSubprodutoFilterChange(e.target.value)}
-                className="w-full px-2 py-1.5 rounded-lg text-xs font-ui font-medium bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-slate-200 outline-none cursor-pointer focus:border-bradesco-red truncate"
-              >
-                <option value="TODOS">Todos os subprodutos</option>
-                {availableProductSubprodutos.map((sub) => (
-                  <option key={sub} value={sub}>{sub}</option>
-                ))}
-              </select>
-            </div>
-
-            {isProductFilterActive && (
-              <button
-                type="button"
-                onClick={onResetProductFilters}
-                className="mt-1 flex items-center justify-center gap-1.5 px-2.5 py-1 text-xs font-ui font-medium text-gray-500 hover:text-bradesco-red dark:text-slate-400 transition-colors cursor-pointer"
-              >
-                <RotateCcw className="w-3 h-3 text-bradesco-red" />
-                Limpar filtros
-              </button>
-            )}
-          </div>
-        )}
+        {/* Popover Flutuante */}
+        <SidebarFilterPopover
+          isOpen={isPopoverOpen}
+          onClose={() => setIsPopoverOpen(false)}
+          anchorRef={filterButtonRef}
+          title="Filtros de Produtos"
+          activeCount={isFiltered ? 1 : 0}
+          onResetAll={onResetProductFilters}
+        >
+          <FilterSearchableSingle
+            label="Subproduto"
+            options={availableProductSubprodutos}
+            value={productSubprodutoFilter}
+            onChange={onProductSubprodutoFilterChange}
+            allOptionLabel="Todos os subprodutos"
+            placeholder="Buscar subproduto..."
+          />
+        </SidebarFilterPopover>
       </div>
     );
   }
@@ -560,7 +513,7 @@ export const SidebarContextualArea: React.FC<SidebarContextualAreaProps> = ({
   if (currentRouteId === 'parametros_analise') {
     return (
       <div className="flex flex-col gap-2 w-full min-w-0" id="sidebar-contextual-param">
-        {/* Campo de Busca */}
+        {/* Campo de Busca Reativo */}
         <div className="relative w-full">
           <Search className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none shrink-0" />
           <input
@@ -568,10 +521,11 @@ export const SidebarContextualArea: React.FC<SidebarContextualAreaProps> = ({
             placeholder="Buscar parâmetro/valor..."
             value={paramSearch}
             onChange={(e) => onParamSearchChange(e.target.value)}
-            className="w-full pl-8 pr-7 py-1.5 bg-gray-50/90 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 rounded-lg text-xs font-ui text-gray-800 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-bradesco-red focus:border-bradesco-red transition-all truncate"
+            className="w-full pl-8 pr-7 py-1.5 bg-gray-50/90 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 rounded-lg text-xs font-ui text-gray-800 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-slate-600 focus:border-gray-400 dark:focus:border-slate-500 transition-all truncate"
           />
           {paramSearch && (
             <button
+              type="button"
               onClick={() => onParamSearchChange('')}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 p-0.5"
               title="Limpar busca"
@@ -586,9 +540,9 @@ export const SidebarContextualArea: React.FC<SidebarContextualAreaProps> = ({
           <button
             type="button"
             onClick={onResetParamFilters}
-            className="flex items-center justify-center gap-1.5 px-2.5 py-1 text-xs font-ui font-medium text-gray-500 hover:text-bradesco-red dark:text-slate-400 transition-colors cursor-pointer"
+            className="flex items-center justify-center gap-1.5 px-2.5 py-1 text-xs font-ui font-semibold text-gray-500 hover:text-[#7B0209] dark:text-slate-400 transition-colors cursor-pointer"
           >
-            <RotateCcw className="w-3 h-3 text-bradesco-red" />
+            <RotateCcw className="w-3 h-3 text-[#7B0209]" />
             Limpar busca
           </button>
         )}
@@ -607,11 +561,13 @@ export const SidebarContextualArea: React.FC<SidebarContextualAreaProps> = ({
       <div className="flex flex-col gap-2 w-full min-w-0" id="sidebar-contextual-insights">
         {/* Botão de Filtros */}
         <button
+          ref={filterButtonRef}
           type="button"
-          onClick={() => setIsInsightsFiltersOpen(!isInsightsFiltersOpen)}
+          onClick={() => setIsPopoverOpen(!isPopoverOpen)}
+          aria-expanded={isPopoverOpen}
           className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-ui font-semibold transition-all border cursor-pointer ${
-            isInsightsFiltersOpen || activeInsightsCount > 0
-              ? 'bg-red-50/60 dark:bg-red-950/30 border-red-200 dark:border-red-900/50 text-bradesco-red'
+            isPopoverOpen || activeInsightsCount > 0
+              ? 'bg-red-50/70 dark:bg-red-950/30 border-[#7B0209]/30 text-[#7B0209]'
               : 'bg-gray-50/80 dark:bg-slate-800/80 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
           }`}
         >
@@ -619,85 +575,59 @@ export const SidebarContextualArea: React.FC<SidebarContextualAreaProps> = ({
             <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate">Filtros de Indicadores</span>
             {activeInsightsCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-bradesco-red text-white">
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-[#7B0209] text-white">
                 {activeInsightsCount}
               </span>
             )}
           </div>
-          {isInsightsFiltersOpen ? <ChevronUp className="w-3.5 h-3.5 shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 shrink-0" />}
         </button>
 
-        {/* Filtros Expansíveis */}
-        {isInsightsFiltersOpen && (
-          <div className="flex flex-col gap-2 pt-1">
-            {/* Produto */}
-            <div>
-              <label className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">
-                Produto
-              </label>
-              <select
-                value={insightsProductFilter}
-                onChange={(e) => onInsightsProductFilterChange(e.target.value)}
-                className="w-full px-2 py-1.5 rounded-lg text-xs font-ui font-medium bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-slate-200 outline-none cursor-pointer focus:border-bradesco-red truncate"
-              >
-                <option value="all">TODOS OS PRODUTOS</option>
-                {availableInsightsProducts.map((p) => (
-                  <option key={p} value={p}>{p.toUpperCase()}</option>
-                ))}
-              </select>
-            </div>
+        {/* Popover Flutuante */}
+        <SidebarFilterPopover
+          isOpen={isPopoverOpen}
+          onClose={() => setIsPopoverOpen(false)}
+          anchorRef={filterButtonRef}
+          title="Filtros de Indicadores"
+          activeCount={activeInsightsCount}
+          onResetAll={onResetInsightsFilters}
+        >
+          {/* Produto */}
+          <FilterSearchableSingle
+            label="Produto"
+            options={availableInsightsProducts}
+            value={insightsProductFilter}
+            onChange={onInsightsProductFilterChange}
+            allOptionLabel="TODOS OS PRODUTOS"
+            placeholder="Buscar produto..."
+          />
 
-            {/* Nível 2 / Subproduto */}
-            <div>
-              <label className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">
-                Nível 2 / Subproduto
-              </label>
-              <select
-                value={insightsSubprodutoFilter}
-                onChange={(e) => onInsightsSubprodutoFilterChange(e.target.value)}
-                className="w-full px-2 py-1.5 rounded-lg text-xs font-ui font-medium bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-slate-200 outline-none cursor-pointer focus:border-bradesco-red truncate"
-              >
-                <option value="all">TODOS OS SUBPRODUTOS</option>
-                {availableInsightsSubprodutos.map((sub) => (
-                  <option key={sub} value={sub}>{sub}</option>
-                ))}
-              </select>
-            </div>
+          {/* Nível 2 / Subproduto */}
+          <FilterSearchableSingle
+            label="Nível 2 / Subproduto"
+            options={availableInsightsSubprodutos}
+            value={insightsSubprodutoFilter}
+            onChange={onInsightsSubprodutoFilterChange}
+            allOptionLabel="TODOS OS SUBPRODUTOS"
+            placeholder="Buscar subproduto..."
+          />
 
-            {/* Mensuração */}
-            <div>
-              <label className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">
-                Mensuração
-              </label>
-              <select
-                value={insightsMeasurementFilter}
-                onChange={(e) => onInsightsMeasurementFilterChange(e.target.value)}
-                className="w-full px-2 py-1.5 rounded-lg text-xs font-ui font-medium bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-slate-200 outline-none cursor-pointer focus:border-bradesco-red truncate"
-              >
-                <option value="all">QUALQUER MENSURAÇÃO</option>
-                <option value="GA4">APENAS GA4</option>
-                <option value="GA3">APENAS GA3 / UNIVERSAL</option>
-                <option value="HIBRIDO">APENAS HÍBRIDO</option>
-              </select>
-            </div>
-
-            {/* Limpar filtros */}
-            {isInsightsFilterActive && (
-              <button
-                type="button"
-                onClick={onResetInsightsFilters}
-                className="mt-1 flex items-center justify-center gap-1.5 px-2.5 py-1 text-xs font-ui font-medium text-gray-500 hover:text-bradesco-red dark:text-slate-400 transition-colors cursor-pointer"
-              >
-                <RotateCcw className="w-3 h-3 text-bradesco-red" />
-                Limpar filtros
-              </button>
-            )}
-          </div>
-        )}
+          {/* Mensuração */}
+          <FilterSegmentedRow
+            label="Mensuração"
+            value={insightsMeasurementFilter}
+            onChange={onInsightsMeasurementFilterChange}
+            options={[
+              { value: 'all', label: 'Qualquer' },
+              { value: 'GA4', label: 'GA4' },
+              { value: 'GA3', label: 'GA3 / Universal' },
+              { value: 'HIBRIDO', label: 'Híbrido' },
+            ]}
+          />
+        </SidebarFilterPopover>
       </div>
     );
   }
 
-  // Conexões (graph), Sincronização, Plugins e outros não possuem busca ou filtros
+  // Conexões (graph) e outras rotas não possuem filtros contextuais adicionais
   return null;
 };

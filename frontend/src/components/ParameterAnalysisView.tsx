@@ -1,10 +1,12 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useDeferredValue } from 'react';
 import { 
   Tag, Search, Filter, Code2, Layers, ChevronRight, ChevronDown,
   Sparkles, Database, FileText, Check
 } from 'lucide-react';
 import { Artifact, ParameterSummaryItem } from '../types';
 import { PageHeader } from './PageHeader';
+import { evaluateRecordMatch } from '../utils/contextualSearch';
+import { ContextualEmptyState } from './ContextualEmptyState';
 
 interface ParameterAnalysisViewProps {
   artifacts: Artifact[];
@@ -87,21 +89,35 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
     }).sort((a, b) => b.occurrences - a.occurrences);
   }, [artifacts]);
 
+  const deferredSearch = useDeferredValue(effectiveSearchTerm);
+
   const filteredCatalog = useMemo(() => {
-    let result = parametersCatalog;
-    
-    if (effectiveSearchTerm.trim()) {
-      const term = effectiveSearchTerm.toLowerCase();
-      result = result.filter(p => 
-        p.name.toLowerCase().includes(term) ||
-        p.distinctValuesList.some(v => v.toLowerCase().includes(term))
-      );
-    }
-    return result;
-  }, [parametersCatalog, effectiveSearchTerm]);
+    if (!deferredSearch.trim()) return parametersCatalog;
+
+    const scored = parametersCatalog
+      .map(p => {
+        const extraText = p.associatedMaps
+          .map(m => `${m.id} ${m.titulo} ${m.subproduto || ''}`)
+          .join(' ');
+
+        const matchRes = evaluateRecordMatch(deferredSearch, {
+          title: p.name,
+          values: p.distinctValuesList,
+          product: p.productsList.join(' '),
+          extraText
+        });
+
+        return { param: p, ...matchRes };
+      })
+      .filter(item => item.matches);
+
+    // Ordena por maior relevância quando há busca
+    scored.sort((a, b) => b.score - a.score);
+    return scored.map(item => item.param);
+  }, [parametersCatalog, deferredSearch]);
 
   const activeParam = selectedParamKey 
-    ? parametersCatalog.find(p => p.name === selectedParamKey) 
+    ? filteredCatalog.find(p => p.name === selectedParamKey) || filteredCatalog[0] || null
     : filteredCatalog[0] || null;
 
   // Clear drill-down states when param changes
@@ -180,16 +196,19 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
         subtitle="Frequência, mapeamento de tipos e valores distintos utilizados no disparo de eventos."
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left side: Parameter List */}
-        <div className="lg:col-span-5 flex flex-col gap-3">
-
-          {filteredCatalog.length === 0 ? (
-            <div className="p-8 text-center text-gray-400 flat-card rounded-2xl border border-gray-200 dark:border-slate-800 font-ui text-sm">
-              Nenhum parâmetro encontrado com os filtros atuais.
-            </div>
-          ) : (
-            filteredCatalog.map(param => {
+      {filteredCatalog.length === 0 ? (
+        <ContextualEmptyState
+          searchTerm={effectiveSearchTerm}
+          onClearSearch={() => {
+            if (onSearchChange) onSearchChange('');
+            setLocalSearchTerm('');
+          }}
+        />
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left side: Parameter List */}
+          <div className="lg:col-span-5 flex flex-col gap-3">
+            {filteredCatalog.map(param => {
               const isSelected = activeParam?.name === param.name;
               return (
                 <div 
@@ -220,9 +239,8 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
                   </div>
                 </div>
               );
-            })
-          )}
-        </div>
+            })}
+          </div>
 
         {/* Right side: Parameter Details */}
         <div className="lg:col-span-7">
@@ -357,6 +375,7 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
           )}
         </div>
       </div>
+      )}
     </div>
   );
 };
