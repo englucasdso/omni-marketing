@@ -26,11 +26,6 @@ async function startServer() {
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-  // Health check endpoint
-  app.get("/api/health", (_req, res) => {
-    res.json({ status: "ok" });
-  });
-
   // Roteamento da API (Backend)
   // Tudo que começar com "/api" será repassado para as lógicas de busca 
   // definidas dentro do arquivo searchRoutes.ts
