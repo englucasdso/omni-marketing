@@ -1,10 +1,10 @@
-import React, { useState, useMemo, useDeferredValue } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   ChevronRight, ArrowUpRight, Filter, AlertTriangle
 } from 'lucide-react';
-import { Artifact } from '../types';
+import { Artifact, ResolvedArtifactTaxonomy } from '../types';
 import { PageHeader } from './PageHeader';
-import { normalizarStatus, OfficialStatus, STATUS_CONFIGS } from '../utils/statusUtils';
+import { normalizarStatus, OfficialStatus } from '../utils/statusUtils';
 import { 
   normalizeSearchText, 
   getQueryTokens, 
@@ -13,6 +13,7 @@ import {
   useDebouncedSearch 
 } from '../utils/contextualSearch';
 import { ContextualEmptyState } from './ContextualEmptyState';
+import { resolveArtifactTaxonomy } from '../utils/taxonomyResolver';
 
 interface ProductAnalysisViewProps {
   artifacts: Artifact[];
@@ -41,12 +42,33 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
   const effectiveSubproduto = selectedSubproduto !== undefined ? selectedSubproduto : localSelectedSubproduto;
   const setEffectiveSubproduto = onSubprodutoChange || setLocalSelectedSubproduto;
 
-  // Consolidação por produto
+  // Índice de artefatos por ID memoizado uma única vez
+  const artifactsById = useMemo(() => {
+    return new Map(artifacts.map(art => [String(art.id), art]));
+  }, [artifacts]);
+
+  // Resolução taxonômica memoizada por mapa
+  const taxonomyByMapId = useMemo(() => {
+    const taxMap = new Map<string, ResolvedArtifactTaxonomy>();
+    artifacts.forEach(art => {
+      if (art.artifact_type === 'MAPA') {
+        taxMap.set(String(art.id), resolveArtifactTaxonomy(art, artifactsById));
+      }
+    });
+    return taxMap;
+  }, [artifacts, artifactsById]);
+
+  // Consolidação estruturada por produto resolvido por ID
   const productsSummary = useMemo(() => {
-    const map = new Map<string, {
+    const productEntries = new Map<string, {
+      id: string;
       produto: string;
-      subprodutos: Set<string>;
       mapas: Artifact[];
+      seenMapIds: Set<string>;
+      firstLevelSubproducts: Set<string>;
+      descendantPathsMap: Map<string, { key: string; displayText: string; mapIds: Set<string> }>;
+      hasSemSubproduto: boolean;
+      semSubprodutoMapIds: Set<string>;
       totalTelas: number;
       mapasComTelas: number;
       mapasHomologados: number;
@@ -57,14 +79,22 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
     }>();
 
     artifacts.forEach(art => {
-      if (art.artifact_type !== 'MAPA') return; // Apenas mapas reais devem ser contabilizados
+      if (art.artifact_type !== 'MAPA') return; // Apenas mapas reais entram na análise
 
-      const prodName = art.produto || 'Sem Produto';
-      if (!map.has(prodName)) {
-        map.set(prodName, {
-          produto: prodName,
-          subprodutos: new Set(),
+      const tax = taxonomyByMapId.get(String(art.id)) || resolveArtifactTaxonomy(art, artifactsById);
+      const productKey = tax.productKey;
+      const productName = tax.product ? tax.product.name : 'Sem Produto';
+
+      if (!productEntries.has(productKey)) {
+        productEntries.set(productKey, {
+          id: productKey,
+          produto: productName,
           mapas: [],
+          seenMapIds: new Set(),
+          firstLevelSubproducts: new Set(),
+          descendantPathsMap: new Map(),
+          hasSemSubproduto: false,
+          semSubprodutoMapIds: new Set(),
           totalTelas: 0,
           mapasComTelas: 0,
           mapasHomologados: 0,
@@ -81,9 +111,40 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
         });
       }
 
-      const pEntry = map.get(prodName)!;
+      const pEntry = productEntries.get(productKey)!;
+      const mapIdStr = String(art.id);
+
+      // Prevenir dupla contagem utilizando o ID do mapa
+      if (pEntry.seenMapIds.has(mapIdStr)) {
+        return;
+      }
+      pEntry.seenMapIds.add(mapIdStr);
       pEntry.mapas.push(art);
-      if (art.subproduto) pEntry.subprodutos.add(art.subproduto);
+
+      // Subprodutos de primeiro nível abaixo do produto
+      if (tax.subproduct) {
+        pEntry.firstLevelSubproducts.add(tax.subproduct.name);
+      }
+
+      // Reconstrução de caminhos descendentes completos
+      if (tax.descendantPath.length === 0) {
+        pEntry.hasSemSubproduto = true;
+        pEntry.semSubprodutoMapIds.add(mapIdStr);
+      } else {
+        for (let len = 1; len <= tax.descendantPath.length; len++) {
+          const prefix = tax.descendantPath.slice(0, len);
+          const pKey = prefix.map(n => n.id).join('::');
+          const pDisplay = prefix.map(n => n.name).join(' › ');
+          if (!pEntry.descendantPathsMap.has(pKey)) {
+            pEntry.descendantPathsMap.set(pKey, {
+              key: pKey,
+              displayText: pDisplay,
+              mapIds: new Set()
+            });
+          }
+          pEntry.descendantPathsMap.get(pKey)!.mapIds.add(mapIdStr);
+        }
+      }
 
       const screens = art.screens || [];
       if (screens.length > 0) {
@@ -115,9 +176,8 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
       });
     });
 
-    return Array.from(map.values()).map(p => {
+    return Array.from(productEntries.values()).map(p => {
       const totalMaps = p.mapas.length;
-      // Taxa de homologação: mapas com 100% das telas validadas / mapas com ao menos uma tela
       const taxaHomologacao = p.mapasComTelas > 0 
         ? Math.round((p.mapasHomologados / p.mapasComTelas) * 100) 
         : 0;
@@ -127,15 +187,41 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
         .slice(0, 5)
         .map(([name, count]) => ({ name, count }));
 
+      const pathsList = Array.from(p.descendantPathsMap.values())
+        .map(item => ({
+          key: item.key,
+          displayText: item.displayText,
+          count: item.mapIds.size,
+          mapIds: item.mapIds
+        }))
+        .sort((a, b) => a.displayText.localeCompare(b.displayText, 'pt-BR'));
+
+      if (p.hasSemSubproduto) {
+        pathsList.push({
+          key: 'SEM_SUBPRODUTO',
+          displayText: 'Sem subproduto',
+          count: p.semSubprodutoMapIds.size,
+          mapIds: p.semSubprodutoMapIds
+        });
+      }
+
       return {
-        ...p,
+        id: p.id,
+        produto: p.produto,
+        mapas: p.mapas,
         totalMaps,
-        subprodutosList: Array.from(p.subprodutos).sort(),
+        subprodutosList: Array.from(p.firstLevelSubproducts).sort(),
+        pathsList,
+        descendantPathsMap: p.descendantPathsMap,
+        semSubprodutoMapIds: p.semSubprodutoMapIds,
+        totalTelas: p.totalTelas,
         taxaHomologacao,
+        measurementCounts: p.measurementCounts,
+        screenStatusCounts: p.screenStatusCounts,
         topParameters
       };
     }).sort((a, b) => b.totalMaps - a.totalMaps);
-  }, [artifacts]);
+  }, [artifacts, taxonomyByMapId, artifactsById]);
 
   const debouncedSearch = useDebouncedSearch(effectiveSearchTerm, 150);
 
@@ -145,13 +231,14 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
       const parts = [
         p.produto,
         ...p.subprodutosList,
+        ...p.pathsList.map(pl => pl.displayText),
         ...p.mapas.map(m => m.id),
         ...p.mapas.map(m => m.titulo),
         ...p.mapas.flatMap(m => (m.parameter_summary || []).map(ps => ps.name))
       ];
       return {
         product: p,
-        normId: '',
+        normId: normalizeSearchText(p.id),
         normTitle: normalizeSearchText(p.produto),
         searchableText: normalizeSearchText(parts.join(' ')),
       };
@@ -170,16 +257,38 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
     return prioritized.map(item => item.product);
   }, [indexedProducts, productsSummary, debouncedSearch]);
 
-  const activeProduct = selectedProductKey 
-    ? filteredProducts.find(p => p.produto === selectedProductKey) || filteredProducts[0] || null
-    : filteredProducts[0] || null;
+  const activeProduct = useMemo(() => {
+    if (filteredProducts.length === 0) return null;
+    if (selectedProductKey) {
+      const found = filteredProducts.find(p => p.id === selectedProductKey);
+      if (found) return found;
+    }
+    return filteredProducts[0];
+  }, [filteredProducts, selectedProductKey]);
 
-  // Filtro por subproduto dentro do produto ativo
+  // Filtro por subproduto / caminho descendente dentro do produto ativo
   const selectedMaps = useMemo(() => {
     if (!activeProduct) return [];
     if (effectiveSubproduto === 'TODOS') return activeProduct.mapas;
-    return activeProduct.mapas.filter(m => (m.subproduto || 'Sem subproduto') === effectiveSubproduto);
-  }, [activeProduct, effectiveSubproduto]);
+
+    // Se effectiveSubproduto for uma chave de caminho específica
+    const pathObj = activeProduct.pathsList.find(
+      pl => pl.key === effectiveSubproduto || pl.displayText === effectiveSubproduto
+    );
+    if (pathObj) {
+      return activeProduct.mapas.filter(m => pathObj.mapIds.has(String(m.id)));
+    }
+
+    if (effectiveSubproduto === 'SEM_SUBPRODUTO' || effectiveSubproduto === 'Sem subproduto') {
+      return activeProduct.mapas.filter(m => activeProduct.semSubprodutoMapIds.has(String(m.id)));
+    }
+
+    // Fallback: busca por subproduto textual
+    return activeProduct.mapas.filter(m => {
+      const tax = taxonomyByMapId.get(String(m.id));
+      return tax?.subproduct?.name === effectiveSubproduto || m.subproduto === effectiveSubproduto;
+    });
+  }, [activeProduct, effectiveSubproduto, taxonomyByMapId]);
 
   // Métricas dinâmicas do produto / subproduto selecionado
   const selectedMetrics = useMemo(() => {
@@ -246,8 +355,8 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
     };
   }, [selectedMaps]);
 
-  const handleSelectProduct = (prodName: string) => {
-    setSelectedProductKey(prodName);
+  const handleSelectProduct = (prodId: string) => {
+    setSelectedProductKey(prodId);
     setEffectiveSubproduto('TODOS');
   };
 
@@ -280,14 +389,14 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
         {/* Product Cards List */}
         <div className="lg:col-span-5 space-y-3">
           {filteredProducts.map(prod => {
-            const isSelected = activeProduct?.produto === prod.produto;
+            const isSelected = activeProduct?.id === prod.id;
             return (
               <div 
-                key={prod.produto}
-                onClick={() => handleSelectProduct(prod.produto)}
+                key={prod.id}
+                onClick={() => handleSelectProduct(prod.id)}
                 className={`p-5 rounded-2xl border transition-all cursor-pointer ${
                   isSelected 
-                    ? 'bg-white dark:bg-slate-800/90 border-bradesco-red shadow-neu-raised ring-1 ring-bradesco-red/20 -translate-y-0.5' 
+                    ? 'bg-white dark:bg-slate-800/90 border-[#7B0209] shadow-neu-raised ring-1 ring-[#7B0209]/20 -translate-y-0.5' 
                     : 'flat-card border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 shadow-neu-card'
                 }`}
               >
@@ -347,16 +456,16 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
                 </button>
               </div>
 
-              {/* Subproduto Selector (se houver subprodutos) */}
-              {activeProduct.subprodutosList.length > 0 && (
+              {/* Subproduto / Caminho Selector */}
+              {activeProduct.pathsList.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <Filter className="w-3.5 h-3.5 text-gray-400" />
                     <span className="text-xs font-ui font-semibold text-gray-600 dark:text-slate-400">
-                      Filtrar por Subproduto:
+                      Filtrar por Subproduto / Caminho:
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-1.5 max-h-56 overflow-y-auto custom-scrollbar p-0.5">
                     <button
                       type="button"
                       onClick={() => setEffectiveSubproduto('TODOS')}
@@ -368,20 +477,20 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
                     >
                       Todos ({activeProduct.mapas.length})
                     </button>
-                    {activeProduct.subprodutosList.map(sub => {
-                      const countMaps = activeProduct.mapas.filter(m => m.subproduto === sub).length;
+                    {activeProduct.pathsList.map(pathItem => {
+                      const isPathSelected = effectiveSubproduto === pathItem.key || effectiveSubproduto === pathItem.displayText;
                       return (
                         <button
-                          key={sub}
+                          key={pathItem.key}
                           type="button"
-                          onClick={() => setEffectiveSubproduto(sub)}
+                          onClick={() => setEffectiveSubproduto(pathItem.key)}
                           className={`px-3 py-1.5 rounded-xl text-xs font-ui font-medium transition-all cursor-pointer ${
-                            effectiveSubproduto === sub
+                            isPathSelected
                               ? 'bg-white dark:bg-slate-800 text-bradesco-red border border-bradesco-red/40 shadow-neu-raised'
                               : 'btn-neu text-gray-600 dark:text-slate-300 hover:text-gray-900'
                           }`}
                         >
-                          {sub} ({countMaps})
+                          {pathItem.displayText} ({pathItem.count})
                         </button>
                       );
                     })}
@@ -521,23 +630,27 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
                   Mapas Vinculados ({selectedMaps.length})
                 </h4>
                 <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
-                  {selectedMaps.map(mapItem => (
-                    <div 
-                      key={mapItem.id}
-                      onClick={() => onOpenMap(mapItem)}
-                      className="p-3 bg-gray-50 dark:bg-slate-800 hover:bg-red-50/50 dark:hover:bg-slate-750 rounded-xl border border-gray-100 dark:border-slate-700 flex items-center justify-between cursor-pointer transition-colors group"
-                    >
-                      <div className="overflow-hidden pr-2">
-                        <p className="text-xs font-bold text-gray-900 dark:text-slate-100 group-hover:text-bradesco-red transition-colors truncate">
-                          {mapItem.titulo}
-                        </p>
-                        <span className="text-[10px] text-gray-400">
-                          {mapItem.subproduto || 'Geral'} • {mapItem.screens?.length || 0} telas
-                        </span>
+                  {selectedMaps.map(mapItem => {
+                    const mapTax = taxonomyByMapId.get(String(mapItem.id));
+                    const pathLabel = mapTax?.displayPath || (mapTax?.subproduct ? mapTax.subproduct.name : 'Sem subproduto');
+                    return (
+                      <div 
+                        key={mapItem.id}
+                        onClick={() => onOpenMap(mapItem)}
+                        className="p-3 bg-gray-50 dark:bg-slate-800 hover:bg-red-50/50 dark:hover:bg-slate-750 rounded-xl border border-gray-100 dark:border-slate-700 flex items-center justify-between cursor-pointer transition-colors group"
+                      >
+                        <div className="overflow-hidden pr-2">
+                          <p className="text-xs font-bold text-gray-900 dark:text-slate-100 group-hover:text-bradesco-red transition-colors truncate">
+                            {mapItem.titulo}
+                          </p>
+                          <span className="text-[10px] text-gray-400">
+                            {pathLabel} • {mapItem.screens?.length || 0} telas
+                          </span>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-bradesco-red shrink-0" />
                       </div>
-                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-bradesco-red shrink-0" />
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>

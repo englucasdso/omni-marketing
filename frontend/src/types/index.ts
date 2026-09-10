@@ -110,6 +110,12 @@ export interface Artifact {
   space?: string;
   produto: string;
   subproduto: string;
+  produto_id?: string | null;
+  subproduto_id?: string | null;
+  subproduto_path?: string[];
+  subproduto_path_ids?: string[];
+  categorias?: string[];
+  categoria_ids?: string[];
   artifact_type?: ArtifactType;
   measurement_class?: MeasurementClass;
   header?: SemanticHeader;
@@ -225,4 +231,19 @@ export interface SearchResponse {
   total: number;
   resultados: Artifact[];
   insights: Insights;
+}
+
+export interface TaxonomyNodeReference {
+  id: string;
+  name: string;
+  depth: number;
+}
+
+export interface ResolvedArtifactTaxonomy {
+  product: TaxonomyNodeReference | null;
+  subproduct: TaxonomyNodeReference | null;
+  descendantPath: TaxonomyNodeReference[];
+  displayPath: string;
+  productKey: string;
+  subproductKey: string;
 }
