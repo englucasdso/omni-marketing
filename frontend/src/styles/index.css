@@ -447,14 +447,24 @@ body,
   box-shadow: 0 0 0 3px rgba(204, 9, 47, 0.25), var(--shadow-input);
 }
 
-/* Foco acessível por teclado */
+/* Foco acessível por teclado (neutro cinza, sem vermelho) */
 :focus-visible {
   outline: none !important;
-  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #cc092f !important;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #94a3b8 !important;
 }
 
 .dark :focus-visible {
-  box-shadow: 0 0 0 2px #0b0f19, 0 0 0 4px #cc092f !important;
+  box-shadow: 0 0 0 2px #0b0f19, 0 0 0 4px #475569 !important;
+}
+
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .app {
