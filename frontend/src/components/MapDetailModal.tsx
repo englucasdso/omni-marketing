@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Artifact, ScreenItem, SnippetItem } from '../types';
 import { getStatusStyle, normalizarStatus } from '../utils/statusUtils';
+import { formatUltimaSincronizacao } from '../utils/helpers';
 
 interface MapDetailModalProps {
   item: Artifact | null;
@@ -724,7 +725,7 @@ export const MapDetailModal: React.FC<MapDetailModalProps> = ({ item, onClose })
         {/* Modal Footer */}
         <div className="p-4 sm:p-5 border-t border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900/50 flex items-center justify-between">
           <div className="text-xs font-ui text-gray-400 dark:text-slate-500">
-            Última sincronização no Confluence: {item.ultima_atualizacao || 'N/A'}
+            Última sincronização no Confluence: {formatUltimaSincronizacao(item.ultima_atualizacao)}
           </div>
           <button 
             type="button"

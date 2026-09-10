@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Menu } from 'lucide-react';
 import { AppSidebar, NavItem } from './AppSidebar';
+import { formatUltimaSincronizacao } from '../utils/helpers';
 
 interface AppShellProps {
   currentRouteId: string;
@@ -71,11 +72,9 @@ export const AppShell: React.FC<AppShellProps> = ({
             <span>
               Desenvolvido por: <strong className="font-semibold text-gray-700 dark:text-slate-300 lowercase">lucas.doliveira@bradesco.com.br</strong>
             </span>
-            {lastSync && (
-              <span className="text-[11px] text-gray-400 dark:text-slate-500">
-                • Última sincronização: {lastSync}
-              </span>
-            )}
+            <span className="text-[11px] text-gray-400 dark:text-slate-500">
+              • Última sincronização: {formatUltimaSincronizacao(lastSync)}
+            </span>
           </div>
           <div className="text-[11px] font-medium tracking-wider uppercase">
             Salla.MKT V1.0.0

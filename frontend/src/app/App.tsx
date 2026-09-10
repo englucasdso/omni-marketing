@@ -1388,7 +1388,7 @@ export default function App() {
 
           <div className="w-full max-w-4xl mb-12">
             <div className="animated-border">
-              <div className={`inner-container glass-card py-4 px-6 flex items-center gap-4 transition-all duration-300 ${isSearchActive ? "bg-white dark:bg-slate-900 border-purple-500/30 dark:border-purple-400/30 shadow-[0_8px_30px_rgba(125,4,109,0.12)] ring-1 ring-purple-500/20" : "border-transparent"}`}>
+              <div className={`inner-container glass-card py-4 px-6 flex items-center transition-all duration-300 ${isSearchActive ? "bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-700 shadow-sm ring-1 ring-gray-300/60 dark:ring-slate-700/60" : "border-gray-200 dark:border-slate-800"}`}>
                 <textarea
                   ref={textareaRef}
                   value={query}
@@ -1401,17 +1401,10 @@ export default function App() {
                       executeSearch();
                     }
                   }}
-                  className="flex-1 bg-transparent border-none outline-none text-xl placeholder-gray-400 resize-none min-h-[1.5em] overflow-hidden pl-4"
+                  className="w-full bg-transparent border-none outline-none text-xl placeholder-gray-400 resize-none min-h-[1.5em] overflow-hidden focus:outline-none focus:ring-0"
                   placeholder="Busque por ID, nome do mapa ou qualquer termo relacionado"
                   rows={1}
                 />
-                <button
-                  onClick={() => executeSearch()}
-                  className="p-3 hover:scale-110 transition-transform active:scale-95"
-                  title="Buscar"
-                >
-                  <GradientSparkles className="w-8 h-8" animate={loading} />
-                </button>
               </div>
             </div>
 
