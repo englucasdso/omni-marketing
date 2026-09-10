@@ -20,7 +20,14 @@ import { getOperationalInsights } from "../utils/inventoryHelpers";
 import { fetchInventory, searchContent, fetchUsers, createUser, updateUser, deleteUser } from "../services/api";
 import { Artifact, Insights, SearchResponse, User as UserType, UserRole, UserStatus } from "../types";
 import { normalizar, formatDataBR, getFilteredInsights } from "../utils/helpers";
-import { evaluateRecordMatch } from "../utils/contextualSearch";
+import { 
+  buildArtifactSearchableText, 
+  normalizeSearchText, 
+  getQueryTokens, 
+  matchesAllTokens, 
+  sortWithSearchPriority, 
+  useDebouncedSearch 
+} from "../utils/contextualSearch";
 import { ContextualEmptyState } from "../components/ContextualEmptyState";
 import { MultiSelect } from "../components/MultiSelect";
 import { FilterField } from "../components/FilterField";
@@ -597,95 +604,84 @@ export default function App() {
     return years.sort((a, b) => Number(b) - Number(a));
   }, [cardSource]);
 
-  const deferredCardSearch = useDeferredValue(cardSearch);
+  const debouncedCardSearch = useDebouncedSearch(cardSearch, 150);
+
+  // Índice textual leve montado UMA ÚNICA VEZ quando a fonte de cards mudar e a aba de cards estiver ativa
+  const indexedCards = useMemo(() => {
+    if (appState !== 'results') return [];
+    return cardSource
+      .filter(i => i.artifact_type !== 'RAIZ')
+      .map(artifact => ({
+        artifact,
+        normId: normalizeSearchText(artifact.id),
+        normTitle: normalizeSearchText(artifact.titulo),
+        searchableText: buildArtifactSearchableText(artifact),
+      }));
+  }, [cardSource, appState]);
 
   // Filtragem e ordenação combinadas para a tela de Cards
   const filteredAndSortedCards = useMemo(() => {
-    let list = [...cardSource].filter(i => i.artifact_type !== 'RAIZ');
+    let list = indexedCards;
 
-    // 1. Busca textual inteligente (título, ID, produto, subproduto, responsável, parâmetros, valores)
-    const isSearchActive = Boolean(deferredCardSearch.trim());
-    let scoredList: { item: Artifact; score: number }[] = [];
-
-    if (isSearchActive) {
-      for (const item of list) {
-        const paramNames = (item.parameter_summary || []).map(p => p.name);
-        const paramValues = (item.parameter_summary || []).flatMap(p => p.distinct_values || []);
-
-        const matchRes = evaluateRecordMatch(deferredCardSearch, {
-          id: item.id,
-          title: item.titulo,
-          product: item.produto,
-          subproduct: item.subproduto,
-          responsible: item.responsavel,
-          artifactType: item.artifact_type,
-          classification: item.measurement_class,
-          parameters: paramNames,
-          values: paramValues,
-        });
-
-        if (matchRes.matches) {
-          scoredList.push({ item, score: matchRes.score });
-        }
-      }
-    } else {
-      scoredList = list.map(item => ({ item, score: 0 }));
-    }
-
-    // 2. Filtro de Artefato (Todos, Mapas, Documentações, Nós)
+    // 1. Filtro de Artefato (Todos, Mapas, Documentações, Nós)
     if (cardArtifactType === "mapas") {
-      scoredList = scoredList.filter(({ item: i }) => i.artifact_type === 'MAPA');
+      list = list.filter(({ artifact: i }) => i.artifact_type === 'MAPA');
     } else if (cardArtifactType === "docs") {
-      scoredList = scoredList.filter(({ item: i }) => i.artifact_type === 'DOCUMENTACAO');
+      list = list.filter(({ artifact: i }) => i.artifact_type === 'DOCUMENTACAO');
     } else if (cardArtifactType === "nos") {
-      scoredList = scoredList.filter(({ item: i }) => i.artifact_type === 'NO');
+      list = list.filter(({ artifact: i }) => i.artifact_type === 'NO');
     }
 
-    // 3. Filtro de Responsável
+    // 2. Filtro de Responsável
     if (cardResponsible !== "todos") {
-      scoredList = scoredList.filter(({ item: i }) => (i.responsavel || "").trim() === cardResponsible);
+      list = list.filter(({ artifact: i }) => (i.responsavel || "").trim() === cardResponsible);
     }
 
-    // 4. Filtro de Data (Ano)
+    // 3. Filtro de Data (Ano)
     if (cardYear !== "todas") {
-      scoredList = scoredList.filter(({ item: i }) => {
+      list = list.filter(({ artifact: i }) => {
         if (!i.ultima_atualizacao) return false;
         const d = new Date(i.ultima_atualizacao);
         return !isNaN(d.getTime()) && d.getFullYear().toString() === cardYear;
       });
     }
 
-    // Função auxiliar para ordenação secundária
-    const compareBySortPreference = (a: Artifact, b: Artifact) => {
+    // 4. Busca textual rápida (todas as palavras presentes no searchableText)
+    const queryTokens = getQueryTokens(debouncedCardSearch);
+    if (queryTokens.length > 0) {
+      list = list.filter(({ searchableText }) => matchesAllTokens(searchableText, queryTokens));
+    }
+
+    // 5. Ordenação padrão da tela
+    const sorted = [...list].sort((a, b) => {
+      const artA = a.artifact;
+      const artB = b.artifact;
       if (cardSort === "recentes") {
-        const timeA = a.ultima_atualizacao ? new Date(a.ultima_atualizacao).getTime() : 0;
-        const timeB = b.ultima_atualizacao ? new Date(b.ultima_atualizacao).getTime() : 0;
+        const timeA = artA.ultima_atualizacao ? new Date(artA.ultima_atualizacao).getTime() : 0;
+        const timeB = artB.ultima_atualizacao ? new Date(artB.ultima_atualizacao).getTime() : 0;
         return timeB - timeA;
       }
       if (cardSort === "antigos") {
-        const timeA = a.ultima_atualizacao ? new Date(a.ultima_atualizacao).getTime() : 0;
-        const timeB = b.ultima_atualizacao ? new Date(b.ultima_atualizacao).getTime() : 0;
+        const timeA = artA.ultima_atualizacao ? new Date(artA.ultima_atualizacao).getTime() : 0;
+        const timeB = artB.ultima_atualizacao ? new Date(artB.ultima_atualizacao).getTime() : 0;
         return timeA - timeB;
       }
       if (cardSort === "az") {
-        return (a.titulo || "").localeCompare(b.titulo || "", "pt-BR");
+        return (artA.titulo || "").localeCompare(artB.titulo || "", "pt-BR");
       }
       if (cardSort === "za") {
-        return (b.titulo || "").localeCompare(a.titulo || "", "pt-BR");
+        return (artB.titulo || "").localeCompare(artA.titulo || "", "pt-BR");
       }
       return 0;
-    };
-
-    // 5. Ordenação: por score de relevância em primeiro lugar se houver busca, depois critério do usuário
-    scoredList.sort((a, b) => {
-      if (isSearchActive && b.score !== a.score) {
-        return b.score - a.score;
-      }
-      return compareBySortPreference(a.item, b.item);
     });
 
-    return scoredList.map(({ item }) => item);
-  }, [cardSource, deferredCardSearch, cardArtifactType, cardResponsible, cardYear, cardSort]);
+    // 6. Quando houver busca: priorizar correspondência exata de ID, depois título começando pela consulta
+    const prioritized = queryTokens.length > 0
+      ? sortWithSearchPriority(sorted, debouncedCardSearch)
+      : sorted;
+
+    return prioritized.map(({ artifact }) => artifact);
+  }, [indexedCards, debouncedCardSearch, cardArtifactType, cardResponsible, cardYear, cardSort]);
 
   const totalCardsCount = filteredAndSortedCards.length;
   const totalCardPages = Math.max(1, Math.ceil(totalCardsCount / cardsPerPage));
@@ -1029,91 +1025,79 @@ export default function App() {
     }
   };
 
-  const deferredTableFilter = useDeferredValue(tableFilter);
+  const debouncedTableFilter = useDebouncedSearch(tableFilter, 150);
+
+  // Índice textual leve montado UMA ÚNICA VEZ quando os resultados mudarem e a aba de inventário estiver ativa
+  const indexedInventory = useMemo(() => {
+    if (appState !== 'inventory_table') return [];
+    return results
+      .filter(i => i.artifact_type !== 'RAIZ')
+      .map(artifact => ({
+        artifact,
+        normId: normalizeSearchText(artifact.id),
+        normTitle: normalizeSearchText(artifact.titulo),
+        searchableText: buildArtifactSearchableText(artifact),
+      }));
+  }, [results, appState]);
 
   // Inventory Logic - Computed Filtered & Sorted Results
   const filteredInventory = useMemo(() => {
-    let base = [...results].filter(i => i.artifact_type !== 'RAIZ');
-
-    // Busca contextual inteligente
-    const isSearchActive = Boolean(deferredTableFilter.trim());
-    let scoredBase: { item: Artifact; score: number }[] = [];
-
-    if (isSearchActive) {
-      for (const item of base) {
-        const paramNames = (item.parameter_summary || []).map(p => p.name);
-        const paramValues = (item.parameter_summary || []).flatMap(p => p.distinct_values || []);
-        const screenNames = (item.screens || []).map(s => `${s.instruction || ''} ${s.screen_id || ''} ${s.additional_information || ''}`).join(' ');
-
-        const matchRes = evaluateRecordMatch(deferredTableFilter, {
-          id: item.id,
-          title: item.titulo,
-          product: item.produto,
-          subproduct: item.subproduto,
-          responsible: item.responsavel,
-          artifactType: item.artifact_type,
-          classification: item.measurement_class,
-          parameters: paramNames,
-          values: paramValues,
-          extraText: screenNames,
-        });
-
-        if (matchRes.matches) {
-          scoredBase.push({ item, score: matchRes.score });
-        }
-      }
-    } else {
-      scoredBase = base.map(item => ({ item, score: 0 }));
-    }
+    let list = indexedInventory;
 
     // Secondary Detailed Filters
     if (onlyWithoutResponsible) {
-      scoredBase = scoredBase.filter(({ item: i }) => !i.responsavel || i.responsavel === '-');
+      list = list.filter(({ artifact: i }) => !i.responsavel || i.responsavel === '-');
     }
     if (onlyWithoutSubproduct) {
-      scoredBase = scoredBase.filter(({ item: i }) => !i.subproduto || i.subproduto === '-');
+      list = list.filter(({ artifact: i }) => !i.subproduto || i.subproduto === '-');
     }
     if (onlyDivergent) {
-      scoredBase = scoredBase.filter(({ item: i }) => i.status_divergent === true);
+      list = list.filter(({ artifact: i }) => i.status_divergent === true);
     }
 
     // Independent Multidimensional Filters
     if (inventoryFilters.tipo_mapa && inventoryFilters.tipo_mapa.length > 0) {
-      scoredBase = scoredBase.filter(({ item: i }) => {
+      list = list.filter(({ artifact: i }) => {
         const t = (i.artifact_type || 'NAO_CLASSIFICADO').toUpperCase();
         return inventoryFilters.tipo_mapa.includes(t);
       });
     }
     if (inventoryFilters.measurement_class && inventoryFilters.measurement_class.length > 0) {
-      scoredBase = scoredBase.filter(({ item: i }) => {
+      list = list.filter(({ artifact: i }) => {
         const m = (i.measurement_class || 'NAO_CLASSIFICADO').toUpperCase();
         return inventoryFilters.measurement_class.includes(m);
       });
     }
     if (inventoryFilters.produto && inventoryFilters.produto.length > 0) {
-      scoredBase = scoredBase.filter(({ item: i }) => inventoryFilters.produto.includes(i.produto || ""));
+      list = list.filter(({ artifact: i }) => inventoryFilters.produto.includes(i.produto || ""));
     }
     if (inventoryFilters.subproduto && inventoryFilters.subproduto.length > 0) {
-      scoredBase = scoredBase.filter(({ item: i }) => inventoryFilters.subproduto.includes(i.subproduto || ""));
+      list = list.filter(({ artifact: i }) => inventoryFilters.subproduto.includes(i.subproduto || ""));
     }
     if (inventoryFilters.responsavel && inventoryFilters.responsavel.length > 0) {
-      scoredBase = scoredBase.filter(({ item: i }) => inventoryFilters.responsavel.includes(i.responsavel || ""));
+      list = list.filter(({ artifact: i }) => inventoryFilters.responsavel.includes(i.responsavel || ""));
     }
     if (inventoryFilters.parametro && inventoryFilters.parametro.length > 0) {
-      scoredBase = scoredBase.filter(({ item: i }) => (i.parameter_summary || []).some(p => inventoryFilters.parametro.includes(p.name)));
+      list = list.filter(({ artifact: i }) => (i.parameter_summary || []).some(p => inventoryFilters.parametro.includes(p.name)));
     }
     if (inventoryFilters.ano && inventoryFilters.ano.length > 0) {
-      scoredBase = scoredBase.filter(({ item: i }) => {
+      list = list.filter(({ artifact: i }) => {
         const date = new Date(i.ultima_atualizacao);
         return inventoryFilters.ano.includes(date.getFullYear().toString());
       });
     }
 
-    // Sorting: se o usuário selecionou uma coluna, respeitar a coluna. Caso contrário, se houver busca, ordenar por relevância.
+    // Busca textual rápida (todas as palavras presentes no searchableText)
+    const queryTokens = getQueryTokens(debouncedTableFilter);
+    if (queryTokens.length > 0) {
+      list = list.filter(({ searchableText }) => matchesAllTokens(searchableText, queryTokens));
+    }
+
+    // Sorting: se o usuário selecionou uma coluna, respeitar a coluna. Caso contrário, se houver busca, priorizar correspondência exata de ID e início do título.
     if (inventorySort.field !== 'null') {
-      scoredBase.sort((aObj, bObj) => {
-        const a = aObj.item;
-        const b = bObj.item;
+      const sorted = [...list].sort((aObj, bObj) => {
+        const a = aObj.artifact;
+        const b = bObj.artifact;
         let valA = '';
         let valB = '';
         if (inventorySort.field === 'artifact_type') {
@@ -1133,12 +1117,16 @@ export default function App() {
           return valB.localeCompare(valA, 'pt-BR', { numeric: true });
         }
       });
-    } else if (isSearchActive) {
-      scoredBase.sort((a, b) => b.score - a.score);
+      return sorted.map(({ artifact }) => artifact);
     }
 
-    return scoredBase.map(({ item }) => item);
-  }, [results, deferredTableFilter, inventoryFilters, inventorySort, onlyDivergent, onlyWithoutResponsible, onlyWithoutSubproduct]);
+    if (queryTokens.length > 0) {
+      const prioritized = sortWithSearchPriority(list, debouncedTableFilter);
+      return prioritized.map(({ artifact }) => artifact);
+    }
+
+    return list.map(({ artifact }) => artifact);
+  }, [indexedInventory, debouncedTableFilter, inventoryFilters, inventorySort, onlyDivergent, onlyWithoutResponsible, onlyWithoutSubproduct]);
 
   const currentInventoryInsights = useMemo(() => {
     return getFilteredInsights(filteredInventory, tableFilter || query);

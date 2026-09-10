@@ -5,7 +5,13 @@ import {
 } from 'lucide-react';
 import { Artifact, ParameterSummaryItem } from '../types';
 import { PageHeader } from './PageHeader';
-import { evaluateRecordMatch } from '../utils/contextualSearch';
+import { 
+  normalizeSearchText, 
+  getQueryTokens, 
+  matchesAllTokens, 
+  sortWithSearchPriority, 
+  useDebouncedSearch 
+} from '../utils/contextualSearch';
 import { ContextualEmptyState } from './ContextualEmptyState';
 
 interface ParameterAnalysisViewProps {
@@ -89,32 +95,39 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
     }).sort((a, b) => b.occurrences - a.occurrences);
   }, [artifacts]);
 
-  const deferredSearch = useDeferredValue(effectiveSearchTerm);
+  const debouncedSearch = useDebouncedSearch(effectiveSearchTerm, 150);
+
+  // Índice textual leve montado UMA ÚNICA VEZ quando o catálogo de parâmetros mudar
+  const indexedParameters = useMemo(() => {
+    return parametersCatalog.map(param => {
+      const parts = [
+        param.name,
+        ...param.distinctValuesList,
+        ...param.productsList,
+        ...param.associatedMaps.map(m => m.id),
+        ...param.associatedMaps.map(m => m.titulo),
+        ...param.associatedMaps.map(m => m.subproduto || '')
+      ];
+      return {
+        param,
+        normId: '',
+        normTitle: normalizeSearchText(param.name),
+        searchableText: normalizeSearchText(parts.join(' ')),
+      };
+    });
+  }, [parametersCatalog]);
 
   const filteredCatalog = useMemo(() => {
-    if (!deferredSearch.trim()) return parametersCatalog;
+    const queryTokens = getQueryTokens(debouncedSearch);
+    if (queryTokens.length === 0) return parametersCatalog;
 
-    const scored = parametersCatalog
-      .map(p => {
-        const extraText = p.associatedMaps
-          .map(m => `${m.id} ${m.titulo} ${m.subproduto || ''}`)
-          .join(' ');
+    const matched = indexedParameters.filter(({ searchableText }) =>
+      matchesAllTokens(searchableText, queryTokens)
+    );
 
-        const matchRes = evaluateRecordMatch(deferredSearch, {
-          title: p.name,
-          values: p.distinctValuesList,
-          product: p.productsList.join(' '),
-          extraText
-        });
-
-        return { param: p, ...matchRes };
-      })
-      .filter(item => item.matches);
-
-    // Ordena por maior relevância quando há busca
-    scored.sort((a, b) => b.score - a.score);
-    return scored.map(item => item.param);
-  }, [parametersCatalog, deferredSearch]);
+    const prioritized = sortWithSearchPriority(matched, debouncedSearch);
+    return prioritized.map(item => item.param);
+  }, [indexedParameters, parametersCatalog, debouncedSearch]);
 
   const activeParam = selectedParamKey 
     ? filteredCatalog.find(p => p.name === selectedParamKey) || filteredCatalog[0] || null

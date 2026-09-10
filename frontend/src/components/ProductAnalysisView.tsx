@@ -5,7 +5,13 @@ import {
 import { Artifact } from '../types';
 import { PageHeader } from './PageHeader';
 import { normalizarStatus, OfficialStatus, STATUS_CONFIGS } from '../utils/statusUtils';
-import { evaluateRecordMatch } from '../utils/contextualSearch';
+import { 
+  normalizeSearchText, 
+  getQueryTokens, 
+  matchesAllTokens, 
+  sortWithSearchPriority, 
+  useDebouncedSearch 
+} from '../utils/contextualSearch';
 import { ContextualEmptyState } from './ContextualEmptyState';
 
 interface ProductAnalysisViewProps {
@@ -131,31 +137,38 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
     }).sort((a, b) => b.totalMaps - a.totalMaps);
   }, [artifacts]);
 
-  const deferredSearch = useDeferredValue(effectiveSearchTerm);
+  const debouncedSearch = useDebouncedSearch(effectiveSearchTerm, 150);
+
+  // Índice textual leve montado UMA ÚNICA VEZ quando a lista de produtos mudar
+  const indexedProducts = useMemo(() => {
+    return productsSummary.map(p => {
+      const parts = [
+        p.produto,
+        ...p.subprodutosList,
+        ...p.mapas.map(m => m.id),
+        ...p.mapas.map(m => m.titulo),
+        ...p.mapas.flatMap(m => (m.parameter_summary || []).map(ps => ps.name))
+      ];
+      return {
+        product: p,
+        normId: '',
+        normTitle: normalizeSearchText(p.produto),
+        searchableText: normalizeSearchText(parts.join(' ')),
+      };
+    });
+  }, [productsSummary]);
 
   const filteredProducts = useMemo(() => {
-    if (!deferredSearch.trim()) return productsSummary;
+    const queryTokens = getQueryTokens(debouncedSearch);
+    if (queryTokens.length === 0) return productsSummary;
 
-    const scored = productsSummary
-      .map(p => {
-        const extraText = p.mapas
-          .map(m => `${m.id} ${m.titulo} ${(m.parameter_summary || []).map(ps => ps.name).join(' ')}`)
-          .join(' ');
+    const matched = indexedProducts.filter(({ searchableText }) =>
+      matchesAllTokens(searchableText, queryTokens)
+    );
 
-        const matchRes = evaluateRecordMatch(deferredSearch, {
-          product: p.produto,
-          subproduct: p.subprodutosList.join(' '),
-          extraText
-        });
-
-        return { product: p, ...matchRes };
-      })
-      .filter(item => item.matches);
-
-    // Ordena por maior relevância quando há busca
-    scored.sort((a, b) => b.score - a.score);
-    return scored.map(item => item.product);
-  }, [productsSummary, deferredSearch]);
+    const prioritized = sortWithSearchPriority(matched, debouncedSearch);
+    return prioritized.map(item => item.product);
+  }, [indexedProducts, productsSummary, debouncedSearch]);
 
   const activeProduct = selectedProductKey 
     ? filteredProducts.find(p => p.produto === selectedProductKey) || filteredProducts[0] || null

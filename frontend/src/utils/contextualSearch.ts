@@ -1,382 +1,179 @@
+import { useState, useEffect } from 'react';
+import { Artifact } from '../types';
+
 /**
  * contextualSearch.ts
- * Utilitário centralizado de busca inteligente e ranqueamento por relevância
- * Sem bibliotecas externas, sem IA, com tolerância conservadora a erros de digitação,
- * suporte a sinônimos / equivalências contextuais, remoção de acentos e separadores.
+ * Busca contextual ultraleve e de alto desempenho.
+ * Sem Levenshtein, sem matrizes de tokens, sem regex pesadas a cada tecla.
+ * Índice textual simples gerado uma única vez por aba com useMemo.
  */
 
-// Mapa centralizado de equivalências e sinônimos contextuais
-const SYNONYM_GROUPS: string[][] = [
-  ['doc', 'docs', 'documento', 'documentos', 'documentacao'],
-  ['mapa', 'mapas', 'metrica', 'metricas', 'mensuracao'],
-  ['tela', 'telas', 'screen', 'screens'],
-  ['parametro', 'parametros', 'parameter', 'parameters'],
-  ['responsavel', 'responsaveis', 'owner', 'owners'],
-  ['produto', 'produtos', 'product', 'products'],
-  ['subproduto', 'subprodutos', 'subproduct', 'subproducts', 'sub product', 'sub-product'],
-  ['no', 'nos', 'node', 'nodes'],
-];
-
-// Stopwords comuns em português quando a busca tem mais de uma palavra
-const STOPWORDS = new Set([
-  'de', 'da', 'do', 'dos', 'das',
-  'em', 'no', 'na', 'nos', 'nas',
-  'para', 'com', 'por',
-  'e', 'ou',
-  'o', 'a', 'os', 'as',
-  'um', 'uma', 'uns', 'umas'
-]);
+export const SEARCH_ALIASES: Record<string, string> = {
+  docs: 'documento',
+  doc: 'documento',
+  documentacao: 'documento',
+  mapas: 'mapa',
+  metricas: 'mapa',
+  mensuracao: 'mapa',
+  screens: 'tela',
+  screen: 'tela',
+  parameters: 'parametro',
+  parameter: 'parametro',
+  owner: 'responsavel',
+  product: 'produto',
+  subproduct: 'subproduto',
+  node: 'no',
+};
 
 /**
- * Normaliza um texto para busca:
- * 1. Converte para minúsculas
- * 2. Remove acentuação (NFD)
- * 3. Substitui pontuações, _, -, / e outros separadores por espaços
- * 4. Remove espaços duplicados
+ * Normaliza texto para busca:
+ * - Converte maiúsculas para minúsculas
+ * - Remove acentos
+ * - Converte separadores (_, -, /, etc.) em espaços
+ * - Remove espaços duplicados
+ * - Aplica substituição de aliases diretos
  */
 export function normalizeSearchText(text: unknown): string {
   if (text == null) return '';
-  return String(text)
+  const cleaned = String(text)
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[_\-–—/\\.,;:?!()[\]{}'"`~@#$%^&*+=|<>]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+
+  if (!cleaned) return '';
+
+  const words = cleaned.split(' ');
+  for (let i = 0; i < words.length; i++) {
+    const alias = SEARCH_ALIASES[words[i]];
+    if (alias) {
+      words[i] = alias;
+    }
+  }
+  return words.join(' ');
 }
 
 /**
- * Stemming conservador: reduz plurais comuns para comparar singular/plural
+ * Divide a consulta normalizada em palavras únicas não vazias
  */
-function stemWord(word: string): string {
-  if (word.length <= 3) return word;
-  if (word.endsWith('oes')) return word.slice(0, -3) + 'ao';
-  if (word.endsWith('ais') || word.endsWith('eis') || word.endsWith('ois')) return word.slice(0, -3) + 'al';
-  if (word.endsWith('res') || word.endsWith('zes') || word.endsWith('nes')) return word.slice(0, -2);
-  if (word.endsWith('es') && word.length > 4) return word.slice(0, -2);
-  if (word.endsWith('s') && !word.endsWith('ss') && word.length > 3) return word.slice(0, -1);
-  return word;
-}
-
-/**
- * Distância de Levenshtein simples e otimizada
- */
-function levenshteinDistance(a: string, b: string): number {
-  if (a === b) return 0;
-  if (a.length === 0) return b.length;
-  if (b.length === 0) return a.length;
-
-  // Se a diferença de tamanho for maior que 2, já excede o limite máximo permitido
-  if (Math.abs(a.length - b.length) > 2) return 999;
-
-  const v0 = new Array(b.length + 1);
-  const v1 = new Array(b.length + 1);
-
-  for (let i = 0; i <= b.length; i++) {
-    v0[i] = i;
-  }
-
-  for (let i = 0; i < a.length; i++) {
-    v1[0] = i + 1;
-
-    for (let j = 0; j < b.length; j++) {
-      const cost = a[i] === b[j] ? 0 : 1;
-      v1[j + 1] = Math.min(v1[j] + 1, v0[j + 1] + 1, v0[j] + cost);
-    }
-
-    for (let j = 0; j <= b.length; j++) {
-      v0[j] = v1[j];
-    }
-  }
-
-  return v0[b.length];
-}
-
-/**
- * Verifica se duas palavras coincidem por exatidão, prefixo, stem, sinônimo ou tolerância de digitação
- * Regra de tolerância:
- * - <= 3 caracteres: somente correspondência exata
- * - 4-7 caracteres: tolerância máxima de 1 alteração
- * - >= 8 caracteres: tolerância máxima de 2 alterações
- */
-function matchToken(queryToken: string, targetToken: string): { matches: boolean; isExact: boolean; isTypo: boolean } {
-  if (!queryToken || !targetToken) return { matches: false, isExact: false, isTypo: false };
-
-  // 1. Exata
-  if (queryToken === targetToken) {
-    return { matches: true, isExact: true, isTypo: false };
-  }
-
-  // 2. Prefixo (se queryToken tem >= 3 caracteres)
-  if (queryToken.length >= 3 && targetToken.startsWith(queryToken)) {
-    return { matches: true, isExact: true, isTypo: false };
-  }
-
-  // 3. Stemming (singular/plural)
-  const qStem = stemWord(queryToken);
-  const tStem = stemWord(targetToken);
-  if (qStem === tStem || (qStem.length >= 3 && tStem.startsWith(qStem))) {
-    return { matches: true, isExact: true, isTypo: false };
-  }
-
-  // 4. Sinônimos / Equivalências
-  for (const group of SYNONYM_GROUPS) {
-    const hasQuery = group.some(item => normalizeSearchText(item) === queryToken || stemWord(normalizeSearchText(item)) === qStem);
-    const hasTarget = group.some(item => normalizeSearchText(item) === targetToken || stemWord(normalizeSearchText(item)) === tStem);
-    if (hasQuery && hasTarget) {
-      return { matches: true, isExact: true, isTypo: false };
-    }
-  }
-
-  // 5. Tolerância conservadora a erros de digitação (Levenshtein)
-  const len = queryToken.length;
-  if (len >= 4) {
-    const maxDistance = len <= 7 ? 1 : 2;
-    const dist = levenshteinDistance(queryToken, targetToken);
-    if (dist <= maxDistance) {
-      return { matches: true, isExact: false, isTypo: true };
-    }
-  }
-
-  return { matches: false, isExact: false, isTypo: false };
-}
-
-/**
- * Tokeniza uma consulta de busca removendo stopwords se houver mais de uma palavra
- */
-export function tokenizeQuery(query: string): string[] {
+export function getQueryTokens(query: string): string[] {
   const normalized = normalizeSearchText(query);
   if (!normalized) return [];
-
-  const rawTokens = normalized.split(/\s+/).filter(Boolean);
-  if (rawTokens.length <= 1) {
-    return rawTokens;
-  }
-
-  // Ignorar stopwords se a consulta tiver outras palavras
-  const filtered = rawTokens.filter(t => !STOPWORDS.has(t));
-  return filtered.length > 0 ? filtered : rawTokens;
-}
-
-export interface RecordSearchFields {
-  id?: string;
-  title?: string;
-  product?: string;
-  subproduct?: string;
-  responsible?: string;
-  artifactType?: string;
-  classification?: string;
-  parameters?: string[];
-  values?: string[];
-  extraText?: string;
-}
-
-export interface SearchMatchResult {
-  matches: boolean;
-  score: number;
+  return normalized.split(' ').filter(Boolean);
 }
 
 /**
- * Avalia a correspondência de um registro com a consulta de busca e calcula o score de relevância
+ * Verifica de forma ultrarrápida se todas as palavras da busca aparecem no texto indexado
  */
-export function evaluateRecordMatch(
-  query: string,
-  fields: RecordSearchFields
-): SearchMatchResult {
+export function matchesAllTokens(searchableText: string, queryTokens: string[]): boolean {
+  if (queryTokens.length === 0) return true;
+  for (let i = 0; i < queryTokens.length; i++) {
+    if (!searchableText.includes(queryTokens[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export interface IndexedArtifact {
+  artifact: Artifact;
+  normId: string;
+  normTitle: string;
+  searchableText: string;
+}
+
+/**
+ * Monta o texto pesquisável de um artefato uma única vez para indexação
+ */
+export function buildArtifactSearchableText(artifact: Artifact): string {
+  const parts: string[] = [];
+
+  if (artifact.id) parts.push(artifact.id);
+  if (artifact.titulo) parts.push(artifact.titulo);
+  if (artifact.produto) parts.push(artifact.produto);
+  if (artifact.subproduto) parts.push(artifact.subproduto);
+  if (artifact.responsavel) parts.push(artifact.responsavel);
+  if (artifact.artifact_type) parts.push(artifact.artifact_type);
+  if (artifact.measurement_class) parts.push(artifact.measurement_class);
+
+  if (artifact.parameter_summary && artifact.parameter_summary.length > 0) {
+    for (let i = 0; i < artifact.parameter_summary.length; i++) {
+      const p = artifact.parameter_summary[i];
+      if (p.name) parts.push(p.name);
+      if (p.distinct_values && p.distinct_values.length > 0) {
+        for (let j = 0; j < p.distinct_values.length; j++) {
+          parts.push(p.distinct_values[j]);
+        }
+      }
+    }
+  }
+
+  if (artifact.screens && artifact.screens.length > 0) {
+    for (let i = 0; i < artifact.screens.length; i++) {
+      const s = artifact.screens[i];
+      if (s.instruction) parts.push(s.instruction);
+    }
+  }
+
+  return normalizeSearchText(parts.join(' '));
+}
+
+/**
+ * Ordenação rápida quando há termo de busca:
+ * 1. Prioriza correspondência exata de ID
+ * 2. Depois título começando pela consulta
+ * 3. Depois mantém a ordenação já existente na tela
+ */
+export function sortWithSearchPriority<T extends { normId?: string; normTitle?: string }>(
+  items: T[],
+  query: string
+): T[] {
   const normQuery = normalizeSearchText(query);
-  if (!normQuery) {
-    return { matches: true, score: 0 };
-  }
+  if (!normQuery) return items;
 
-  const queryTokens = tokenizeQuery(query);
-  if (queryTokens.length === 0) {
-    return { matches: true, score: 0 };
-  }
+  const exactId: T[] = [];
+  const titleStarts: T[] = [];
+  const others: T[] = [];
 
-  // Normalização prévia dos campos
-  const normId = normalizeSearchText(fields.id);
-  const normTitle = normalizeSearchText(fields.title);
-  const normProduct = normalizeSearchText(fields.product);
-  const normSubproduct = normalizeSearchText(fields.subproduct);
-  const normResponsible = normalizeSearchText(fields.responsible);
-  const normArtifactType = normalizeSearchText(fields.artifactType);
-  const normClassification = normalizeSearchText(fields.classification);
-  const normParameters = (fields.parameters || []).map(p => normalizeSearchText(p)).filter(Boolean);
-  const normValues = (fields.values || []).map(v => normalizeSearchText(v)).filter(Boolean);
-  const normExtra = normalizeSearchText(fields.extraText);
-
-  // Score inicial
-  let score = 0;
-
-  // 1. ID exato: Prioridade máxima (+1000)
-  if (normId && normId === normQuery) {
-    return { matches: true, score: 1000 };
-  }
-  if (normId && normId.includes(normQuery)) {
-    score += 400;
-  }
-
-  // 2. Título exato: Prioridade muito alta (+500)
-  if (normTitle && normTitle === normQuery) {
-    score += 500;
-  } else if (normTitle && normTitle.startsWith(normQuery)) {
-    // Título começando pela consulta (+300)
-    score += 300;
-  } else if (normTitle && normTitle.includes(normQuery)) {
-    score += 250;
-  }
-
-  // Coleta todas as palavras do registro separadas por categoria para match dos tokens
-  const titleTokens = normTitle.split(/\s+/).filter(Boolean);
-  const prodTokens = normProduct.split(/\s+/).filter(Boolean);
-  const subprodTokens = normSubproduct.split(/\s+/).filter(Boolean);
-  const respTokens = normResponsible.split(/\s+/).filter(Boolean);
-  const artifactTokens = normArtifactType.split(/\s+/).filter(Boolean);
-  const classTokens = normClassification.split(/\s+/).filter(Boolean);
-  const paramTokens = normParameters.flatMap(p => p.split(/\s+/).filter(Boolean));
-  const valTokens = normValues.flatMap(v => v.split(/\s+/).filter(Boolean));
-  const extraTokens = normExtra.split(/\s+/).filter(Boolean);
-
-  // Cada palavra da busca DEVE ser encontrada em algum campo do registro
-  let allTokensFound = true;
-  let titleMatchesCount = 0;
-  let hasTypoMatch = false;
-
-  for (const qToken of queryTokens) {
-    let tokenFound = false;
-
-    // Checa ID
-    if (normId.includes(qToken)) {
-      tokenFound = true;
-      score += 150;
-    }
-
-    // Checa Título
-    if (!tokenFound) {
-      for (const tToken of titleTokens) {
-        const res = matchToken(qToken, tToken);
-        if (res.matches) {
-          tokenFound = true;
-          titleMatchesCount++;
-          if (res.isExact) {
-            score += 120;
-          } else {
-            score += 40;
-            hasTypoMatch = true;
-          }
-          break;
-        }
-      }
-    }
-
-    // Checa Produto / Subproduto
-    if (!tokenFound) {
-      for (const pToken of prodTokens) {
-        const res = matchToken(qToken, pToken);
-        if (res.matches) {
-          tokenFound = true;
-          score += res.isExact ? 80 : 30;
-          if (res.isTypo) hasTypoMatch = true;
-          break;
-        }
-      }
-    }
-
-    if (!tokenFound) {
-      for (const spToken of subprodTokens) {
-        const res = matchToken(qToken, spToken);
-        if (res.matches) {
-          tokenFound = true;
-          score += res.isExact ? 80 : 30;
-          if (res.isTypo) hasTypoMatch = true;
-          break;
-        }
-      }
-    }
-
-    // Checa Tipo de Artefato / Classificação
-    if (!tokenFound) {
-      for (const aToken of [...artifactTokens, ...classTokens]) {
-        const res = matchToken(qToken, aToken);
-        if (res.matches) {
-          tokenFound = true;
-          score += res.isExact ? 60 : 25;
-          if (res.isTypo) hasTypoMatch = true;
-          break;
-        }
-      }
-    }
-
-    // Checa Responsável
-    if (!tokenFound) {
-      for (const rToken of respTokens) {
-        const res = matchToken(qToken, rToken);
-        if (res.matches) {
-          tokenFound = true;
-          score += res.isExact ? 50 : 20;
-          if (res.isTypo) hasTypoMatch = true;
-          break;
-        }
-      }
-    }
-
-    // Checa Parâmetros e Valores
-    if (!tokenFound) {
-      for (const pmToken of paramTokens) {
-        const res = matchToken(qToken, pmToken);
-        if (res.matches) {
-          tokenFound = true;
-          score += res.isExact ? 45 : 15;
-          if (res.isTypo) hasTypoMatch = true;
-          break;
-        }
-      }
-    }
-
-    if (!tokenFound) {
-      for (const vToken of valTokens) {
-        const res = matchToken(qToken, vToken);
-        if (res.matches) {
-          tokenFound = true;
-          score += res.isExact ? 40 : 15;
-          if (res.isTypo) hasTypoMatch = true;
-          break;
-        }
-      }
-    }
-
-    // Checa Texto Extra (telas, descrições, termos)
-    if (!tokenFound) {
-      for (const eToken of extraTokens) {
-        const res = matchToken(qToken, eToken);
-        if (res.matches) {
-          tokenFound = true;
-          score += res.isExact ? 30 : 10;
-          if (res.isTypo) hasTypoMatch = true;
-          break;
-        }
-      }
-    }
-
-    if (!tokenFound) {
-      allTokensFound = false;
-      break;
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (item.normId && item.normId === normQuery) {
+      exactId.push(item);
+    } else if (item.normTitle && item.normTitle.startsWith(normQuery)) {
+      titleStarts.push(item);
+    } else {
+      others.push(item);
     }
   }
 
-  if (!allTokensFound) {
-    return { matches: false, score: 0 };
-  }
+  return exactId.concat(titleStarts, others);
+}
 
-  // Bônus se todas as palavras foram encontradas no título (+200)
-  if (queryTokens.length > 0 && titleMatchesCount === queryTokens.length) {
-    score += 200;
-  }
+/**
+ * Hook de debounce simples de 150ms.
+ * Cancela o timer anterior a cada nova tecla digitada.
+ * Ao limpar o campo (string vazia), restaura imediatamente com 0ms.
+ */
+export function useDebouncedSearch(value: string, delay = 150): string {
+  const [debouncedValue, setDebouncedValue] = useState(value);
 
-  // Penalidade leve se houve erro de digitação
-  if (hasTypoMatch) {
-    score = Math.max(10, score - 30);
-  }
+  useEffect(() => {
+    // Ao limpar o campo, restaura imediatamente todos os registros
+    if (!value || value.trim() === '') {
+      setDebouncedValue('');
+      return;
+    }
 
-  return { matches: true, score };
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
 }
