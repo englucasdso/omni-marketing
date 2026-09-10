@@ -9,7 +9,6 @@ interface AppShellProps {
   onHomeClick: () => void;
   lastSync?: string | null;
   onSyncClick?: () => void;
-  contextualControls?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -19,14 +18,13 @@ export const AppShell: React.FC<AppShellProps> = ({
   onHomeClick,
   lastSync,
   onSyncClick,
-  contextualControls,
   children,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen flex w-full bg-[#f8f9fb] dark:bg-[#0b0f19] text-gray-800 dark:text-slate-100 relative overflow-x-hidden font-sans">
-      {/* Global Sidebar Docked (272px) with Contextual Area */}
+      {/* Global AppsFlyer-like Sidebar (64px collapsed, 240px expanded overlay) */}
       <AppSidebar
         currentRouteId={currentRouteId}
         onNavigate={onNavigate}
@@ -34,11 +32,10 @@ export const AppShell: React.FC<AppShellProps> = ({
         isMobileOpen={isMobileMenuOpen}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
         onSyncClick={onSyncClick}
-        contextualControls={contextualControls}
       />
 
-      {/* Main Content Area: Offset by 272px on desktop beside the sidebar */}
-      <div className="flex flex-col flex-1 min-w-0 md:pl-[272px] w-full min-h-screen transition-all">
+      {/* Main Content Area: Offset by 64px on desktop so expanded sidebar overlays it */}
+      <div className="flex flex-col flex-1 min-w-0 md:pl-16 w-full min-h-screen transition-all">
         {/* Mobile Header Bar (Only visible on small viewports) */}
         <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 sticky top-0 z-30">
           <button

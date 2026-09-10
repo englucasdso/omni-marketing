@@ -29,8 +29,6 @@ import { ParameterAnalysisView } from "../components/ParameterAnalysisView";
 import { CanonicalInsightsDashboard } from "../components/CanonicalInsightsDashboard";
 import { AppShell } from "../components/AppShell";
 import { PageHeader } from "../components/PageHeader";
-import { SidebarContextualToolbar, SidebarFilterField, SidebarSelect } from "../components/SidebarContextualToolbar";
-import { getProductOptions, getLevel2Options } from "../utils/taxonomy";
 
 // Espaçamento lateral global reutilizado no cabeçalho e rodapé para alinhamento no mesmo eixo vertical
 const GLOBAL_SCREEN_PADDING = "px-6 sm:px-8";
@@ -77,7 +75,7 @@ const GraphView = ({ data, isEmbedded = false, onClose, onOpenMap }: { data: Art
 
   const content = (
     <div className="flex-1 rounded-[40px] overflow-hidden border border-gray-100 dark:border-slate-700/50 shadow-sm relative w-full h-[calc(100vh-250px)] min-h-[600px] flex">
-      <ConexoesCanvas data={data} selectedItemId={selectedItemId} onSelectItem={handleSelectItem} onOpenMap={onOpenMap} />
+      <ConexoesCanvas data={data} selectedItemId={selectedItemId} onSelectItem={handleSelectItem} />
     </div>
   );
 
@@ -568,33 +566,6 @@ export default function App() {
   const [cardPage, setCardPage] = useState<number>(1);
   const cardsPerPage = 20;
   const cardsListRef = useRef<HTMLDivElement>(null);
-
-  // Estados para busca contextual de Análise de Produtos e Parâmetros
-  const [productSearch, setProductSearch] = useState("");
-  const [paramSearch, setParamSearch] = useState("");
-
-  // Estados para filtros contextuais de Indicadores e Governança (Insights)
-  const [insightProductFilter, setInsightProductFilter] = useState("all");
-  const [insightLevel2Filter, setInsightLevel2Filter] = useState("all");
-  const [insightMeasurementFilter, setInsightMeasurementFilter] = useState("all");
-
-  const uniqueInsightProducts = useMemo(() => {
-    return getProductOptions(results);
-  }, [results]);
-
-  const insightLevel2Options = useMemo(() => {
-    return getLevel2Options(results, insightProductFilter);
-  }, [results, insightProductFilter]);
-
-  const handleInsightProductChange = (newProd: string) => {
-    setInsightProductFilter(newProd);
-    if (insightLevel2Filter !== "all") {
-      const validLevel2s = getLevel2Options(results, newProd);
-      if (!validLevel2s.includes(insightLevel2Filter)) {
-        setInsightLevel2Filter("all");
-      }
-    }
-  };
 
   // Fonte de dados para a página de Cards
   const cardSource = useMemo(() => {
@@ -1353,316 +1324,6 @@ export default function App() {
 
   const hasPermission = true;
 
-  const renderSidebarContextualControls = () => {
-    if (appState === "results") {
-      const activeCount = [
-        Boolean(cardSearch.trim()),
-        cardSort !== "recentes",
-        cardArtifactType !== "todos",
-        cardResponsible !== "todos",
-        cardYear !== "todas",
-      ].filter(Boolean).length;
-
-      return (
-        <SidebarContextualToolbar
-          hasSearch={true}
-          searchValue={cardSearch}
-          onSearchChange={(val) => {
-            setCardSearch(val);
-            setCardPage(1);
-          }}
-          searchPlaceholder="Buscar por título, ID, produto..."
-          filtersTitle="Filtros de Cards"
-          activeFiltersCount={activeCount}
-          hasActiveFilters={isCardFilterActive}
-          onClearFilters={resetCardFilters}
-          clearLabel="Limpar filtros"
-          filters={
-            <>
-              <SidebarFilterField label="ORDENAÇÃO" icon={ArrowUpDown}>
-                <SidebarSelect
-                  value={cardSort}
-                  onChange={(e) => {
-                    setCardSort(e.target.value as any);
-                    setCardPage(1);
-                  }}
-                >
-                  <option value="recentes">Mais recentes</option>
-                  <option value="antigos">Mais antigos</option>
-                  <option value="az">Título de A a Z</option>
-                  <option value="za">Título de Z a A</option>
-                </SidebarSelect>
-              </SidebarFilterField>
-
-              <SidebarFilterField label="ARTEFATO" icon={FileText}>
-                <SidebarSelect
-                  value={cardArtifactType}
-                  onChange={(e) => {
-                    setCardArtifactType(e.target.value as any);
-                    setCardPage(1);
-                  }}
-                >
-                  <option value="todos">Todos</option>
-                  <option value="mapas">Mapas</option>
-                  <option value="docs">Documentações</option>
-                  <option value="nos">Nós</option>
-                </SidebarSelect>
-              </SidebarFilterField>
-
-              <SidebarFilterField label="RESPONSÁVEL" icon={User}>
-                <SidebarSelect
-                  value={cardResponsible}
-                  onChange={(e) => {
-                    setCardResponsible(e.target.value);
-                    setCardPage(1);
-                  }}
-                >
-                  <option value="todos">Todos</option>
-                  {availableResponsibles.map((r) => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </SidebarSelect>
-              </SidebarFilterField>
-
-              <SidebarFilterField label="DATA (ANO)" icon={Calendar}>
-                <SidebarSelect
-                  value={cardYear}
-                  onChange={(e) => {
-                    setCardYear(e.target.value);
-                    setCardPage(1);
-                  }}
-                >
-                  <option value="todas">Todas</option>
-                  {availableYears.map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </SidebarSelect>
-              </SidebarFilterField>
-            </>
-          }
-        />
-      );
-    }
-
-    if (appState === "inventory_table") {
-      const isInvActive = Boolean(
-        tableFilter ||
-        Object.values(inventoryFilters).some(arr => arr && arr.length > 0 && !arr.includes("all")) ||
-        onlyWithoutResponsible ||
-        onlyWithoutSubproduct ||
-        onlyDivergent
-      );
-      const activeCount = [
-        Boolean(tableFilter.trim()),
-        ...Object.values(inventoryFilters).map(arr => arr && arr.length > 0 && !arr.includes("all")),
-        onlyWithoutResponsible,
-        onlyWithoutSubproduct,
-        onlyDivergent
-      ].filter(Boolean).length;
-
-      return (
-        <SidebarContextualToolbar
-          hasSearch={true}
-          searchValue={tableFilter}
-          onSearchChange={setTableFilter}
-          searchPlaceholder="Buscar por título, ID, produto..."
-          filtersTitle="Filtros de Inventário"
-          activeFiltersCount={activeCount}
-          hasActiveFilters={isInvActive}
-          onClearFilters={resetInventoryFilters}
-          clearLabel="Limpar filtros"
-          filters={
-            <>
-              <MultiSelect
-                label="ARTEFATO"
-                icon={FileText}
-                options={filterOptions.tipoArtefato}
-                values={inventoryFilters.tipo_mapa || []}
-                onChange={(v) => setInventoryFilters(f => ({ ...f, tipo_mapa: v }))}
-              />
-              <MultiSelect
-                label="CLASSIFICAÇÃO"
-                icon={Layers}
-                options={filterOptions.classificacao}
-                values={inventoryFilters.measurement_class || []}
-                onChange={(v) => setInventoryFilters(f => ({ ...f, measurement_class: v }))}
-              />
-              <MultiSelect
-                label="PRODUTO"
-                icon={Landmark}
-                options={filterOptions.produtos}
-                values={inventoryFilters.produto || []}
-                onChange={(v) => setInventoryFilters(f => ({ ...f, produto: v }))}
-              />
-              <MultiSelect
-                label="SUBPRODUTO"
-                icon={Tag}
-                options={filterOptions.subprodutos}
-                values={inventoryFilters.subproduto || []}
-                onChange={(v) => setInventoryFilters(f => ({ ...f, subproduto: v }))}
-              />
-              <MultiSelect
-                label="PARÂMETRO"
-                icon={Code2}
-                options={filterOptions.parametros}
-                values={inventoryFilters.parametro || []}
-                onChange={(v) => setInventoryFilters(f => ({ ...f, parametro: v }))}
-              />
-              <MultiSelect
-                label="ANO"
-                icon={Calendar}
-                options={filterOptions.anos}
-                values={inventoryFilters.ano || []}
-                onChange={(v) => setInventoryFilters(f => ({ ...f, ano: v }))}
-              />
-
-              <div className="pt-2 border-t border-gray-100 dark:border-slate-800 space-y-1.5">
-                <span className="text-[10px] font-ui font-bold uppercase tracking-wider text-gray-400 dark:text-slate-500 block">
-                  Filtros Rápidos
-                </span>
-                <div className="flex flex-col gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setOnlyWithoutResponsible(prev => !prev)}
-                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-ui font-medium text-left transition-colors cursor-pointer border ${
-                      onlyWithoutResponsible
-                        ? 'bg-red-50 dark:bg-red-950/30 text-[#7B0209] dark:text-red-400 border-[#7B0209]/30 font-semibold'
-                        : 'bg-transparent text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-800 hover:bg-gray-100/50 dark:hover:bg-slate-800/50'
-                    }`}
-                  >
-                    Sem responsável
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setOnlyWithoutSubproduct(prev => !prev)}
-                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-ui font-medium text-left transition-colors cursor-pointer border ${
-                      onlyWithoutSubproduct
-                        ? 'bg-red-50 dark:bg-red-950/30 text-[#7B0209] dark:text-red-400 border-[#7B0209]/30 font-semibold'
-                        : 'bg-transparent text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-800 hover:bg-gray-100/50 dark:hover:bg-slate-800/50'
-                    }`}
-                  >
-                    Sem subproduto
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setOnlyDivergent(prev => !prev)}
-                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-ui font-medium text-left transition-colors cursor-pointer border flex items-center justify-between ${
-                      onlyDivergent
-                        ? 'bg-red-50 dark:bg-red-950/30 text-[#7B0209] dark:text-red-400 border-[#7B0209]/30 font-semibold'
-                        : 'bg-transparent text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-800 hover:bg-gray-100/50 dark:hover:bg-slate-800/50'
-                    }`}
-                  >
-                    <span>Apenas divergentes</span>
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                  </button>
-                </div>
-              </div>
-            </>
-          }
-        />
-      );
-    }
-
-    if (appState === "produtos_analise") {
-      return (
-        <SidebarContextualToolbar
-          hasSearch={true}
-          searchValue={productSearch}
-          onSearchChange={setProductSearch}
-          searchPlaceholder="Filtrar produto ou subproduto..."
-          filtersTitle="Busca de Produtos"
-          hasActiveFilters={Boolean(productSearch.trim())}
-          onClearFilters={() => setProductSearch("")}
-          clearLabel="Limpar busca"
-        />
-      );
-    }
-
-    if (appState === "parametros_analise") {
-      return (
-        <SidebarContextualToolbar
-          hasSearch={true}
-          searchValue={paramSearch}
-          onSearchChange={setParamSearch}
-          searchPlaceholder="Buscar parâmetro ou valor..."
-          filtersTitle="Busca de Parâmetros"
-          hasActiveFilters={Boolean(paramSearch.trim())}
-          onClearFilters={() => setParamSearch("")}
-          clearLabel="Limpar busca"
-        />
-      );
-    }
-
-    if (appState === "insights") {
-      const isInsightActive = (
-        insightProductFilter !== "all" ||
-        insightLevel2Filter !== "all" ||
-        insightMeasurementFilter !== "all"
-      );
-      const activeCount = [
-        insightProductFilter !== "all",
-        insightLevel2Filter !== "all",
-        insightMeasurementFilter !== "all",
-      ].filter(Boolean).length;
-
-      return (
-        <SidebarContextualToolbar
-          hasSearch={false}
-          filtersTitle="Filtros de Indicadores"
-          activeFiltersCount={activeCount}
-          hasActiveFilters={isInsightActive}
-          onClearFilters={() => {
-            setInsightProductFilter("all");
-            setInsightLevel2Filter("all");
-            setInsightMeasurementFilter("all");
-          }}
-          clearLabel="Limpar filtros"
-          filters={
-            <>
-              <SidebarFilterField label="PRODUTO (NÍVEL 1)" icon={Landmark}>
-                <SidebarSelect
-                  value={insightProductFilter}
-                  onChange={(e) => handleInsightProductChange(e.target.value)}
-                >
-                  <option value="all">TODOS OS PRODUTOS</option>
-                  {uniqueInsightProducts.map((p) => (
-                    <option key={p} value={p}>{p.toUpperCase()}</option>
-                  ))}
-                </SidebarSelect>
-              </SidebarFilterField>
-
-              <SidebarFilterField label="NÍVEL 2 (FILHOS DIRETOS)" icon={Network}>
-                <SidebarSelect
-                  value={insightLevel2Filter}
-                  onChange={(e) => setInsightLevel2Filter(e.target.value)}
-                >
-                  <option value="all">TODOS OS NÍVEIS 2</option>
-                  {insightLevel2Options.map((l2) => (
-                    <option key={l2} value={l2}>{l2}</option>
-                  ))}
-                </SidebarSelect>
-              </SidebarFilterField>
-
-              <SidebarFilterField label="CLASSIFICAÇÃO" icon={Layers}>
-                <SidebarSelect
-                  value={insightMeasurementFilter}
-                  onChange={(e) => setInsightMeasurementFilter(e.target.value)}
-                >
-                  <option value="all">QUALQUER MENSURAÇÃO</option>
-                  <option value="GA4">APENAS GA4</option>
-                  <option value="GA3">APENAS GA3 / UNIVERSAL</option>
-                  <option value="HIBRIDO">APENAS HÍBRIDO</option>
-                </SidebarSelect>
-              </SidebarFilterField>
-            </>
-          }
-        />
-      );
-    }
-
-    return null;
-  };
-
   return (
     <AppShell
       currentRouteId={appState}
@@ -1670,7 +1331,6 @@ export default function App() {
       onHomeClick={() => { setAppState('initial'); setQuery(''); setTableFilter(''); }}
       lastSync={lastSync}
       onSyncClick={() => setIsSyncAuthOpen(true)}
-      contextualControls={renderSidebarContextualControls()}
     >
       <div className="relative w-full flex-1 flex flex-col min-h-screen">
         <AnimatePresence>
@@ -1975,12 +1635,6 @@ export default function App() {
                   setInventoryFilters(f => ({ ...f, produto: [prod] }));
                   setAppState("inventory_table");
                 }}
-                selectedProductFilter={insightProductFilter}
-                onProductFilterChange={handleInsightProductChange}
-                selectedLevel2Filter={insightLevel2Filter}
-                onLevel2FilterChange={setInsightLevel2Filter}
-                selectedMeasurementFilter={insightMeasurementFilter}
-                onMeasurementFilterChange={setInsightMeasurementFilter}
               />
             </motion.section>
           )}
@@ -1999,8 +1653,6 @@ export default function App() {
                   setInventoryFilters(f => ({ ...f, produto: [prod] }));
                   setAppState("inventory_table");
                 }}
-                searchTerm={productSearch}
-                onSearchChange={setProductSearch}
               />
             </motion.section>
           )}
@@ -2015,8 +1667,6 @@ export default function App() {
               <ParameterAnalysisView 
                 artifacts={results}
                 onOpenMap={(art) => setDetailModalItem(art)}
-                searchTerm={paramSearch}
-                onSearchChange={setParamSearch}
               />
             </motion.section>
           )}
@@ -2276,6 +1926,121 @@ export default function App() {
             {/* Âncora para rolagem suave ao trocar de página */}
             <div ref={cardsListRef} className="scroll-mt-6" />
 
+            {/* 3. Barra de Busca Larga */}
+            <div className="w-full relative">
+              <Search className="w-5 h-5 text-gray-400 dark:text-slate-500 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Buscar por título, ID, produto, subproduto ou responsável..."
+                value={cardSearch}
+                onChange={(e) => {
+                  setCardSearch(e.target.value);
+                  setCardPage(1);
+                }}
+                className="neu-input w-full pl-12 pr-10 py-3.5 rounded-2xl text-sm font-ui font-medium text-gray-800 dark:text-slate-100 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-neu-input focus:outline-none focus:border-bradesco-red/50 transition-all placeholder:text-gray-400 dark:placeholder:text-slate-500"
+              />
+              {cardSearch && (
+                <button
+                  onClick={() => {
+                    setCardSearch("");
+                    setCardPage(1);
+                  }}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 p-1 cursor-pointer"
+                  title="Limpar busca"
+                  aria-label="Limpar busca"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* 4. Barra Horizontal de Filtros */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 flex-1">
+                {/* 1. Ordenação */}
+                <FilterField label="Ordenação" icon={ArrowUpDown}>
+                  <select
+                    value={cardSort}
+                    onChange={(e) => {
+                      setCardSort(e.target.value as any);
+                      setCardPage(1);
+                    }}
+                    className="neu-input w-full px-3 py-2 rounded-xl text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 bg-gray-50/80 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 outline-none cursor-pointer focus:border-bradesco-red"
+                  >
+                    <option value="recentes">Mais recentes</option>
+                    <option value="antigos">Mais antigos</option>
+                    <option value="az">Título de A a Z</option>
+                    <option value="za">Título de Z a A</option>
+                  </select>
+                </FilterField>
+
+                {/* 2. Artefato */}
+                <FilterField label="Artefato" icon={FileText}>
+                  <select
+                    value={cardArtifactType}
+                    onChange={(e) => {
+                      setCardArtifactType(e.target.value as any);
+                      setCardPage(1);
+                    }}
+                    className="neu-input w-full px-3 py-2 rounded-xl text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 bg-gray-50/80 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 outline-none cursor-pointer focus:border-bradesco-red"
+                  >
+                    <option value="todos">Todos</option>
+                    <option value="mapas">Mapas</option>
+                    <option value="docs">Documentações</option>
+                    <option value="nos">Nós</option>
+                  </select>
+                </FilterField>
+
+                {/* 3. Responsável */}
+                <FilterField label="Responsável" icon={User}>
+                  <select
+                    value={cardResponsible}
+                    onChange={(e) => {
+                      setCardResponsible(e.target.value);
+                      setCardPage(1);
+                    }}
+                    className="neu-input w-full px-3 py-2 rounded-xl text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 bg-gray-50/80 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 outline-none cursor-pointer focus:border-bradesco-red truncate"
+                  >
+                    <option value="todos">Todos</option>
+                    {availableResponsibles.map((resp) => (
+                      <option key={resp} value={resp}>{resp}</option>
+                    ))}
+                  </select>
+                </FilterField>
+
+                {/* 4. Data (Ano) */}
+                <FilterField label="Data (Ano)" icon={Calendar}>
+                  <select
+                    value={cardYear}
+                    onChange={(e) => {
+                      setCardYear(e.target.value);
+                      setCardPage(1);
+                    }}
+                    className="neu-input w-full px-3 py-2 rounded-xl text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 bg-gray-50/80 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 outline-none cursor-pointer focus:border-bradesco-red"
+                  >
+                    <option value="todas">Todas</option>
+                    {availableYears.map((yr) => (
+                      <option key={yr} value={yr}>{yr}</option>
+                    ))}
+                  </select>
+                </FilterField>
+              </div>
+
+              {/* Ação discreta: Limpar filtros */}
+              {isCardFilterActive && (
+                <div className="flex items-end self-end lg:self-center pt-1 lg:pt-3">
+                  <button
+                    onClick={resetCardFilters}
+                    className="btn-neu px-3.5 py-2 rounded-xl text-xs font-ui font-semibold text-gray-600 dark:text-slate-300 hover:text-bradesco-red flex items-center gap-1.5 cursor-pointer transition-colors"
+                    title="Limpar todos os filtros e busca"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-bradesco-red" />
+                    Limpar filtros
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Contador de Resultados */}
             <div className="flex items-center justify-between px-1 text-xs font-ui text-gray-500 dark:text-slate-400">
               <span className="tabular-nums">
@@ -2499,6 +2264,105 @@ export default function App() {
                   </button>
                 }
               />
+
+              {/* Advanced Filter Architecture */}
+              <div className="relative mb-6">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Buscar por título, ID, produto, subproduto, responsável ou parâmetro..."
+                  className="w-full pl-11 pr-10 py-3.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-sm focus:ring-2 focus:ring-bradesco-red focus:border-bradesco-red text-sm font-ui dark:text-slate-100 transition-shadow"
+                  value={tableFilter}
+                  onChange={(e) => setTableFilter(e.target.value)}
+                />
+                {tableFilter && (
+                  <button
+                    onClick={() => setTableFilter("")}
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-3 flex-1">
+                  {[
+                    { label: 'Artefato', key: 'tipo_mapa', options: filterOptions.tipoArtefato, icon: FileText },
+                    { label: 'Classificação', key: 'measurement_class', options: filterOptions.classificacao, icon: Layers },
+                    { label: 'Produto', key: 'produto', options: filterOptions.produtos, icon: Landmark },
+                    { label: 'Subproduto', key: 'subproduto', options: filterOptions.subprodutos, icon: Tag },
+                    { label: 'Parâmetro', key: 'parametro', options: filterOptions.parametros, icon: Code2 },
+                    { label: 'Ano', key: 'ano', options: filterOptions.anos, icon: Calendar }
+                  ].map(filter => (
+                    <MultiSelect 
+                      key={filter.key} 
+                      label={filter.label} 
+                      icon={filter.icon}
+                      options={filter.options}
+                      values={inventoryFilters[filter.key as keyof typeof inventoryFilters] || []}
+                      onChange={(vals) => setInventoryFilters(f => ({ ...f, [filter.key]: vals }))}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                 <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setOnlyWithoutResponsible(prev => !prev)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-ui font-semibold transition-all cursor-pointer border ${
+                        onlyWithoutResponsible
+                          ? 'bg-red-50 dark:bg-red-950/20 text-bradesco-red border-red-200 dark:border-red-900/50'
+                          : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      Sem responsável
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setOnlyWithoutSubproduct(prev => !prev)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-ui font-semibold transition-all cursor-pointer border ${
+                        onlyWithoutSubproduct
+                          ? 'bg-red-50 dark:bg-red-950/20 text-bradesco-red border-red-200 dark:border-red-900/50'
+                          : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      Sem subproduto
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setOnlyDivergent(prev => !prev)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-ui font-semibold transition-all cursor-pointer border flex items-center gap-1.5 ${
+                        onlyDivergent
+                          ? 'bg-red-50 dark:bg-red-950/20 text-bradesco-red border-red-200 dark:border-red-900/50'
+                          : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      Apenas divergentes
+                    </button>
+                 </div>
+
+                 {(tableFilter || 
+                    Object.values(inventoryFilters).some(arr => arr && arr.length > 0 && !arr.includes("all")) || 
+                    onlyWithoutResponsible || 
+                    onlyWithoutSubproduct || 
+                    onlyDivergent
+                 ) && (
+                   <button 
+                    onClick={resetInventoryFilters}
+                    className="btn-neu px-3.5 py-2 rounded-xl text-xs font-ui font-semibold text-gray-600 dark:text-slate-300 hover:text-bradesco-red flex items-center gap-1.5 cursor-pointer transition-colors"
+                   >
+                     <RotateCcw className="w-3.5 h-3.5" /> Limpar filtros
+                   </button>
+                 )}
+              </div>
 
               {/* Single Counter Label Before Table */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 border-b border-gray-200 dark:border-slate-800 mb-6">
