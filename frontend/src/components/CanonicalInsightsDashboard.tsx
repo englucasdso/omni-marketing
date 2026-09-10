@@ -6,33 +6,48 @@ import {
 } from 'lucide-react';
 import { Artifact } from '../types';
 import { PageHeader } from './PageHeader';
-import { SearchFilterToolbar } from './SearchFilterToolbar';
 import { normalizarStatus, OfficialStatus } from '../utils/statusUtils';
+import { matchesLevel2Filter } from '../utils/taxonomy';
 
 interface CanonicalInsightsDashboardProps {
   artifacts: Artifact[];
   onOpenMap: (map: Artifact) => void;
   onFilterByProduct: (produto: string) => void;
+  selectedProductFilter?: string;
+  onProductFilterChange?: (produto: string) => void;
+  selectedLevel2Filter?: string;
+  onLevel2FilterChange?: (level2: string) => void;
+  selectedMeasurementFilter?: string;
+  onMeasurementFilterChange?: (measurement: string) => void;
 }
 
 export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProps> = ({
   artifacts,
   onOpenMap,
-  onFilterByProduct
+  onFilterByProduct,
+  selectedProductFilter: propProductFilter,
+  selectedLevel2Filter: propLevel2Filter,
+  selectedMeasurementFilter: propMeasurementFilter,
 }) => {
-  const [selectedProductFilter, setSelectedProductFilter] = useState('all');
-  const [selectedMeasurementFilter, setSelectedMeasurementFilter] = useState('all');
+  const [localProductFilter, setLocalProductFilter] = useState('all');
+  const [localLevel2Filter, setLocalLevel2Filter] = useState('all');
+  const [localMeasurementFilter, setLocalMeasurementFilter] = useState('all');
+
+  const selectedProductFilter = propProductFilter !== undefined ? propProductFilter : localProductFilter;
+  const selectedLevel2Filter = propLevel2Filter !== undefined ? propLevel2Filter : localLevel2Filter;
+  const selectedMeasurementFilter = propMeasurementFilter !== undefined ? propMeasurementFilter : localMeasurementFilter;
 
   const filteredArtifacts = useMemo(() => {
     return artifacts.filter(art => {
       if (selectedProductFilter !== 'all' && art.produto !== selectedProductFilter) return false;
+      if (selectedLevel2Filter !== 'all' && !matchesLevel2Filter(art, selectedLevel2Filter)) return false;
       if (selectedMeasurementFilter !== 'all') {
         const mc = art.measurement_class || (art.tipo_mapa?.toLowerCase().includes('ga4') ? 'GA4' : 'GA3');
         if (mc !== selectedMeasurementFilter) return false;
       }
       return true;
     });
-  }, [artifacts, selectedProductFilter, selectedMeasurementFilter]);
+  }, [artifacts, selectedProductFilter, selectedLevel2Filter, selectedMeasurementFilter]);
 
   const stats = useMemo(() => {
     let totalMaps = 0;
@@ -165,38 +180,6 @@ export const CanonicalInsightsDashboard: React.FC<CanonicalInsightsDashboardProp
       <PageHeader
         title="Indicadores e Governança Analítica"
         subtitle="Métricas canônicas da esteira de tagueamento, telas mapeadas e conformidade técnica."
-      />
-
-      <SearchFilterToolbar
-        insightsMode={true}
-        filters={
-          <>
-            <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-neu-raised min-w-0 max-w-full w-full sm:w-auto md:max-w-[260px]">
-              <Filter className="w-3.5 h-3.5 text-gray-400" />
-              <select className="bg-transparent text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 outline-none cursor-pointer w-full min-w-0 max-w-full truncate"
-                value={selectedProductFilter}
-                onChange={(e) => setSelectedProductFilter(e.target.value)}
-              >
-                <option value="all">TODOS OS PRODUTOS</option>
-                {uniqueProducts.map(p => (
-                  <option key={p} value={p}>{p.toUpperCase()}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-neu-raised min-w-0 max-w-full w-full sm:w-auto md:max-w-[260px]">
-              <select className="bg-transparent text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 outline-none cursor-pointer w-full min-w-0 max-w-full truncate"
-                value={selectedMeasurementFilter}
-                onChange={(e) => setSelectedMeasurementFilter(e.target.value)}
-              >
-                <option value="all">QUALQUER MENSURAÇÃO</option>
-                <option value="GA4">APENAS GA4</option>
-                <option value="GA3">APENAS GA3 / UNIVERSAL</option>
-                <option value="HIBRIDO">APENAS HÍBRIDO</option>
-              </select>
-            </div>
-          </>
-        }
       />
 
       {/* Top 4 Primary KPI Cards */}

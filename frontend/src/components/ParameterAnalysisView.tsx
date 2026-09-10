@@ -10,13 +10,20 @@ import { SearchFilterToolbar } from './SearchFilterToolbar';
 interface ParameterAnalysisViewProps {
   artifacts: Artifact[];
   onOpenMap: (map: Artifact) => void;
+  searchTerm?: string;
+  onSearchChange?: (val: string) => void;
 }
 
 export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({ 
   artifacts,
-  onOpenMap
+  onOpenMap,
+  searchTerm: externalSearch,
+  onSearchChange: setExternalSearch,
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [localSearchTerm, setLocalSearchTerm] = useState('');
+  const searchTerm = externalSearch !== undefined ? externalSearch : localSearchTerm;
+  const setSearchTerm = setExternalSearch || setLocalSearchTerm;
+
   const [selectedParamKey, setSelectedParamKey] = useState<string | null>(null);
   const [selectedDistinctValue, setSelectedDistinctValue] = useState<string | null>(null);
   
@@ -176,12 +183,6 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
         subtitle="Frequência, mapeamento de tipos e valores distintos utilizados no disparo de eventos."
       />
 
-      <SearchFilterToolbar
-        searchValue={searchTerm}
-        onSearchChange={(val) => setSearchTerm(val)}
-        searchPlaceholder="Buscar parâmetro ou valor..."
-      />
-
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left side: Parameter List */}
         <div className="lg:col-span-5 flex flex-col gap-3">
@@ -199,7 +200,7 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
                   onClick={() => setSelectedParamKey(param.name)}
                   className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                     isSelected 
-                      ? 'bg-red-50/50 dark:bg-slate-800/80 border-bradesco-red shadow-neu-raised ring-1 ring-inset ring-bradesco-red' 
+                      ? 'bg-red-50/50 dark:bg-slate-800/80 border-[#7B0209] shadow-neu-raised ring-1 ring-inset ring-[#7B0209]' 
                       : 'flat-card border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 shadow-neu-card'
                   }`}
                 >

@@ -11,14 +11,21 @@ interface ProductAnalysisViewProps {
   artifacts: Artifact[];
   onSelectProduct: (produto: string) => void;
   onOpenMap: (map: Artifact) => void;
+  searchTerm?: string;
+  onSearchChange?: (val: string) => void;
 }
 
 export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({ 
   artifacts, 
   onSelectProduct,
-  onOpenMap
+  onOpenMap,
+  searchTerm: externalSearch,
+  onSearchChange: setExternalSearch,
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [localSearchTerm, setLocalSearchTerm] = useState('');
+  const searchTerm = externalSearch !== undefined ? externalSearch : localSearchTerm;
+  const setSearchTerm = setExternalSearch || setLocalSearchTerm;
+
   const [selectedProductKey, setSelectedProductKey] = useState<string | null>(null);
   const [selectedSubproduto, setSelectedSubproduto] = useState<string>('TODOS');
 
@@ -215,12 +222,6 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
         subtitle="Visão consolidada da esteira analítica dividida por canais, jornadas e serviços."
       />
 
-      <SearchFilterToolbar
-        searchValue={searchTerm}
-        onSearchChange={(val) => setSearchTerm(val)}
-        searchPlaceholder="Filtrar por produto ou subproduto..."
-      />
-
       {/* Main Grid: Left List + Right Product Deep Dive */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Product Cards List */}
@@ -233,7 +234,7 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
                 onClick={() => handleSelectProduct(prod.produto)}
                 className={`p-5 rounded-2xl border transition-all cursor-pointer ${
                   isSelected 
-                    ? 'bg-white dark:bg-slate-800/90 border-bradesco-red shadow-neu-raised ring-1 ring-bradesco-red/20 -translate-y-0.5' 
+                    ? 'bg-white dark:bg-slate-800/90 border-[#7B0209] shadow-neu-raised ring-1 ring-[#7B0209]/40 -translate-y-0.5' 
                     : 'flat-card border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 shadow-neu-card'
                 }`}
               >
@@ -308,7 +309,7 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
                       onClick={() => setSelectedSubproduto('TODOS')}
                       className={`px-3 py-1.5 rounded-xl text-xs font-ui font-medium transition-all cursor-pointer ${
                         selectedSubproduto === 'TODOS'
-                          ? 'bg-white dark:bg-slate-800 text-bradesco-red border border-bradesco-red/40 shadow-neu-raised'
+                          ? 'bg-white dark:bg-slate-800 text-[#7B0209] dark:text-red-400 border border-[#7B0209]/40 shadow-neu-raised'
                           : 'btn-neu text-gray-600 dark:text-slate-300 hover:text-gray-900'
                       }`}
                     >
@@ -323,7 +324,7 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
                           onClick={() => setSelectedSubproduto(sub)}
                           className={`px-3 py-1.5 rounded-xl text-xs font-ui font-medium transition-all cursor-pointer ${
                             selectedSubproduto === sub
-                              ? 'bg-white dark:bg-slate-800 text-bradesco-red border border-bradesco-red/40 shadow-neu-raised'
+                              ? 'bg-white dark:bg-slate-800 text-[#7B0209] dark:text-red-400 border border-[#7B0209]/40 shadow-neu-raised'
                               : 'btn-neu text-gray-600 dark:text-slate-300 hover:text-gray-900'
                           }`}
                         >

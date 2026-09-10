@@ -48,26 +48,26 @@ export function MultiSelect({ label, icon, options, values, onChange }: MultiSel
         <button 
           onClick={() => setOpen(!open)}
           type="button"
-          className={`neu-input w-full px-3 py-2 rounded-xl text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 bg-gray-50/80 dark:bg-slate-800/80 border outline-none cursor-pointer flex items-center justify-between gap-2 text-left
+          className={`neu-input w-full h-8.5 px-2.5 py-1 rounded-xl text-xs font-ui font-medium text-gray-800 dark:text-slate-200 bg-gray-50/90 dark:bg-slate-800/90 border outline-none cursor-pointer flex items-center justify-between gap-1.5 text-left transition-colors min-w-0 max-w-full
             ${open 
-              ? 'border-bradesco-red ring-1 ring-bradesco-red' 
-              : 'border-gray-200 dark:border-slate-700 focus:border-bradesco-red'}
-            ${hasSelections ? 'border-bradesco-red/40 text-bradesco-red' : ''}
+              ? 'border-[#7B0209] ring-1 ring-[#7B0209]/20' 
+              : 'border-gray-200 dark:border-slate-700 focus:border-[#7B0209]'}
+            ${hasSelections ? 'border-[#7B0209]/50 text-[#7B0209] dark:text-red-400 font-semibold' : ''}
           `}
         >
-          <span className="truncate">{currentLabel}</span>
-          <ChevronDown className="w-4 h-4 text-gray-400 dark:text-slate-500 shrink-0" />
+          <span className="truncate min-w-0">{currentLabel}</span>
+          <ChevronDown className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 shrink-0" />
         </button>
       </FilterField>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1.5 w-[230px] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 shadow-neu-card rounded-xl z-[100] overflow-hidden flex flex-col text-left">
+        <div className="absolute top-full left-0 mt-1.5 w-full min-w-[200px] max-w-[260px] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 shadow-neu-card rounded-xl z-[100] overflow-hidden flex flex-col text-left">
           <div className="max-h-60 overflow-y-auto p-1.5 flex flex-col gap-0.5 custom-scrollbar">
             <button 
               onClick={() => toggle('all')}
               className="flex items-center gap-2.5 p-2 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer w-full text-left transition-colors"
             >
-              <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${!hasSelections ? 'bg-bradesco-red border-bradesco-red' : 'border-gray-300 dark:border-slate-600'}`}>
+              <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${!hasSelections ? 'bg-[#7B0209] border-[#7B0209]' : 'border-gray-300 dark:border-slate-600'}`}>
                 {!hasSelections && <Check className="w-3 h-3 text-white" />}
               </div>
               <span className="text-xs font-ui font-semibold text-gray-700 dark:text-slate-200 truncate">
@@ -84,7 +84,7 @@ export function MultiSelect({ label, icon, options, values, onChange }: MultiSel
                   title={opt.l}
                   className="flex items-center gap-2.5 p-2 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer w-full text-left transition-colors"
                 >
-                  <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'bg-bradesco-red border-bradesco-red' : 'border-gray-300 dark:border-slate-600'}`}>
+                  <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'bg-[#7B0209] border-[#7B0209]' : 'border-gray-300 dark:border-slate-600'}`}>
                     {isSelected && <Check className="w-3 h-3 text-white" />}
                   </div>
                   <span className="text-xs font-ui font-medium text-gray-700 dark:text-slate-200 truncate">{opt.l}</span>
