@@ -4,23 +4,34 @@ import {
 } from 'lucide-react';
 import { Artifact } from '../types';
 import { PageHeader } from './PageHeader';
-import { SearchFilterToolbar } from './SearchFilterToolbar';
 import { normalizarStatus, OfficialStatus, STATUS_CONFIGS } from '../utils/statusUtils';
 
 interface ProductAnalysisViewProps {
   artifacts: Artifact[];
   onSelectProduct: (produto: string) => void;
   onOpenMap: (map: Artifact) => void;
+  searchTerm?: string;
+  onSearchChange?: (val: string) => void;
+  selectedSubproduto?: string;
+  onSubprodutoChange?: (val: string) => void;
 }
 
 export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({ 
   artifacts, 
   onSelectProduct,
-  onOpenMap
+  onOpenMap,
+  searchTerm,
+  onSearchChange,
+  selectedSubproduto,
+  onSubprodutoChange,
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [localSearchTerm, setLocalSearchTerm] = useState('');
   const [selectedProductKey, setSelectedProductKey] = useState<string | null>(null);
-  const [selectedSubproduto, setSelectedSubproduto] = useState<string>('TODOS');
+  const [localSelectedSubproduto, setLocalSelectedSubproduto] = useState<string>('TODOS');
+
+  const effectiveSearchTerm = searchTerm !== undefined ? searchTerm : localSearchTerm;
+  const effectiveSubproduto = selectedSubproduto !== undefined ? selectedSubproduto : localSelectedSubproduto;
+  const setEffectiveSubproduto = onSubprodutoChange || setLocalSelectedSubproduto;
 
   // Consolidação por produto
   const productsSummary = useMemo(() => {
@@ -119,13 +130,13 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
   }, [artifacts]);
 
   const filteredProducts = useMemo(() => {
-    if (!searchTerm.trim()) return productsSummary;
-    const term = searchTerm.toLowerCase();
+    if (!effectiveSearchTerm.trim()) return productsSummary;
+    const term = effectiveSearchTerm.toLowerCase();
     return productsSummary.filter(p => 
       p.produto.toLowerCase().includes(term) ||
       p.subprodutosList.some(s => s.toLowerCase().includes(term))
     );
-  }, [productsSummary, searchTerm]);
+  }, [productsSummary, effectiveSearchTerm]);
 
   const activeProduct = selectedProductKey 
     ? productsSummary.find(p => p.produto === selectedProductKey) || filteredProducts[0] || null
@@ -134,9 +145,9 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
   // Filtro por subproduto dentro do produto ativo
   const selectedMaps = useMemo(() => {
     if (!activeProduct) return [];
-    if (selectedSubproduto === 'TODOS') return activeProduct.mapas;
-    return activeProduct.mapas.filter(m => (m.subproduto || 'Sem subproduto') === selectedSubproduto);
-  }, [activeProduct, selectedSubproduto]);
+    if (effectiveSubproduto === 'TODOS') return activeProduct.mapas;
+    return activeProduct.mapas.filter(m => (m.subproduto || 'Sem subproduto') === effectiveSubproduto);
+  }, [activeProduct, effectiveSubproduto]);
 
   // Métricas dinâmicas do produto / subproduto selecionado
   const selectedMetrics = useMemo(() => {
@@ -205,7 +216,7 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
 
   const handleSelectProduct = (prodName: string) => {
     setSelectedProductKey(prodName);
-    setSelectedSubproduto('TODOS');
+    setEffectiveSubproduto('TODOS');
   };
 
   return (
@@ -213,12 +224,6 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
       <PageHeader
         title="Análise por Produto e Subproduto"
         subtitle="Visão consolidada da esteira analítica dividida por canais, jornadas e serviços."
-      />
-
-      <SearchFilterToolbar
-        searchValue={searchTerm}
-        onSearchChange={(val) => setSearchTerm(val)}
-        searchPlaceholder="Filtrar por produto ou subproduto..."
       />
 
       {/* Main Grid: Left List + Right Product Deep Dive */}
@@ -305,9 +310,9 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
                   <div className="flex flex-wrap gap-1.5">
                     <button
                       type="button"
-                      onClick={() => setSelectedSubproduto('TODOS')}
+                      onClick={() => setEffectiveSubproduto('TODOS')}
                       className={`px-3 py-1.5 rounded-xl text-xs font-ui font-medium transition-all cursor-pointer ${
-                        selectedSubproduto === 'TODOS'
+                        effectiveSubproduto === 'TODOS'
                           ? 'bg-white dark:bg-slate-800 text-bradesco-red border border-bradesco-red/40 shadow-neu-raised'
                           : 'btn-neu text-gray-600 dark:text-slate-300 hover:text-gray-900'
                       }`}
@@ -320,9 +325,9 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
                         <button
                           key={sub}
                           type="button"
-                          onClick={() => setSelectedSubproduto(sub)}
+                          onClick={() => setEffectiveSubproduto(sub)}
                           className={`px-3 py-1.5 rounded-xl text-xs font-ui font-medium transition-all cursor-pointer ${
-                            selectedSubproduto === sub
+                            effectiveSubproduto === sub
                               ? 'bg-white dark:bg-slate-800 text-bradesco-red border border-bradesco-red/40 shadow-neu-raised'
                               : 'btn-neu text-gray-600 dark:text-slate-300 hover:text-gray-900'
                           }`}

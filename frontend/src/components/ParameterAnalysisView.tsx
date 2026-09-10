@@ -5,18 +5,22 @@ import {
 } from 'lucide-react';
 import { Artifact, ParameterSummaryItem } from '../types';
 import { PageHeader } from './PageHeader';
-import { SearchFilterToolbar } from './SearchFilterToolbar';
 
 interface ParameterAnalysisViewProps {
   artifacts: Artifact[];
   onOpenMap: (map: Artifact) => void;
+  searchTerm?: string;
+  onSearchChange?: (val: string) => void;
 }
 
 export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({ 
   artifacts,
-  onOpenMap
+  onOpenMap,
+  searchTerm,
+  onSearchChange,
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [localSearchTerm, setLocalSearchTerm] = useState('');
+  const effectiveSearchTerm = searchTerm !== undefined ? searchTerm : localSearchTerm;
   const [selectedParamKey, setSelectedParamKey] = useState<string | null>(null);
   const [selectedDistinctValue, setSelectedDistinctValue] = useState<string | null>(null);
   
@@ -86,15 +90,15 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
   const filteredCatalog = useMemo(() => {
     let result = parametersCatalog;
     
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
+    if (effectiveSearchTerm.trim()) {
+      const term = effectiveSearchTerm.toLowerCase();
       result = result.filter(p => 
         p.name.toLowerCase().includes(term) ||
         p.distinctValuesList.some(v => v.toLowerCase().includes(term))
       );
     }
     return result;
-  }, [parametersCatalog, searchTerm]);
+  }, [parametersCatalog, effectiveSearchTerm]);
 
   const activeParam = selectedParamKey 
     ? parametersCatalog.find(p => p.name === selectedParamKey) 
@@ -130,7 +134,7 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
     if (!activeParam) return [];
     let list = [...activeParam.distinctValuesList];
     
-    const term = searchTerm.trim().toLowerCase();
+    const term = effectiveSearchTerm.trim().toLowerCase();
     if (term) {
       list.sort((a, b) => {
         const aMatch = a.toLowerCase().includes(term);
@@ -149,7 +153,7 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
       return preview;
     }
     return list;
-  }, [activeParam, searchTerm, isDistinctValuesExpanded, selectedDistinctValue]);
+  }, [activeParam, effectiveSearchTerm, isDistinctValuesExpanded, selectedDistinctValue]);
 
   const displayedMaps = useMemo(() => {
     if (isMapsExpanded) return activeParamFilteredMaps;
@@ -174,12 +178,6 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
       <PageHeader 
         title="Análise por Parâmetro"
         subtitle="Frequência, mapeamento de tipos e valores distintos utilizados no disparo de eventos."
-      />
-
-      <SearchFilterToolbar
-        searchValue={searchTerm}
-        onSearchChange={(val) => setSearchTerm(val)}
-        searchPlaceholder="Buscar parâmetro ou valor..."
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -275,7 +273,7 @@ export const ParameterAnalysisView: React.FC<ParameterAnalysisViewProps> = ({
                             : 'bg-white dark:bg-slate-700 border-gray-200 dark:border-slate-600 text-gray-800 dark:text-slate-200 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-600 cursor-pointer'
                         }`}
                       >
-                        {highlightText(val, searchTerm)}
+                        {highlightText(val, effectiveSearchTerm)}
                       </button>
                     );
                   })}

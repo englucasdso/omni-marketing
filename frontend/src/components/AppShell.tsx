@@ -10,6 +10,7 @@ interface AppShellProps {
   lastSync?: string | null;
   onSyncClick?: () => void;
   children: React.ReactNode;
+  contextualContent?: React.ReactNode;
 }
 
 export const AppShell: React.FC<AppShellProps> = ({
@@ -19,6 +20,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   lastSync,
   onSyncClick,
   children,
+  contextualContent,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -32,6 +34,7 @@ export const AppShell: React.FC<AppShellProps> = ({
         isMobileOpen={isMobileMenuOpen}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
         onSyncClick={onSyncClick}
+        contextualContent={contextualContent}
       />
 
       {/* Main Content Area: Offset by 64px on desktop so expanded sidebar overlays it */}

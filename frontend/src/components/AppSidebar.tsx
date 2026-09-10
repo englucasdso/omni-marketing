@@ -35,6 +35,7 @@ interface AppSidebarProps {
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
   onSyncClick?: () => void;
+  contextualContent?: React.ReactNode;
 }
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({
@@ -44,6 +45,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   isMobileOpen = false,
   onCloseMobile,
   onSyncClick,
+  contextualContent,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isFocusedWithin, setIsFocusedWithin] = useState(false);
@@ -93,14 +95,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             setIsFocusedWithin(false);
           }
         }}
-        className={`fixed top-0 left-0 h-screen z-40 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 transition-all duration-200 ease-in-out flex flex-col justify-between select-none
+        className={`fixed top-0 left-0 h-screen z-40 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 transition-all duration-200 ease-in-out flex flex-col select-none
           ${isMobileOpen ? 'translate-x-0 w-[240px] shadow-2xl' : '-translate-x-full md:translate-x-0'}
           ${isExpanded ? 'md:w-[240px] md:shadow-2xl' : 'md:w-16'}
         `}
         aria-label="Navegação principal"
       >
-        {/* Top Header / Logo Placeholder */}
-        <div>
+        {/* 1. Top Header / Logo */}
+        <div className="shrink-0">
           <div className="h-16 flex items-center px-3 border-b border-gray-100 dark:border-slate-800/80">
             <button
               onClick={() => {
@@ -153,9 +155,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               </button>
             )}
           </div>
+        </div>
 
-          {/* Navigation Links */}
-          <nav className="px-3 py-2 space-y-1 mt-3" aria-label="Seções do sistema">
+        {/* 2. Navigation Links */}
+        <nav className="px-3 py-2 space-y-1 mt-3 shrink-0" aria-label="Seções do sistema">
             {NAV_ITEMS.map((item) => {
               const isActive = currentRouteId === item.id;
               const Icon = item.icon;
@@ -268,10 +271,19 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             </div>
             
           </nav>
-        </div>
 
-        {/* Bottom indicator/helper area */}
-        <div className="p-3 border-t border-gray-100 dark:border-slate-800/80">
+        {/* 3. Espaço flexível disponível */}
+        <div className="flex-1 min-h-0" />
+
+        {/* 4. Área contextual de busca e filtros (apenas no sidebar expandido ou mobile) */}
+        {(isExpanded || isMobileOpen) && contextualContent && (
+          <div className="shrink-0 max-h-[45vh] overflow-y-auto px-3 py-2.5 border-t border-gray-100 dark:border-slate-800/80 custom-scrollbar">
+            {contextualContent}
+          </div>
+        )}
+
+        {/* 5. Separador & 6. “Nova Busca” no rodapé */}
+        <div className="shrink-0 p-3 border-t border-gray-100 dark:border-slate-800/80">
           <button
             onClick={() => {
               onHomeClick();

@@ -61,7 +61,7 @@ export function MultiSelect({ label, icon, options, values, onChange }: MultiSel
       </FilterField>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1.5 w-[230px] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 shadow-neu-card rounded-xl z-[100] overflow-hidden flex flex-col text-left">
+        <div className="absolute top-full left-0 right-0 w-full mt-1.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 shadow-neu-card rounded-xl z-[100] overflow-hidden flex flex-col text-left">
           <div className="max-h-60 overflow-y-auto p-1.5 flex flex-col gap-0.5 custom-scrollbar">
             <button 
               onClick={() => toggle('all')}

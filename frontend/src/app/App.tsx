@@ -29,6 +29,7 @@ import { ParameterAnalysisView } from "../components/ParameterAnalysisView";
 import { CanonicalInsightsDashboard } from "../components/CanonicalInsightsDashboard";
 import { AppShell } from "../components/AppShell";
 import { PageHeader } from "../components/PageHeader";
+import { SidebarContextualArea } from "../components/SidebarContextualArea";
 
 // Espaçamento lateral global reutilizado no cabeçalho e rodapé para alinhamento no mesmo eixo vertical
 const GLOBAL_SCREEN_PADDING = "px-6 sm:px-8";
@@ -1237,6 +1238,73 @@ export default function App() {
     };
   }, [results]);
 
+  const isInventoryFilterActive = useMemo(() => {
+    return (
+      tableFilter.trim() !== "" ||
+      Object.values(inventoryFilters).some(arr => arr && arr.length > 0 && !arr.includes("all")) ||
+      onlyWithoutResponsible ||
+      onlyWithoutSubproduct ||
+      onlyDivergent
+    );
+  }, [tableFilter, inventoryFilters, onlyWithoutResponsible, onlyWithoutSubproduct, onlyDivergent]);
+
+  // Estados contextuais para Análise por Produto
+  const [productSearch, setProductSearch] = useState("");
+  const [productSubprodutoFilter, setProductSubprodutoFilter] = useState("TODOS");
+
+  const availableProductSubprodutos = useMemo(() => {
+    const subs = new Set<string>();
+    results.forEach(a => {
+      if (a.subproduto && a.subproduto.trim()) {
+        subs.add(a.subproduto.trim());
+      }
+    });
+    return Array.from(subs).sort();
+  }, [results]);
+
+  const isProductFilterActive = useMemo(() => {
+    return productSearch.trim() !== "" || productSubprodutoFilter !== "TODOS";
+  }, [productSearch, productSubprodutoFilter]);
+
+  const resetProductFilters = () => {
+    setProductSearch("");
+    setProductSubprodutoFilter("TODOS");
+  };
+
+  // Estados contextuais para Análise por Parâmetro
+  const [paramSearch, setParamSearch] = useState("");
+  const isParamFilterActive = useMemo(() => paramSearch.trim() !== "", [paramSearch]);
+  const resetParamFilters = () => {
+    setParamSearch("");
+  };
+
+  // Estados contextuais para Insights Canônicos (sem busca)
+  const [insightsProductFilter, setInsightsProductFilter] = useState("all");
+  const [insightsSubprodutoFilter, setInsightsSubprodutoFilter] = useState("all");
+  const [insightsMeasurementFilter, setInsightsMeasurementFilter] = useState("all");
+
+  const availableInsightsProducts = useMemo(() => {
+    return Array.from(new Set(results.map(a => a.produto).filter(Boolean))).sort() as string[];
+  }, [results]);
+
+  const availableInsightsSubprodutos = useMemo(() => {
+    const list = results
+      .filter(a => insightsProductFilter === "all" || a.produto === insightsProductFilter)
+      .map(a => a.subproduto)
+      .filter(Boolean) as string[];
+    return Array.from(new Set(list)).sort();
+  }, [results, insightsProductFilter]);
+
+  const isInsightsFilterActive = useMemo(() => {
+    return insightsProductFilter !== "all" || insightsSubprodutoFilter !== "all" || insightsMeasurementFilter !== "all";
+  }, [insightsProductFilter, insightsSubprodutoFilter, insightsMeasurementFilter]);
+
+  const resetInsightsFilters = () => {
+    setInsightsProductFilter("all");
+    setInsightsSubprodutoFilter("all");
+    setInsightsMeasurementFilter("all");
+  };
+
   const handleSort = (field: keyof Artifact | string) => {
     setInventorySort(prev => {
       if (prev.field === field) {
@@ -1269,6 +1337,11 @@ export default function App() {
     setTableFilter("");
     setExecutiveSummaryResult(null);
     setInsightsActiveTab("indicadores");
+    resetCardFilters();
+    resetInventoryFilters();
+    resetProductFilters();
+    resetParamFilters();
+    resetInsightsFilters();
   };
 
   const downloadFile = (data: string, filename: string, type: string) => {
@@ -1328,9 +1401,85 @@ export default function App() {
     <AppShell
       currentRouteId={appState}
       onNavigate={(item) => setAppState(item.id as any)}
-      onHomeClick={() => { setAppState('initial'); setQuery(''); setTableFilter(''); }}
+      onHomeClick={() => { 
+        setAppState('initial'); 
+        setQuery(''); 
+        resetSearch(); 
+      }}
       lastSync={lastSync}
       onSyncClick={() => setIsSyncAuthOpen(true)}
+      contextualContent={
+        <SidebarContextualArea
+          currentRouteId={appState}
+          cardSearch={cardSearch}
+          onCardSearchChange={(val) => {
+            setCardSearch(val);
+            setCardPage(1);
+          }}
+          cardSort={cardSort}
+          onCardSortChange={(val) => {
+            setCardSort(val);
+            setCardPage(1);
+          }}
+          cardArtifactType={cardArtifactType}
+          onCardArtifactTypeChange={(val) => {
+            setCardArtifactType(val);
+            setCardPage(1);
+          }}
+          cardResponsible={cardResponsible}
+          onCardResponsibleChange={(val) => {
+            setCardResponsible(val);
+            setCardPage(1);
+          }}
+          cardYear={cardYear}
+          onCardYearChange={(val) => {
+            setCardYear(val);
+            setCardPage(1);
+          }}
+          availableResponsibles={availableResponsibles}
+          availableYears={availableYears}
+          isCardFilterActive={isCardFilterActive}
+          onResetCardFilters={resetCardFilters}
+
+          tableFilter={tableFilter}
+          onTableFilterChange={setTableFilter}
+          inventoryFilters={inventoryFilters as any}
+          onInventoryFiltersChange={setInventoryFilters}
+          filterOptions={filterOptions}
+          onlyWithoutResponsible={onlyWithoutResponsible}
+          onToggleOnlyWithoutResponsible={() => setOnlyWithoutResponsible(prev => !prev)}
+          onlyWithoutSubproduct={onlyWithoutSubproduct}
+          onToggleOnlyWithoutSubproduct={() => setOnlyWithoutSubproduct(prev => !prev)}
+          onlyDivergent={onlyDivergent}
+          onToggleOnlyDivergent={() => setOnlyDivergent(prev => !prev)}
+          isInventoryFilterActive={isInventoryFilterActive}
+          onResetInventoryFilters={resetInventoryFilters}
+
+          productSearch={productSearch}
+          onProductSearchChange={setProductSearch}
+          productSubprodutoFilter={productSubprodutoFilter}
+          onProductSubprodutoFilterChange={setProductSubprodutoFilter}
+          availableProductSubprodutos={availableProductSubprodutos}
+          isProductFilterActive={isProductFilterActive}
+          onResetProductFilters={resetProductFilters}
+
+          paramSearch={paramSearch}
+          onParamSearchChange={setParamSearch}
+          isParamFilterActive={isParamFilterActive}
+          onResetParamFilters={resetParamFilters}
+
+          insightsProductFilter={insightsProductFilter}
+          onInsightsProductFilterChange={setInsightsProductFilter}
+          availableInsightsProducts={availableInsightsProducts}
+          insightsSubprodutoFilter={insightsSubprodutoFilter}
+          onInsightsSubprodutoFilterChange={setInsightsSubprodutoFilter}
+          availableInsightsSubprodutos={availableInsightsSubprodutos}
+          insightsMeasurementFilter={insightsMeasurementFilter}
+          onInsightsMeasurementFilterChange={setInsightsMeasurementFilter}
+          isInsightsFilterActive={isInsightsFilterActive}
+          onResetInsightsFilters={resetInsightsFilters}
+        />
+      }
     >
       <div className="relative w-full flex-1 flex flex-col min-h-screen">
         <AnimatePresence>
@@ -1635,6 +1784,12 @@ export default function App() {
                   setInventoryFilters(f => ({ ...f, produto: [prod] }));
                   setAppState("inventory_table");
                 }}
+                selectedProductFilter={insightsProductFilter}
+                onProductFilterChange={setInsightsProductFilter}
+                selectedSubprodutoFilter={insightsSubprodutoFilter}
+                onSubprodutoFilterChange={setInsightsSubprodutoFilter}
+                selectedMeasurementFilter={insightsMeasurementFilter}
+                onMeasurementFilterChange={setInsightsMeasurementFilter}
               />
             </motion.section>
           )}
@@ -1653,6 +1808,10 @@ export default function App() {
                   setInventoryFilters(f => ({ ...f, produto: [prod] }));
                   setAppState("inventory_table");
                 }}
+                searchTerm={productSearch}
+                onSearchChange={setProductSearch}
+                selectedSubproduto={productSubprodutoFilter}
+                onSubprodutoChange={setProductSubprodutoFilter}
               />
             </motion.section>
           )}
@@ -1667,6 +1826,8 @@ export default function App() {
               <ParameterAnalysisView 
                 artifacts={results}
                 onOpenMap={(art) => setDetailModalItem(art)}
+                searchTerm={paramSearch}
+                onSearchChange={setParamSearch}
               />
             </motion.section>
           )}
@@ -1926,121 +2087,6 @@ export default function App() {
             {/* Âncora para rolagem suave ao trocar de página */}
             <div ref={cardsListRef} className="scroll-mt-6" />
 
-            {/* 3. Barra de Busca Larga */}
-            <div className="w-full relative">
-              <Search className="w-5 h-5 text-gray-400 dark:text-slate-500 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Buscar por título, ID, produto, subproduto ou responsável..."
-                value={cardSearch}
-                onChange={(e) => {
-                  setCardSearch(e.target.value);
-                  setCardPage(1);
-                }}
-                className="neu-input w-full pl-12 pr-10 py-3.5 rounded-2xl text-sm font-ui font-medium text-gray-800 dark:text-slate-100 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-neu-input focus:outline-none focus:border-bradesco-red/50 transition-all placeholder:text-gray-400 dark:placeholder:text-slate-500"
-              />
-              {cardSearch && (
-                <button
-                  onClick={() => {
-                    setCardSearch("");
-                    setCardPage(1);
-                  }}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 p-1 cursor-pointer"
-                  title="Limpar busca"
-                  aria-label="Limpar busca"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-
-            {/* 4. Barra Horizontal de Filtros */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 flex-1">
-                {/* 1. Ordenação */}
-                <FilterField label="Ordenação" icon={ArrowUpDown}>
-                  <select
-                    value={cardSort}
-                    onChange={(e) => {
-                      setCardSort(e.target.value as any);
-                      setCardPage(1);
-                    }}
-                    className="neu-input w-full px-3 py-2 rounded-xl text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 bg-gray-50/80 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 outline-none cursor-pointer focus:border-bradesco-red"
-                  >
-                    <option value="recentes">Mais recentes</option>
-                    <option value="antigos">Mais antigos</option>
-                    <option value="az">Título de A a Z</option>
-                    <option value="za">Título de Z a A</option>
-                  </select>
-                </FilterField>
-
-                {/* 2. Artefato */}
-                <FilterField label="Artefato" icon={FileText}>
-                  <select
-                    value={cardArtifactType}
-                    onChange={(e) => {
-                      setCardArtifactType(e.target.value as any);
-                      setCardPage(1);
-                    }}
-                    className="neu-input w-full px-3 py-2 rounded-xl text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 bg-gray-50/80 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 outline-none cursor-pointer focus:border-bradesco-red"
-                  >
-                    <option value="todos">Todos</option>
-                    <option value="mapas">Mapas</option>
-                    <option value="docs">Documentações</option>
-                    <option value="nos">Nós</option>
-                  </select>
-                </FilterField>
-
-                {/* 3. Responsável */}
-                <FilterField label="Responsável" icon={User}>
-                  <select
-                    value={cardResponsible}
-                    onChange={(e) => {
-                      setCardResponsible(e.target.value);
-                      setCardPage(1);
-                    }}
-                    className="neu-input w-full px-3 py-2 rounded-xl text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 bg-gray-50/80 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 outline-none cursor-pointer focus:border-bradesco-red truncate"
-                  >
-                    <option value="todos">Todos</option>
-                    {availableResponsibles.map((resp) => (
-                      <option key={resp} value={resp}>{resp}</option>
-                    ))}
-                  </select>
-                </FilterField>
-
-                {/* 4. Data (Ano) */}
-                <FilterField label="Data (Ano)" icon={Calendar}>
-                  <select
-                    value={cardYear}
-                    onChange={(e) => {
-                      setCardYear(e.target.value);
-                      setCardPage(1);
-                    }}
-                    className="neu-input w-full px-3 py-2 rounded-xl text-xs font-ui font-semibold text-gray-800 dark:text-slate-200 bg-gray-50/80 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 outline-none cursor-pointer focus:border-bradesco-red"
-                  >
-                    <option value="todas">Todas</option>
-                    {availableYears.map((yr) => (
-                      <option key={yr} value={yr}>{yr}</option>
-                    ))}
-                  </select>
-                </FilterField>
-              </div>
-
-              {/* Ação discreta: Limpar filtros */}
-              {isCardFilterActive && (
-                <div className="flex items-end self-end lg:self-center pt-1 lg:pt-3">
-                  <button
-                    onClick={resetCardFilters}
-                    className="btn-neu px-3.5 py-2 rounded-xl text-xs font-ui font-semibold text-gray-600 dark:text-slate-300 hover:text-bradesco-red flex items-center gap-1.5 cursor-pointer transition-colors"
-                    title="Limpar todos os filtros e busca"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5 text-bradesco-red" />
-                    Limpar filtros
-                  </button>
-                </div>
-              )}
-            </div>
-
             {/* Contador de Resultados */}
             <div className="flex items-center justify-between px-1 text-xs font-ui text-gray-500 dark:text-slate-400">
               <span className="tabular-nums">
@@ -2264,105 +2310,6 @@ export default function App() {
                   </button>
                 }
               />
-
-              {/* Advanced Filter Architecture */}
-              <div className="relative mb-6">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Buscar por título, ID, produto, subproduto, responsável ou parâmetro..."
-                  className="w-full pl-11 pr-10 py-3.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-sm focus:ring-2 focus:ring-bradesco-red focus:border-bradesco-red text-sm font-ui dark:text-slate-100 transition-shadow"
-                  value={tableFilter}
-                  onChange={(e) => setTableFilter(e.target.value)}
-                />
-                {tableFilter && (
-                  <button
-                    onClick={() => setTableFilter("")}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-neu-card mb-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-3 flex-1">
-                  {[
-                    { label: 'Artefato', key: 'tipo_mapa', options: filterOptions.tipoArtefato, icon: FileText },
-                    { label: 'Classificação', key: 'measurement_class', options: filterOptions.classificacao, icon: Layers },
-                    { label: 'Produto', key: 'produto', options: filterOptions.produtos, icon: Landmark },
-                    { label: 'Subproduto', key: 'subproduto', options: filterOptions.subprodutos, icon: Tag },
-                    { label: 'Parâmetro', key: 'parametro', options: filterOptions.parametros, icon: Code2 },
-                    { label: 'Ano', key: 'ano', options: filterOptions.anos, icon: Calendar }
-                  ].map(filter => (
-                    <MultiSelect 
-                      key={filter.key} 
-                      label={filter.label} 
-                      icon={filter.icon}
-                      options={filter.options}
-                      values={inventoryFilters[filter.key as keyof typeof inventoryFilters] || []}
-                      onChange={(vals) => setInventoryFilters(f => ({ ...f, [filter.key]: vals }))}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                 <div className="flex flex-wrap items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setOnlyWithoutResponsible(prev => !prev)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-ui font-semibold transition-all cursor-pointer border ${
-                        onlyWithoutResponsible
-                          ? 'bg-red-50 dark:bg-red-950/20 text-bradesco-red border-red-200 dark:border-red-900/50'
-                          : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
-                      }`}
-                    >
-                      Sem responsável
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setOnlyWithoutSubproduct(prev => !prev)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-ui font-semibold transition-all cursor-pointer border ${
-                        onlyWithoutSubproduct
-                          ? 'bg-red-50 dark:bg-red-950/20 text-bradesco-red border-red-200 dark:border-red-900/50'
-                          : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
-                      }`}
-                    >
-                      Sem subproduto
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setOnlyDivergent(prev => !prev)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-ui font-semibold transition-all cursor-pointer border flex items-center gap-1.5 ${
-                        onlyDivergent
-                          ? 'bg-red-50 dark:bg-red-950/20 text-bradesco-red border-red-200 dark:border-red-900/50'
-                          : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
-                      }`}
-                    >
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                      Apenas divergentes
-                    </button>
-                 </div>
-
-                 {(tableFilter || 
-                    Object.values(inventoryFilters).some(arr => arr && arr.length > 0 && !arr.includes("all")) || 
-                    onlyWithoutResponsible || 
-                    onlyWithoutSubproduct || 
-                    onlyDivergent
-                 ) && (
-                   <button 
-                    onClick={resetInventoryFilters}
-                    className="btn-neu px-3.5 py-2 rounded-xl text-xs font-ui font-semibold text-gray-600 dark:text-slate-300 hover:text-bradesco-red flex items-center gap-1.5 cursor-pointer transition-colors"
-                   >
-                     <RotateCcw className="w-3.5 h-3.5" /> Limpar filtros
-                   </button>
-                 )}
-              </div>
 
               {/* Single Counter Label Before Table */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 border-b border-gray-200 dark:border-slate-800 mb-6">
