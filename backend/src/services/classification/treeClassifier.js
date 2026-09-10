@@ -102,109 +102,189 @@ export function classifyTree(rows, rootPageId) {
 
   // 3. Resolução taxonômica por ancestrais
   return classifiedRows.map(classified => {
-    const ancestorIds = Array.isArray(classified.ancestor_ids) ? classified.ancestor_ids : [];
-    const ancestorTitles = Array.isArray(classified.ancestor_titles) ? classified.ancestor_titles : [];
-    const mapIdStr = String(classified.id);
+    const originalProduto = classified.produto;
+    const originalProdutoId = classified.produto_id;
+    const originalSubproduto = classified.subproduto;
+    const originalSubprodutoId = classified.subproduto_id;
+    const originalCategorias = classified.categorias;
+    const originalCategoriaIds = classified.categoria_ids;
+    const originalSubprodutoPath = classified.subproduto_path;
+    const originalSubprodutoPathIds = classified.subproduto_path_ids;
+
     const mapTitle = String(classified.titulo || '').trim().toLowerCase();
 
-    // Coletar ancestrais estruturais
-    const structuralAncestors = [];
-    for (let i = 0; i < ancestorIds.length; i++) {
-      const aId = String(ancestorIds[i]);
-      if (aId === mapIdStr) continue; // Não incluir o próprio nó
-      
-      const anc = rowMap.get(aId);
-      const depth = anc?.depth !== undefined ? Number(anc.depth) : i;
-      const type = anc?.artifact_type;
-
-      // Raiz nunca é produto
-      if (i === 0 || depth === 0 || type === 'RAIZ' || aId === rootStr) continue;
-
-      // Apenas nós estruturais (mapas e documentação não são nós estruturais)
-      if (type === 'MAPA' || type === 'DOCUMENTACAO') continue;
-
-      const title = String(anc?.titulo || ancestorTitles[i] || aId).trim();
-      if (title.toLowerCase() === mapTitle) continue;
-
-      structuralAncestors.push({
-        id: aId,
-        title,
-        depth: depth > 0 ? depth : structuralAncestors.length + 1
-      });
-    }
-
-    // Se ancestorIds não estava disponível, usar ancestorTitles como fallback
-    if (structuralAncestors.length === 0 && ancestorTitles.length > 1) {
-      for (let i = 1; i < ancestorTitles.length; i++) {
-        const title = String(ancestorTitles[i] || '').trim();
-        if (!title || title.toLowerCase() === mapTitle) continue;
-        structuralAncestors.push({
-          id: ancestorIds[i] ? String(ancestorIds[i]) : `anc-${i}`,
-          title,
-          depth: i
-        });
-      }
-    }
-
-    let produto = '';
-    let produto_id = null;
-    let subproduto = '';
-    let subproduto_id = null;
-    let categorias = [];
-    let categoria_ids = [];
-    let subproduto_path = [];
-    let subproduto_path_ids = [];
-
     if (classified.artifact_type === 'RAIZ') {
-      // Raiz não tem produto nem subproduto
-    } else if (classified.artifact_type === 'NO') {
-      if (classified.depth === 1) {
-        // O nó de nível 1 é o próprio produto estrutural
-        produto = classified.titulo;
-        produto_id = String(classified.id);
-      } else if (classified.depth === 2) {
-        // O nó de nível 2 é o próprio subproduto estrutural
-        produto = structuralAncestors[0]?.title || ancestorTitles[1] || '';
-        produto_id = structuralAncestors[0]?.id || (ancestorIds[1] ? String(ancestorIds[1]) : null);
-        subproduto = classified.titulo;
-        subproduto_id = String(classified.id);
-        subproduto_path = [classified.titulo];
-        subproduto_path_ids = [String(classified.id)];
-      } else if (classified.depth > 2) {
-        produto = structuralAncestors[0]?.title || ancestorTitles[1] || '';
-        produto_id = structuralAncestors[0]?.id || (ancestorIds[1] ? String(ancestorIds[1]) : null);
-        subproduto = structuralAncestors[1]?.title || ancestorTitles[2] || '';
-        subproduto_id = structuralAncestors[1]?.id || (ancestorIds[2] ? String(ancestorIds[2]) : null);
-        categorias = [...structuralAncestors.slice(2).map(s => s.title), classified.titulo];
-        categoria_ids = [...structuralAncestors.slice(2).map(s => s.id), String(classified.id)];
-        subproduto_path = [...structuralAncestors.slice(1).map(s => s.title), classified.titulo];
-        subproduto_path_ids = [...structuralAncestors.slice(1).map(s => s.id), String(classified.id)];
+      classified.produto = '';
+      classified.produto_id = null;
+      classified.subproduto = '';
+      classified.subproduto_id = null;
+      classified.categorias = [];
+      classified.categoria_ids = [];
+      classified.subproduto_path = [];
+      classified.subproduto_path_ids = [];
+      return classified;
+    }
+
+    const ancestorIds = Array.isArray(classified.ancestor_ids) ? classified.ancestor_ids : [];
+    let ancestorTitles = Array.isArray(classified.ancestor_titles) ? classified.ancestor_titles : [];
+
+    // Se ancestor_titles não estiver disponível, mas ancestor_ids estiver, tentar recuperar títulos dos ancestrais
+    // sem transformar IDs de ancestrais em nomes visíveis
+    if (ancestorTitles.length === 0 && ancestorIds.length > 0) {
+      const recoveredTitles = [];
+      let canRecover = true;
+      for (const aId of ancestorIds) {
+        const anc = rowMap.get(String(aId));
+        if (anc && anc.titulo && typeof anc.titulo === 'string' && anc.titulo.trim() !== '') {
+          recoveredTitles.push(anc.titulo.trim());
+        } else {
+          canRecover = false;
+          break;
+        }
       }
-    } else {
-      // MAPA ou DOCUMENTACAO (artefatos finais)
-      // O mapa nunca pode virar produto ou subproduto!
-      if (structuralAncestors.length >= 1) {
-        produto = structuralAncestors[0].title;
-        produto_id = structuralAncestors[0].id;
-      }
-      if (structuralAncestors.length >= 2) {
-        subproduto = structuralAncestors[1].title;
-        subproduto_id = structuralAncestors[1].id;
-        categorias = structuralAncestors.slice(2).map(s => s.title);
-        categoria_ids = structuralAncestors.slice(2).map(s => s.id);
-        subproduto_path = structuralAncestors.slice(1).map(s => s.title);
-        subproduto_path_ids = structuralAncestors.slice(1).map(s => s.id);
+      if (canRecover && recoveredTitles.length > 0) {
+        ancestorTitles = recoveredTitles;
       }
     }
 
-    classified.produto = produto;
-    classified.produto_id = produto_id;
-    classified.subproduto = subproduto;
-    classified.subproduto_id = subproduto_id;
-    classified.categorias = categorias;
-    classified.categoria_ids = categoria_ids;
-    classified.subproduto_path = subproduto_path;
-    classified.subproduto_path_ids = subproduto_path_ids;
+    // Regra: o título do próprio mapa nunca pode virar produto, subproduto ou categoria.
+    if (ancestorTitles.length > 0 && String(ancestorTitles[ancestorTitles.length - 1] || '').trim().toLowerCase() === mapTitle) {
+      ancestorTitles = ancestorTitles.slice(0, -1);
+    }
+
+    // Verifica se possui cadeia estrutural válida e suficiente (pelo menos raiz [0] e produto [1])
+    const hasValidStructuralChain = 
+      ancestorTitles.length >= 2 && 
+      typeof ancestorTitles[1] === 'string' && 
+      ancestorTitles[1].trim() !== '' && 
+      ancestorTitles[1].trim().toLowerCase() !== mapTitle;
+
+    if (classified.artifact_type === 'NO') {
+      if (classified.depth === 1) {
+        classified.produto = classified.titulo;
+        classified.produto_id = String(classified.id);
+        classified.subproduto = '';
+        classified.subproduto_id = null;
+        classified.categorias = [];
+        classified.categoria_ids = [];
+        classified.subproduto_path = [];
+        classified.subproduto_path_ids = [];
+        return classified;
+      } else if (classified.depth === 2) {
+        classified.produto = hasValidStructuralChain ? ancestorTitles[1].trim() : (originalProduto || '');
+        classified.produto_id = (hasValidStructuralChain && ancestorIds[1] !== undefined && ancestorIds[1] !== null) 
+          ? String(ancestorIds[1]) 
+          : (originalProdutoId || null);
+        classified.subproduto = classified.titulo;
+        classified.subproduto_id = String(classified.id);
+        classified.categorias = [];
+        classified.categoria_ids = [];
+        classified.subproduto_path = [classified.titulo];
+        classified.subproduto_path_ids = [String(classified.id)];
+        return classified;
+      } else if (classified.depth > 2) {
+        classified.produto = hasValidStructuralChain ? ancestorTitles[1].trim() : (originalProduto || '');
+        classified.produto_id = (hasValidStructuralChain && ancestorIds[1] !== undefined && ancestorIds[1] !== null) 
+          ? String(ancestorIds[1]) 
+          : (originalProdutoId || null);
+        classified.subproduto = (ancestorTitles.length >= 3 && ancestorTitles[2]) ? ancestorTitles[2].trim() : (originalSubproduto || '');
+        classified.subproduto_id = (ancestorIds[2] !== undefined && ancestorIds[2] !== null) ? String(ancestorIds[2]) : (originalSubprodutoId || null);
+        classified.categorias = [...ancestorTitles.slice(3).map(t => String(t || '').trim()), classified.titulo].filter(Boolean);
+        classified.categoria_ids = [...ancestorIds.slice(3).map(id => id !== undefined && id !== null ? String(id) : null), String(classified.id)];
+        classified.subproduto_path = [classified.subproduto, ...classified.categorias].filter(Boolean);
+        classified.subproduto_path_ids = [classified.subproduto_id, ...classified.categoria_ids].filter(Boolean);
+        return classified;
+      }
+    }
+
+    // Para MAPA ou DOCUMENTACAO (ou nós sem depth explícito):
+    if (hasValidStructuralChain) {
+      // 1. ancestor_titles[1] corresponde ao produto — nível 2 visual da árvore
+      const prodTitle = ancestorTitles[1].trim();
+      const prodId = (ancestorIds[1] !== undefined && ancestorIds[1] !== null) ? String(ancestorIds[1]) : (originalProdutoId || null);
+
+      let subTitle = '';
+      let subId = null;
+      let cats = [];
+      let catIds = [];
+
+      // 2. ancestor_titles[2] corresponde ao subproduto
+      if (ancestorTitles.length >= 3 && typeof ancestorTitles[2] === 'string' && ancestorTitles[2].trim() !== '') {
+        const potentialSub = ancestorTitles[2].trim();
+        if (potentialSub.toLowerCase() !== mapTitle) {
+          subTitle = potentialSub;
+          subId = (ancestorIds[2] !== undefined && ancestorIds[2] !== null) ? String(ancestorIds[2]) : (originalSubprodutoId || null);
+
+          // 3. ancestor_titles.slice(3) corresponde aos níveis descendentes (categorias)
+          if (ancestorTitles.length >= 4) {
+            const rawCats = ancestorTitles.slice(3);
+            const rawCatIds = ancestorIds.slice(3);
+            for (let c = 0; c < rawCats.length; c++) {
+              const cTitle = String(rawCats[c] || '').trim();
+              if (cTitle && cTitle.toLowerCase() !== mapTitle) {
+                cats.push(cTitle);
+                catIds.push((rawCatIds[c] !== undefined && rawCatIds[c] !== null) ? String(rawCatIds[c]) : null);
+              }
+            }
+          }
+        }
+      }
+
+      classified.produto = prodTitle;
+      classified.produto_id = prodId;
+      classified.subproduto = subTitle;
+      classified.subproduto_id = subId;
+      classified.categorias = cats;
+      classified.categoria_ids = catIds;
+      classified.subproduto_path = subTitle ? [subTitle, ...cats] : [];
+      classified.subproduto_path_ids = subTitle ? [subId, ...catIds].filter(Boolean) : [];
+
+      return classified;
+    }
+
+    // Se não houver ancestor_titles ou a cadeia for incompleta:
+    // Preservar valores existentes com fallback controlado:
+    // 1. artifact.produto
+    // 2. artifact.produto_servico
+    // 3. artifact.header?.produto_servico?.value
+    // Somente depois disso vazio (que vira "Sem Produto" na apresentação).
+    let resolvedProduto = '';
+    if (typeof originalProduto === 'string' && originalProduto.trim() !== '' && originalProduto.trim() !== 'Sem Produto' && originalProduto.trim().toLowerCase() !== mapTitle) {
+      resolvedProduto = originalProduto.trim();
+    } else if (typeof classified.produto_servico === 'string' && classified.produto_servico.trim() !== '' && classified.produto_servico.trim() !== 'Sem Produto' && classified.produto_servico.trim().toLowerCase() !== mapTitle) {
+      resolvedProduto = classified.produto_servico.trim();
+    } else if (typeof classified.header?.produto_servico?.value === 'string' && classified.header.produto_servico.value.trim() !== '' && classified.header.produto_servico.value.trim() !== 'Sem Produto' && classified.header.produto_servico.value.trim().toLowerCase() !== mapTitle) {
+      resolvedProduto = classified.header.produto_servico.value.trim();
+    }
+
+    classified.produto = resolvedProduto;
+    classified.produto_id = (originalProdutoId !== undefined && originalProdutoId !== null) ? originalProdutoId : null;
+
+    let resolvedSubproduto = '';
+    if (typeof originalSubproduto === 'string' && originalSubproduto.trim() !== '' && originalSubproduto.trim() !== 'Sem subproduto' && originalSubproduto.trim().toLowerCase() !== mapTitle) {
+      resolvedSubproduto = originalSubproduto.trim();
+    }
+    classified.subproduto = resolvedSubproduto;
+    classified.subproduto_id = (originalSubprodutoId !== undefined && originalSubprodutoId !== null) ? originalSubprodutoId : null;
+
+    if (Array.isArray(originalCategorias) && originalCategorias.length > 0) {
+      classified.categorias = originalCategorias.filter(c => typeof c === 'string' && c.trim() && c.trim().toLowerCase() !== mapTitle);
+      classified.categoria_ids = Array.isArray(originalCategoriaIds) ? originalCategoriaIds : [];
+    } else {
+      classified.categorias = [];
+      classified.categoria_ids = [];
+    }
+
+    if (Array.isArray(originalSubprodutoPath) && originalSubprodutoPath.length > 0) {
+      classified.subproduto_path = originalSubprodutoPath.filter(p => typeof p === 'string' && p.trim() && p.trim().toLowerCase() !== mapTitle);
+      classified.subproduto_path_ids = Array.isArray(originalSubprodutoPathIds) ? originalSubprodutoPathIds : [];
+    } else if (classified.subproduto) {
+      classified.subproduto_path = [classified.subproduto, ...classified.categorias];
+      classified.subproduto_path_ids = [classified.subproduto_id, ...classified.categoria_ids].filter(Boolean);
+    } else {
+      classified.subproduto_path = [];
+      classified.subproduto_path_ids = [];
+    }
 
     return classified;
   });
