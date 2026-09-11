@@ -29,23 +29,13 @@ export class ConfluenceOrchestrator {
     }
   }
 
-  extrairProdutoSubprodutoDaTrilha(ancestorTitles = [], cabecalhoProduto = '') {
-    let estruturalProduto = '';
-    let estruturalSubproduto = '';
-
-    if (ancestorTitles.length >= 2) {
-      estruturalProduto = ancestorTitles[1];
-    }
-    if (ancestorTitles.length >= 3) {
-      estruturalSubproduto = ancestorTitles[2];
-    }
-
-    const produtoFinal = estruturalProduto || cabecalhoProduto || (ancestorTitles[0] || '');
-    const subprodutoFinal = estruturalSubproduto || '';
-
-    return { 
-      produto: produtoFinal, 
-      subproduto: subprodutoFinal 
+  extrairProdutoSubprodutoDaTrilha(ancestorTitles = []) {
+    const titles = Array.isArray(ancestorTitles)
+      ? ancestorTitles.map(value => String(value || '').trim())
+      : [];
+    return {
+      produto: titles[1] || '',
+      subproduto: titles[2] || ''
     };
   }
 
@@ -207,7 +197,7 @@ export class ConfluenceOrchestrator {
         }
         } // end isLeaf check
 
-        const resolvedStructure = this.extrairProdutoSubprodutoDaTrilha(ancestorTitles, cabecalho.produto_servico);
+        const resolvedStructure = this.extrairProdutoSubprodutoDaTrilha(ancestorTitles);
 
         const row = {
           id: idStr,

@@ -24,20 +24,58 @@ interface ProductAnalysisViewProps {
   onSubprodutoChange?: (val: string) => void;
 }
 
-interface StructuralReference {
-  index: number;
-  id: string;
-  name: string;
-  artifact?: Artifact;
+interface MapTaxonomy {
+  productKey: string;
+  displayedProductName: string;
+  productName: string;
+  productId: string;
+  subproductName: string;
+  subproductId: string;
+  descendantPath: { id: string; name: string }[];
 }
 
-interface MapStructuralInfo {
-  productKey: string;
-  productName: string;
-  subproductName: string;
-  descendantPath: { id: string; name: string }[];
-  displayPath: string;
-  hasSemSubproduto: boolean;
+function extractMapTaxonomy(artifact: Artifact): MapTaxonomy {
+  const ancestorIds = Array.isArray(artifact.ancestor_ids)
+    ? artifact.ancestor_ids.map(value => String(value || '').trim())
+    : [];
+  const ancestorTitles = Array.isArray(artifact.ancestor_titles)
+    ? artifact.ancestor_titles.map(value => String(value || '').trim())
+    : [];
+
+  const productName = ancestorTitles[1] || '';
+  const productId = ancestorIds[1] || '';
+
+  const productKey = productId
+    ? `produto:${productId}`
+    : productName
+      ? `produto:${normalizeSearchText(productName)}`
+      : 'SEM_PRODUTO';
+
+  const displayedProductName =
+    productName || 'Sem Produto';
+
+  const subproductName = ancestorTitles[2] || '';
+  const subproductId = ancestorIds[2] || '';
+
+  const descendantPath = ancestorTitles
+    .slice(2)
+    .map((name, index) => ({
+      id:
+        ancestorIds[index + 2] ||
+        `nivel:${index + 2}:${normalizeSearchText(name)}`,
+      name
+    }))
+    .filter(item => item.name);
+
+  return {
+    productKey,
+    displayedProductName,
+    productName,
+    productId,
+    subproductName,
+    subproductId,
+    descendantPath
+  };
 }
 
 export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({ 
@@ -57,143 +95,18 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
   const effectiveSubproduto = selectedSubproduto !== undefined ? selectedSubproduto : localSelectedSubproduto;
   const setEffectiveSubproduto = onSubprodutoChange || setLocalSelectedSubproduto;
 
-  // Índice local por ID de artefato
-  const artifactsById = useMemo(
-    () => new Map(artifacts.map(item => [String(item.id), item])),
-    [artifacts]
-  );
-
-  // Validação de nó estrutural do Confluence
-  const isStructuralNode = (reference: StructuralReference, currentMapId?: string): boolean => {
-    if (reference.index === 0) return false;
-    if (!reference.id && !reference.name) return false;
-    if (currentMapId && reference.id && String(reference.id) === String(currentMapId)) return false;
-    const referencedArtifact = reference.artifact;
-    if (!referencedArtifact) {
-      // A referência continua sendo estrutural porque veio do caminho
-      // de ancestrais persistido pelo crawler.
-      return true;
-    }
-    const type = String(
-      referencedArtifact.artifact_type || ''
-    ).toUpperCase();
-    return (
-      type !== 'RAIZ' &&
-      type !== 'MAPA' &&
-      type !== 'DOCUMENTACAO'
-    );
-  };
-
-  // Resolução estrutural estrita para cada mapa a partir de ancestor_ids e ancestor_titles
-  const mapStructuralInfoByMapId = useMemo(() => {
-    const map = new Map<string, MapStructuralInfo>();
-
-    artifacts.forEach(artifact => {
-      if (artifact.artifact_type !== 'MAPA') return;
-      const currentMapId = String(artifact.id);
-
-      const ancestorIds = Array.isArray(artifact.ancestor_ids)
-        ? artifact.ancestor_ids.map(value => String(value || '').trim())
-        : [];
-      const ancestorTitles = Array.isArray(artifact.ancestor_titles)
-        ? artifact.ancestor_titles.map(value => String(value || '').trim())
-        : [];
-
-      // Montar referências preservando rigorosamente os índices
-      const structuralPath: StructuralReference[] = Array.from({
-        length: Math.max(ancestorIds.length, ancestorTitles.length)
-      }).map((_, index) => ({
-        index,
-        id: ancestorIds[index] || '',
-        name: ancestorTitles[index] || '',
-        artifact: ancestorIds[index]
-          ? artifactsById.get(ancestorIds[index])
-          : undefined
-      }));
-
-      // Produto é exclusivamente a posição estrutural 1
-      const productReference = structuralPath[1];
-      const hasValidProduct = Boolean(
-        productReference && isStructuralNode(productReference, currentMapId)
-      );
-
-      let productName = 'Sem Produto';
-      let productKey = 'SEM_PRODUTO';
-
-      if (hasValidProduct && productReference) {
-        const candidateName =
-          productReference.artifact?.titulo?.trim() ||
-          productReference.name?.trim() ||
-          '';
-
-        const isSemProdSentinel =
-          !candidateName ||
-          candidateName.toLowerCase() === 'sem produto' ||
-          candidateName.toUpperCase() === 'SEM_PRODUTO';
-
-        if (!isSemProdSentinel) {
-          productName = candidateName;
-          productKey = productReference.id
-            ? `produto:${productReference.id}`
-            : `produto:${normalizeSearchText(candidateName)}`;
-        }
+  // Cache taxonômico de cada mapa obtido exclusivamente da árvore do Confluence
+  const mapTaxonomyById = useMemo(() => {
+    const map = new Map<string, MapTaxonomy>();
+    artifacts.forEach(art => {
+      if (art.artifact_type === 'MAPA') {
+        map.set(String(art.id), extractMapTaxonomy(art));
       }
-
-      // Subproduto é exclusivamente a posição estrutural 2
-      let subproductName = '';
-      const descendantPath: { id: string; name: string }[] = [];
-
-      if (productKey !== 'SEM_PRODUTO') {
-        const subproductReference = structuralPath[2];
-        const hasValidSubproduct = Boolean(
-          subproductReference && isStructuralNode(subproductReference, currentMapId)
-        );
-
-        if (hasValidSubproduct) {
-          const rawDescendants = structuralPath
-            .slice(2)
-            .filter(ref => isStructuralNode(ref, currentMapId));
-
-          const seenDescendantIds = new Set<string>();
-
-          for (const ref of rawDescendants) {
-            const name = ref.artifact?.titulo?.trim() || ref.name?.trim() || '';
-            const id = ref.id || (ref.artifact ? String(ref.artifact.id) : '');
-            if (!name && !id) continue;
-            const dedupKey = id || name;
-            if (!seenDescendantIds.has(dedupKey)) {
-              seenDescendantIds.add(dedupKey);
-              descendantPath.push({
-                id,
-                name: name || id
-              });
-            }
-          }
-
-          if (descendantPath.length > 0) {
-            subproductName = descendantPath[0].name;
-          }
-        }
-      }
-
-      const displayPath = descendantPath.length > 0
-        ? descendantPath.map(d => d.name).join(' › ')
-        : 'Sem subproduto';
-
-      map.set(currentMapId, {
-        productKey,
-        productName,
-        subproductName,
-        descendantPath,
-        displayPath,
-        hasSemSubproduto: descendantPath.length === 0
-      });
     });
-
     return map;
-  }, [artifacts, artifactsById]);
+  }, [artifacts]);
 
-  // Consolidação por produto estrutural
+  // Consolidação estruturada por produto determinado exclusivamente pela árvore
   const productsSummary = useMemo(() => {
     const productEntries = new Map<string, {
       id: string;
@@ -223,15 +136,13 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
       if (globallySeenMapIds.has(mapIdStr)) return;
       globallySeenMapIds.add(mapIdStr);
 
-      const struct = mapStructuralInfoByMapId.get(mapIdStr);
-      const productKey = struct?.productKey || 'SEM_PRODUTO';
-      const productName = struct?.productName || 'Sem Produto';
-      const descendantPath = struct?.descendantPath || [];
+      const taxonomy = mapTaxonomyById.get(mapIdStr) || extractMapTaxonomy(art);
+      const { productKey, displayedProductName, descendantPath } = taxonomy;
 
       if (!productEntries.has(productKey)) {
         productEntries.set(productKey, {
           id: productKey,
-          produto: productName,
+          produto: displayedProductName,
           mapas: [],
           seenMapIds: new Set(),
           firstLevelSubproducts: new Set(),
@@ -267,14 +178,14 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
         pEntry.hasSemSubproduto = true;
         pEntry.semSubprodutoMapIds.add(mapIdStr);
       } else {
-        // Primeiro nível de subproduto estrutural (posição 2)
+        // Primeiro nível de subproduto
         pEntry.firstLevelSubproducts.add(descendantPath[0].name);
 
-        // Caminhos hierárquicos descendentes
+        // Caminhos descendentes hierárquicos
         for (let len = 1; len <= descendantPath.length; len++) {
-          const prefix = descendantPath.slice(0, len);
-          const pDisplay = prefix.map(n => n.name).join(' › ');
-          const pKey = prefix.map(n => n.id || n.name).join('::');
+          const prefix = descendantPath.slice(0, len).map(d => d.name);
+          const pDisplay = prefix.join(' › ');
+          const pKey = pDisplay;
           if (!pEntry.descendantPathsMap.has(pKey)) {
             pEntry.descendantPathsMap.set(pKey, {
               key: pKey,
@@ -360,8 +271,12 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
         screenStatusCounts: p.screenStatusCounts,
         topParameters
       };
-    }).sort((a, b) => b.totalMaps - a.totalMaps);
-  }, [artifacts, mapStructuralInfoByMapId]);
+    }).sort((a, b) => {
+      if (a.id === 'SEM_PRODUTO') return 1;
+      if (b.id === 'SEM_PRODUTO') return -1;
+      return b.totalMaps - a.totalMaps;
+    });
+  }, [artifacts, mapTaxonomyById]);
 
   const debouncedSearch = useDebouncedSearch(effectiveSearchTerm, 150);
 
@@ -411,7 +326,7 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
     if (!activeProduct) return [];
     if (effectiveSubproduto === 'TODOS') return activeProduct.mapas;
 
-    // Se effectiveSubproduto for uma chave de caminho específica ou texto de exibição
+    // Se effectiveSubproduto for uma chave de caminho específica
     const pathObj = activeProduct.pathsList.find(
       pl => pl.key === effectiveSubproduto || pl.displayText === effectiveSubproduto
     );
@@ -423,17 +338,13 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
       return activeProduct.mapas.filter(m => activeProduct.semSubprodutoMapIds.has(String(m.id)));
     }
 
-    // Fallback: busca por subproduto estrutural ou nó descendente
+    // Fallback: busca pelo nome do subproduto nos caminhos dos mapas
     return activeProduct.mapas.filter(m => {
-      const struct = mapStructuralInfoByMapId.get(String(m.id));
-      if (!struct) return false;
-      return (
-        struct.subproductName === effectiveSubproduto ||
-        struct.displayPath === effectiveSubproduto ||
-        struct.descendantPath.some(d => d.name === effectiveSubproduto || d.id === effectiveSubproduto)
-      );
+      const taxonomy = mapTaxonomyById.get(String(m.id));
+      if (!taxonomy) return false;
+      return taxonomy.descendantPath.some(d => d.name === effectiveSubproduto);
     });
-  }, [activeProduct, effectiveSubproduto, mapStructuralInfoByMapId]);
+  }, [activeProduct, effectiveSubproduto, mapTaxonomyById]);
 
   // Métricas dinâmicas do produto / subproduto selecionado
   const selectedMetrics = useMemo(() => {
@@ -776,8 +687,9 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
                 </h4>
                 <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
                   {selectedMaps.map(mapItem => {
-                    const struct = mapStructuralInfoByMapId.get(String(mapItem.id));
-                    const pathLabel = struct?.displayPath || 'Sem subproduto';
+                    const taxonomy = mapTaxonomyById.get(String(mapItem.id));
+                    const levels = taxonomy ? taxonomy.descendantPath.map(d => d.name) : [];
+                    const pathLabel = levels.length > 0 ? levels.join(' › ') : 'Sem subproduto';
                     return (
                       <div 
                         key={mapItem.id}
