@@ -60,6 +60,16 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
 
   // Consolidação estruturada por produto resolvido por ID
   const productsSummary = useMemo(() => {
+    // Coleta referências de nós raiz para proteção estrita
+    const rootIds = new Set<string>();
+    const rootTitles = new Set<string>(['hub de artefatos', 'home', 'raiz', 'root']);
+    artifacts.forEach(art => {
+      if (art.depth === 0 || String(art.artifact_type).toUpperCase() === 'RAIZ') {
+        rootIds.add(String(art.id));
+        if (art.titulo) rootTitles.add(String(art.titulo).trim().toLowerCase());
+      }
+    });
+
     const productEntries = new Map<string, {
       id: string;
       produto: string;
@@ -78,12 +88,25 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
       parametersMap: Map<string, number>;
     }>();
 
+    const globallySeenMapIds = new Set<string>();
+
     artifacts.forEach(art => {
       if (art.artifact_type !== 'MAPA') return; // Apenas mapas reais entram na análise
+      const mapIdStr = String(art.id);
 
-      const tax = taxonomyByMapId.get(String(art.id)) || resolveArtifactTaxonomy(art, artifactsById);
-      const productKey = tax.productKey;
-      const productName = tax.product ? tax.product.name : 'Sem Produto';
+      // Contabilizar cada mapa exatamente uma vez
+      if (globallySeenMapIds.has(mapIdStr)) return;
+      globallySeenMapIds.add(mapIdStr);
+
+      const tax = taxonomyByMapId.get(mapIdStr) || resolveArtifactTaxonomy(art, artifactsById);
+      let productKey = tax.productKey;
+      let productName = tax.product ? tax.product.name : 'Sem Produto';
+
+      // Garantia estrita: nunca agrupar usando o ID ou título da raiz
+      if (rootIds.has(productKey) || rootTitles.has(productName.toLowerCase()) || productKey === 'root') {
+        productKey = 'SEM_PRODUTO';
+        productName = 'Sem Produto';
+      }
 
       if (!productEntries.has(productKey)) {
         productEntries.set(productKey, {
@@ -112,7 +135,6 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
       }
 
       const pEntry = productEntries.get(productKey)!;
-      const mapIdStr = String(art.id);
 
       // Prevenir dupla contagem utilizando o ID do mapa
       if (pEntry.seenMapIds.has(mapIdStr)) {

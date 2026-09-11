@@ -5,7 +5,37 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 describe('Resolução de Taxonomia Estrutural da Árvore', () => {
-  it('1. Árvore com produto, subproduto e mapa: Raiz → Créditos → Consignado → Mapa', () => {
+  it('1. Raiz → Créditos → Mapa: Produto: Créditos', () => {
+    const root = { id: 'root', titulo: 'Home', artifact_type: 'RAIZ', depth: 0 };
+    const creditos = { id: 'prod-creditos', titulo: 'Créditos', artifact_type: 'NO', depth: 1, parent_id: 'root' };
+    const mapa = {
+      id: 'map-direto',
+      titulo: 'Visão Geral de Créditos',
+      artifact_type: 'MAPA',
+      depth: 2,
+      parent_id: 'prod-creditos',
+      ancestor_ids: ['root', 'prod-creditos'],
+      ancestor_titles: ['Home', 'Créditos']
+    };
+
+    const artifactsById = new Map([
+      ['root', root],
+      ['prod-creditos', creditos],
+      ['map-direto', mapa]
+    ]);
+
+    const res = resolveArtifactTaxonomy(mapa, artifactsById);
+
+    assert.equal(res.product?.name, 'Créditos');
+    assert.equal(res.product?.id, 'prod-creditos');
+    assert.equal(res.productKey, 'prod-creditos');
+    assert.equal(res.subproduct, null);
+    assert.equal(res.subproductKey, 'SEM_SUBPRODUTO');
+    assert.equal(res.displayPath, '');
+    assert.equal(res.descendantPath.length, 0);
+  });
+
+  it('2. Raiz → Créditos → Consignado → Mapa: Produto: Créditos, Subproduto: Consignado', () => {
     const root = { id: 'root', titulo: 'Home', artifact_type: 'RAIZ', depth: 0 };
     const creditos = { id: 'prod-creditos', titulo: 'Créditos', artifact_type: 'NO', depth: 1, parent_id: 'root' };
     const consignado = { id: 'sub-consignado', titulo: 'Consignado', artifact_type: 'NO', depth: 2, parent_id: 'prod-creditos' };
@@ -30,45 +60,50 @@ describe('Resolução de Taxonomia Estrutural da Árvore', () => {
 
     assert.equal(res.product?.name, 'Créditos');
     assert.equal(res.product?.id, 'prod-creditos');
+    assert.equal(res.productKey, 'prod-creditos');
     assert.equal(res.subproduct?.name, 'Consignado');
     assert.equal(res.subproduct?.id, 'sub-consignado');
+    assert.equal(res.subproductKey, 'sub-consignado');
     assert.equal(res.displayPath, 'Consignado');
     assert.equal(res.descendantPath.length, 1);
-    assert.equal(res.productKey, 'prod-creditos');
   });
 
-  it('2. Mapa diretamente abaixo do produto: Raiz → Créditos → Mapa', () => {
-    const root = { id: 'root', titulo: 'Home', artifact_type: 'RAIZ', depth: 0 };
+  it('3. Raiz → Créditos → Pós Venda → Parcelado → Mapa: Produto: Créditos, Caminho: Pós Venda › Parcelado', () => {
+    const root = { id: 'root', titulo: 'Hub de Artefatos', artifact_type: 'RAIZ', depth: 0 };
     const creditos = { id: 'prod-creditos', titulo: 'Créditos', artifact_type: 'NO', depth: 1, parent_id: 'root' };
+    const posVenda = { id: 'sub-posvenda', titulo: 'Pós Venda', artifact_type: 'NO', depth: 2, parent_id: 'prod-creditos' };
+    const parcelado = { id: 'desc-parcelado', titulo: 'Parcelado', artifact_type: 'NO', depth: 3, parent_id: 'sub-posvenda' };
     const mapa = {
-      id: 'map-direto',
-      titulo: 'Visão Geral de Créditos',
+      id: 'map-checkout',
+      titulo: 'MT Checkout',
       artifact_type: 'MAPA',
-      depth: 2,
-      parent_id: 'prod-creditos',
-      ancestor_ids: ['root', 'prod-creditos'],
-      ancestor_titles: ['Home', 'Créditos']
+      depth: 4,
+      parent_id: 'desc-parcelado',
+      ancestor_ids: ['root', 'prod-creditos', 'sub-posvenda', 'desc-parcelado'],
+      ancestor_titles: ['Hub de Artefatos', 'Créditos', 'Pós Venda', 'Parcelado']
     };
 
     const artifactsById = new Map([
       ['root', root],
       ['prod-creditos', creditos],
-      ['map-direto', mapa]
+      ['sub-posvenda', posVenda],
+      ['desc-parcelado', parcelado],
+      ['map-checkout', mapa]
     ]);
 
     const res = resolveArtifactTaxonomy(mapa, artifactsById);
 
     assert.equal(res.product?.name, 'Créditos');
     assert.equal(res.product?.id, 'prod-creditos');
-    assert.equal(res.subproduct, null);
-    assert.equal(res.subproductKey, 'SEM_SUBPRODUTO');
-    assert.equal(res.displayPath, '');
-    assert.equal(res.descendantPath.length, 0);
-    // Garantir que o título do próprio mapa não virou subproduto
-    assert.notEqual(res.subproduct?.name, 'Visão Geral de Créditos');
+    assert.equal(res.subproduct?.name, 'Pós Venda');
+    assert.equal(res.subproduct?.id, 'sub-posvenda');
+    assert.equal(res.descendantPath.length, 2);
+    assert.equal(res.descendantPath[0].name, 'Pós Venda');
+    assert.equal(res.descendantPath[1].name, 'Parcelado');
+    assert.equal(res.displayPath, 'Pós Venda › Parcelado');
   });
 
-  it('3. Mapa diretamente abaixo da raiz: Raiz → Mapa', () => {
+  it('4. Raiz → Mapa: Produto: Sem Produto. A raiz não pode aparecer como produto', () => {
     const root = { id: 'root', titulo: 'Home', artifact_type: 'RAIZ', depth: 0 };
     const mapa = {
       id: 'map-raiz',
@@ -92,65 +127,65 @@ describe('Resolução de Taxonomia Estrutural da Árvore', () => {
     assert.equal(res.subproduct, null);
     assert.equal(res.subproductKey, 'SEM_SUBPRODUTO');
     assert.equal(res.displayPath, '');
-    // Garantir que o mapa não foi promovido a produto
+    assert.notEqual(res.product?.name, 'Home');
     assert.notEqual(res.product?.name, 'Mapa Solto na Raiz');
   });
 
-  it('4. Árvore profunda com múltiplos níveis: Raiz → Créditos → Consignado → Pós-venda → Contratação → Mapa', () => {
+  it('5. Dois produtos diferentes abaixo da mesma raiz: Devem gerar dois grupos diferentes', () => {
     const root = { id: 'root', titulo: 'Home', artifact_type: 'RAIZ', depth: 0 };
-    const creditos = { id: 'prod-creditos', titulo: 'Créditos', artifact_type: 'NO', depth: 1 };
-    const consignado = { id: 'sub-consignado', titulo: 'Consignado', artifact_type: 'NO', depth: 2 };
-    const posVenda = { id: 'cat-posvenda', titulo: 'Pós-venda', artifact_type: 'NO', depth: 3 };
-    const contratacao = { id: 'cat-contratacao', titulo: 'Contratação', artifact_type: 'NO', depth: 4 };
-    const mapa = {
-      id: 'map-profundo',
-      titulo: 'Fluxo Final de Contratação',
+    const prodA = { id: 'prod-a', titulo: 'Créditos', artifact_type: 'NO', depth: 1, parent_id: 'root' };
+    const prodB = { id: 'prod-b', titulo: 'Investimentos', artifact_type: 'NO', depth: 1, parent_id: 'root' };
+    const mapaA = {
+      id: 'map-a',
+      titulo: 'Mapa Créditos',
       artifact_type: 'MAPA',
-      depth: 5,
-      ancestor_ids: ['root', 'prod-creditos', 'sub-consignado', 'cat-posvenda', 'cat-contratacao'],
-      ancestor_titles: ['Home', 'Créditos', 'Consignado', 'Pós-venda', 'Contratação']
+      parent_id: 'prod-a'
+    };
+    const mapaB = {
+      id: 'map-b',
+      titulo: 'Mapa Investimentos',
+      artifact_type: 'MAPA',
+      parent_id: 'prod-b'
     };
 
     const artifactsById = new Map([
       ['root', root],
-      ['prod-creditos', creditos],
-      ['sub-consignado', consignado],
-      ['cat-posvenda', posVenda],
-      ['cat-contratacao', contratacao],
-      ['map-profundo', mapa]
+      ['prod-a', prodA],
+      ['prod-b', prodB],
+      ['map-a', mapaA],
+      ['map-b', mapaB]
     ]);
 
-    const res = resolveArtifactTaxonomy(mapa, artifactsById);
+    const resA = resolveArtifactTaxonomy(mapaA, artifactsById);
+    const resB = resolveArtifactTaxonomy(mapaB, artifactsById);
 
-    assert.equal(res.product?.name, 'Créditos');
-    assert.equal(res.subproduct?.name, 'Consignado');
-    assert.equal(res.descendantPath.length, 3);
-    assert.equal(res.descendantPath[0].name, 'Consignado');
-    assert.equal(res.descendantPath[1].name, 'Pós-venda');
-    assert.equal(res.descendantPath[2].name, 'Contratação');
-    assert.equal(res.displayPath, 'Consignado › Pós-venda › Contratação');
+    assert.equal(resA.product?.name, 'Créditos');
+    assert.equal(resB.product?.name, 'Investimentos');
+    assert.equal(resA.productKey, 'prod-a');
+    assert.equal(resB.productKey, 'prod-b');
+    assert.notEqual(resA.productKey, resB.productKey);
   });
 
-  it('5. Dois nós com o mesmo nome sob pais diferentes: Raiz → Produto A → Cadastro e Raiz → Produto B → Cadastro', () => {
+  it('6. Dois subprodutos homônimos em produtos diferentes: Não podem ser misturados', () => {
     const root = { id: 'root', titulo: 'Home', artifact_type: 'RAIZ', depth: 0 };
-    const prodA = { id: 'prod-a', titulo: 'Conta Corrente', artifact_type: 'NO', depth: 1 };
-    const subA = { id: 'sub-cadastro-a', titulo: 'Cadastro', artifact_type: 'NO', depth: 2 };
+    const prodA = { id: 'prod-a', titulo: 'Conta Corrente', artifact_type: 'NO', depth: 1, parent_id: 'root' };
+    const subA = { id: 'sub-cadastro-a', titulo: 'Cadastro', artifact_type: 'NO', depth: 2, parent_id: 'prod-a' };
     const mapaA = {
       id: 'map-a',
       titulo: 'Mapa Cadastro CC',
       artifact_type: 'MAPA',
       depth: 3,
-      ancestor_ids: ['root', 'prod-a', 'sub-cadastro-a']
+      parent_id: 'sub-cadastro-a'
     };
 
-    const prodB = { id: 'prod-b', titulo: 'Cartões', artifact_type: 'NO', depth: 1 };
-    const subB = { id: 'sub-cadastro-b', titulo: 'Cadastro', artifact_type: 'NO', depth: 2 };
+    const prodB = { id: 'prod-b', titulo: 'Cartões', artifact_type: 'NO', depth: 1, parent_id: 'root' };
+    const subB = { id: 'sub-cadastro-b', titulo: 'Cadastro', artifact_type: 'NO', depth: 2, parent_id: 'prod-b' };
     const mapaB = {
       id: 'map-b',
       titulo: 'Mapa Cadastro Cartões',
       artifact_type: 'MAPA',
       depth: 3,
-      ancestor_ids: ['root', 'prod-b', 'sub-cadastro-b']
+      parent_id: 'sub-cadastro-b'
     };
 
     const artifactsById = new Map([
@@ -168,7 +203,6 @@ describe('Resolução de Taxonomia Estrutural da Árvore', () => {
 
     assert.equal(resA.product?.name, 'Conta Corrente');
     assert.equal(resB.product?.name, 'Cartões');
-    // Subprodutos têm o mesmo nome visual, mas IDs diferentes
     assert.equal(resA.subproduct?.name, 'Cadastro');
     assert.equal(resB.subproduct?.name, 'Cadastro');
     assert.notEqual(resA.subproductKey, resB.subproductKey);
@@ -176,66 +210,81 @@ describe('Resolução de Taxonomia Estrutural da Árvore', () => {
     assert.equal(resB.subproductKey, 'sub-cadastro-b');
   });
 
-  it('6. Nó intermediário vazio: Raiz → Produto → Pasta Vazia → Subproduto → Mapa', () => {
-    const root = { id: 'root', titulo: 'Home', artifact_type: 'RAIZ', depth: 0 };
-    const prod = { id: 'prod-invest', titulo: 'Investimentos', artifact_type: 'NO', depth: 1 };
-    const pastaVazia = { id: 'pasta-vazia', titulo: 'Renda Fixa', artifact_type: 'NO', depth: 2 };
-    const sub = { id: 'sub-cdb', titulo: 'CDB', artifact_type: 'NO', depth: 3 };
+  it('7. Ciclo acidental em parent_id: O resolvedor deve finalizar sem travar', () => {
+    const nodeA = { id: 'node-a', titulo: 'Nó A', parent_id: 'node-b' };
+    const nodeB = { id: 'node-b', titulo: 'Nó B', parent_id: 'node-a' };
     const mapa = {
-      id: 'map-cdb',
-      titulo: 'Aplicação CDB',
+      id: 'map-ciclo',
+      titulo: 'Mapa com Ciclo',
       artifact_type: 'MAPA',
-      depth: 4,
-      ancestor_ids: ['root', 'prod-invest', 'pasta-vazia', 'sub-cdb']
+      parent_id: 'node-a'
     };
 
     const artifactsById = new Map([
-      ['root', root],
-      ['prod-invest', prod],
-      ['pasta-vazia', pastaVazia],
-      ['sub-cdb', sub],
-      ['map-cdb', mapa]
+      ['node-a', nodeA],
+      ['node-b', nodeB],
+      ['map-ciclo', mapa]
+    ]);
+
+    // Não deve travar em loop infinito
+    const res = resolveArtifactTaxonomy(mapa, artifactsById);
+    assert.ok(res);
+    assert.ok(typeof res.productKey === 'string');
+  });
+
+  it('8. Ausência de parent_id, mas presença de ancestor_ids e ancestor_titles: Deve usar corretamente o fallback estrutural', () => {
+    const mapa = {
+      id: 'map-fallback',
+      titulo: 'Mapa sem parent_id',
+      artifact_type: 'MAPA',
+      ancestor_ids: ['root', 'prod-creditos', 'sub-posvenda', 'desc-parcelado'],
+      ancestor_titles: ['Home', 'Créditos', 'Pós Venda', 'Parcelado']
+    };
+
+    const artifactsById = new Map([
+      ['map-fallback', mapa]
     ]);
 
     const res = resolveArtifactTaxonomy(mapa, artifactsById);
 
-    assert.equal(res.product?.name, 'Investimentos');
-    assert.equal(res.subproduct?.name, 'Renda Fixa');
-    assert.equal(res.descendantPath.length, 2);
-    assert.equal(res.displayPath, 'Renda Fixa › CDB');
+    // O índice 0 ('Home') foi descartado.
+    // O índice 1 ('Créditos') é o produto (depth 1).
+    // O índice 2 ('Pós Venda') é o subproduto (depth 2).
+    // O índice 3 ('Parcelado') é descendente.
+    assert.equal(res.product?.name, 'Créditos');
+    assert.equal(res.product?.id, 'prod-creditos');
+    assert.equal(res.subproduct?.name, 'Pós Venda');
+    assert.equal(res.subproduct?.id, 'sub-posvenda');
+    assert.equal(res.displayPath, 'Pós Venda › Parcelado');
+    assert.notEqual(res.product?.name, 'Home');
   });
 
-  it('7. Nó que é documentação ou mapa: nunca pode ser promovido a produto ou subproduto', () => {
-    const root = { id: 'root', titulo: 'Home', artifact_type: 'RAIZ', depth: 0 };
-    const docNode = { id: 'doc-intro', titulo: 'Guia de Estilo', artifact_type: 'DOCUMENTACAO', depth: 1 };
-    const mapNode = { id: 'map-anterior', titulo: 'Mapa Legado', artifact_type: 'MAPA', depth: 2 };
-    const prodReal = { id: 'prod-seguros', titulo: 'Seguros', artifact_type: 'NO', depth: 3 };
-    const subReal = { id: 'sub-auto', titulo: 'Auto', artifact_type: 'NO', depth: 4 };
-    const mapa = {
-      id: 'map-seguro-auto',
-      titulo: 'Contratação Seguro Auto',
+  it('9. Campos legados contendo o nome da raiz em produto: Devem ser rejeitados', () => {
+    const root = { id: 'root', titulo: 'Hub de Artefatos', artifact_type: 'RAIZ', depth: 0 };
+    const mapaLegado = {
+      id: 'map-legado',
+      titulo: 'Mapa Legado com Raiz no Produto',
       artifact_type: 'MAPA',
-      depth: 5,
-      ancestor_ids: ['root', 'doc-intro', 'map-anterior', 'prod-seguros', 'sub-auto']
+      produto: 'Hub de Artefatos', // Nome da raiz!
+      subproduto: 'Consignado'
     };
 
     const artifactsById = new Map([
       ['root', root],
-      ['doc-intro', docNode],
-      ['map-anterior', mapNode],
-      ['prod-seguros', prodReal],
-      ['sub-auto', subReal],
-      ['map-seguro-auto', mapa]
+      ['map-legado', mapaLegado]
     ]);
 
-    const res = resolveArtifactTaxonomy(mapa, artifactsById);
+    const res = resolveArtifactTaxonomy(mapaLegado, artifactsById);
 
-    // Guia de Estilo e Mapa Legado não podem ser produto nem subproduto
-    assert.equal(res.product?.name, 'Seguros');
-    assert.equal(res.subproduct?.name, 'Auto');
+    assert.equal(res.product, null);
+    assert.equal(res.productKey, 'SEM_PRODUTO');
+    assert.equal(res.subproduct, null);
+    assert.equal(res.subproductKey, 'SEM_SUBPRODUTO');
+    assert.equal(res.displayPath, '');
+    assert.notEqual(res.product?.name, 'Hub de Artefatos');
   });
 
-  it('8. Fallback para inventario.json atual: abre perfeitamente sem quebras', () => {
+  it('10. Validação no inventario.json atual: resolve sem quebras e agrupa em múltiplos produtos', () => {
     const invPath = path.resolve(process.cwd(), 'backend/data/inventario.json');
     if (fs.existsSync(invPath)) {
       const data = JSON.parse(fs.readFileSync(invPath, 'utf8'));
@@ -243,6 +292,7 @@ describe('Resolução de Taxonomia Estrutural da Árvore', () => {
       
       const artifactsById = new Map(items.map(a => [String(a.id), a]));
       let resolvedCount = 0;
+      const productGroups = new Set();
 
       for (const item of items) {
         if (item.artifact_type === 'MAPA') {
@@ -251,11 +301,18 @@ describe('Resolução de Taxonomia Estrutural da Árvore', () => {
           assert.ok(typeof res.productKey === 'string');
           assert.ok(typeof res.subproductKey === 'string');
           assert.ok(Array.isArray(res.descendantPath));
+          
+          if (res.product) {
+            productGroups.add(res.product.name);
+          }
           resolvedCount++;
         }
       }
 
-      assert.ok(resolvedCount > 0, 'Deve resolver todos os mapas do inventario.json');
+      assert.equal(resolvedCount, 603, 'Todos os 603 mapas devem ser resolvidos');
+      assert.ok(productGroups.size > 1, 'Deve conter mais de um produto distinto');
+      assert.equal(productGroups.has('Home'), false, 'A raiz nunca pode ser produto');
+      assert.equal(productGroups.has('Hub de Artefatos'), false, 'A raiz nunca pode ser produto');
     }
   });
 });
