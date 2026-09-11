@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   ChevronRight, ArrowUpRight, Filter, AlertTriangle
 } from 'lucide-react';
-import { Artifact, ResolvedArtifactTaxonomy } from '../types';
+import { Artifact } from '../types';
 import { PageHeader } from './PageHeader';
 import { normalizarStatus, OfficialStatus } from '../utils/statusUtils';
 import { 
@@ -13,7 +13,6 @@ import {
   useDebouncedSearch 
 } from '../utils/contextualSearch';
 import { ContextualEmptyState } from './ContextualEmptyState';
-import { resolveArtifactTaxonomy } from '../utils/taxonomyResolver';
 
 interface ProductAnalysisViewProps {
   artifacts: Artifact[];
@@ -23,6 +22,74 @@ interface ProductAnalysisViewProps {
   onSearchChange?: (val: string) => void;
   selectedSubproduto?: string;
   onSubprodutoChange?: (val: string) => void;
+}
+
+/**
+ * Determina os níveis inferiores / subprodutos de um mapa seguindo a ordem de prioridade:
+ * 1. artifact.subproduto_path
+ * 2. artifact.categorias
+ * 3. artifact.subproduto
+ *
+ * Remove duplicidades e descarta:
+ * - O produto
+ * - O título do próprio mapa
+ * - Valores vazios
+ * - "Sem Produto" / "SEM_PRODUTO"
+ * - "Sem subproduto" / "SEM_SUBPRODUTO"
+ */
+function getMapLowerLevels(artifact: Artifact, productName: string): string[] {
+  const mapTitle = String(artifact.titulo || '').trim().toLowerCase();
+  const prodNorm = productName.trim().toLowerCase();
+
+  const isInvalid = (val: string) => {
+    if (!val) return true;
+    const trimmed = val.trim();
+    if (!trimmed) return true;
+    const lower = trimmed.toLowerCase();
+    if (lower === prodNorm) return true;
+    if (lower === mapTitle) return true;
+    if (lower === 'sem produto' || lower === 'sem_produto') return true;
+    if (lower === 'sem subproduto' || lower === 'sem_subproduto') return true;
+    return false;
+  };
+
+  const cleanList = (list: unknown[]): string[] => {
+    const result: string[] = [];
+    const seen = new Set<string>();
+    for (const item of list) {
+      if (typeof item !== 'string') continue;
+      const trimmed = item.trim();
+      if (isInvalid(trimmed)) continue;
+      const lower = trimmed.toLowerCase();
+      if (!seen.has(lower)) {
+        seen.add(lower);
+        result.push(trimmed);
+      }
+    }
+    return result;
+  };
+
+  // 1. Ordem de prioridade: artifact.subproduto_path
+  if (Array.isArray(artifact.subproduto_path) && artifact.subproduto_path.length > 0) {
+    const fromPath = cleanList(artifact.subproduto_path);
+    if (fromPath.length > 0) return fromPath;
+  }
+
+  // 2. Ordem de prioridade: artifact.categorias
+  if (Array.isArray(artifact.categorias) && artifact.categorias.length > 0) {
+    const fromCat = cleanList(artifact.categorias);
+    if (fromCat.length > 0) return fromCat;
+  }
+
+  // 3. Ordem de prioridade: artifact.subproduto
+  if (artifact.subproduto && typeof artifact.subproduto === 'string') {
+    const rawSub = artifact.subproduto.trim();
+    if (!isInvalid(rawSub)) {
+      return [rawSub];
+    }
+  }
+
+  return [];
 }
 
 export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({ 
@@ -42,31 +109,41 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
   const effectiveSubproduto = selectedSubproduto !== undefined ? selectedSubproduto : localSelectedSubproduto;
   const setEffectiveSubproduto = onSubprodutoChange || setLocalSelectedSubproduto;
 
-  // Índice de artefatos por ID memoizado uma única vez
-  const artifactsById = useMemo(() => {
-    return new Map(artifacts.map(art => [String(art.id), art]));
-  }, [artifacts]);
-
-  // Resolução taxonômica memoizada por mapa
-  const taxonomyByMapId = useMemo(() => {
-    const taxMap = new Map<string, ResolvedArtifactTaxonomy>();
+  // Cache dos níveis inferiores de cada mapa
+  const mapLowerLevelsByMapId = useMemo(() => {
+    const map = new Map<string, string[]>();
     artifacts.forEach(art => {
       if (art.artifact_type === 'MAPA') {
-        taxMap.set(String(art.id), resolveArtifactTaxonomy(art, artifactsById));
+        const prod = String(art.produto || '').trim();
+        map.set(String(art.id), getMapLowerLevels(art, prod));
       }
     });
-    return taxMap;
-  }, [artifacts, artifactsById]);
+    return map;
+  }, [artifacts]);
 
-  // Consolidação estruturada por produto resolvido por ID
+  // Consolidação estruturada por produto determinado diretamente por artifact.produto
   const productsSummary = useMemo(() => {
-    // Coleta referências de nós raiz para proteção estrita
-    const rootIds = new Set<string>();
-    const rootTitles = new Set<string>(['hub de artefatos', 'home', 'raiz', 'root']);
+    const canonicalProductKeyByNorm = new Map<string, string>();
+    const canonicalProductNameByNorm = new Map<string, string>();
+
+    // 1º Passo: Mapear chaves canônicas e nomes por produto normalizado para agrupar todos os mapas no mesmo card
     artifacts.forEach(art => {
-      if (art.depth === 0 || String(art.artifact_type).toUpperCase() === 'RAIZ') {
-        rootIds.add(String(art.id));
-        if (art.titulo) rootTitles.add(String(art.titulo).trim().toLowerCase());
+      if (art.artifact_type !== 'MAPA') return;
+      const rawProd = String(art.produto || '').trim();
+      const isSemProd = !rawProd || 
+        rawProd === 'Sem Produto' || 
+        rawProd === 'SEM_PRODUTO' || 
+        rawProd.toLowerCase() === 'sem produto' || 
+        rawProd.toUpperCase() === 'SEM_PRODUTO';
+      if (isSemProd) return;
+
+      const norm = normalizeSearchText(rawProd);
+      if (!canonicalProductNameByNorm.has(norm)) {
+        canonicalProductNameByNorm.set(norm, rawProd);
+      }
+      const pId = art.produto_id && String(art.produto_id).trim();
+      if (pId && !canonicalProductKeyByNorm.has(norm)) {
+        canonicalProductKeyByNorm.set(norm, pId);
       }
     });
 
@@ -98,20 +175,33 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
       if (globallySeenMapIds.has(mapIdStr)) return;
       globallySeenMapIds.add(mapIdStr);
 
-      const tax = taxonomyByMapId.get(mapIdStr) || resolveArtifactTaxonomy(art, artifactsById);
-      let productKey = tax.productKey;
-      let productName = tax.product ? tax.product.name : 'Sem Produto';
+      const productName = String(art.produto || '').trim();
+      const isSemProduto = !productName || 
+        productName === 'Sem Produto' || 
+        productName === 'SEM_PRODUTO' || 
+        productName.toLowerCase() === 'sem produto' || 
+        productName.toUpperCase() === 'SEM_PRODUTO';
 
-      // Garantia estrita: nunca agrupar usando o ID ou título da raiz
-      if (rootIds.has(productKey) || rootTitles.has(productName.toLowerCase()) || productKey === 'root') {
+      let productKey: string;
+      let finalProductName: string;
+
+      if (isSemProduto) {
         productKey = 'SEM_PRODUTO';
-        productName = 'Sem Produto';
+        finalProductName = 'Sem Produto';
+      } else {
+        const norm = normalizeSearchText(productName);
+        productKey = canonicalProductKeyByNorm.get(norm) || (
+          art.produto_id && String(art.produto_id).trim()
+            ? String(art.produto_id).trim()
+            : `produto:${norm}`
+        );
+        finalProductName = canonicalProductNameByNorm.get(norm) || productName;
       }
 
       if (!productEntries.has(productKey)) {
         productEntries.set(productKey, {
           id: productKey,
-          produto: productName,
+          produto: finalProductName,
           mapas: [],
           seenMapIds: new Set(),
           firstLevelSubproducts: new Set(),
@@ -143,20 +233,20 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
       pEntry.seenMapIds.add(mapIdStr);
       pEntry.mapas.push(art);
 
-      // Subprodutos de primeiro nível abaixo do produto
-      if (tax.subproduct) {
-        pEntry.firstLevelSubproducts.add(tax.subproduct.name);
-      }
+      const lowerLevels = mapLowerLevelsByMapId.get(mapIdStr) || [];
 
-      // Reconstrução de caminhos descendentes completos
-      if (tax.descendantPath.length === 0) {
+      if (lowerLevels.length === 0) {
         pEntry.hasSemSubproduto = true;
         pEntry.semSubprodutoMapIds.add(mapIdStr);
       } else {
-        for (let len = 1; len <= tax.descendantPath.length; len++) {
-          const prefix = tax.descendantPath.slice(0, len);
-          const pKey = prefix.map(n => n.id).join('::');
-          const pDisplay = prefix.map(n => n.name).join(' › ');
+        // Primeiro nível de subproduto
+        pEntry.firstLevelSubproducts.add(lowerLevels[0]);
+
+        // Prefixo(s) hierárquicos do caminho
+        for (let len = 1; len <= lowerLevels.length; len++) {
+          const prefix = lowerLevels.slice(0, len);
+          const pDisplay = prefix.join(' › ');
+          const pKey = pDisplay;
           if (!pEntry.descendantPathsMap.has(pKey)) {
             pEntry.descendantPathsMap.set(pKey, {
               key: pKey,
@@ -243,7 +333,7 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
         topParameters
       };
     }).sort((a, b) => b.totalMaps - a.totalMaps);
-  }, [artifacts, taxonomyByMapId, artifactsById]);
+  }, [artifacts, mapLowerLevelsByMapId]);
 
   const debouncedSearch = useDebouncedSearch(effectiveSearchTerm, 150);
 
@@ -307,10 +397,11 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
 
     // Fallback: busca por subproduto textual
     return activeProduct.mapas.filter(m => {
-      const tax = taxonomyByMapId.get(String(m.id));
-      return tax?.subproduct?.name === effectiveSubproduto || m.subproduto === effectiveSubproduto;
+      const levels = mapLowerLevelsByMapId.get(String(m.id)) || [];
+      const rawSub = String(m.subproduto || '').trim();
+      return levels.includes(effectiveSubproduto) || rawSub === effectiveSubproduto;
     });
-  }, [activeProduct, effectiveSubproduto, taxonomyByMapId]);
+  }, [activeProduct, effectiveSubproduto, mapLowerLevelsByMapId]);
 
   // Métricas dinâmicas do produto / subproduto selecionado
   const selectedMetrics = useMemo(() => {
@@ -653,8 +744,8 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
                 </h4>
                 <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
                   {selectedMaps.map(mapItem => {
-                    const mapTax = taxonomyByMapId.get(String(mapItem.id));
-                    const pathLabel = mapTax?.displayPath || (mapTax?.subproduct ? mapTax.subproduct.name : 'Sem subproduto');
+                    const levels = mapLowerLevelsByMapId.get(String(mapItem.id)) || [];
+                    const pathLabel = levels.length > 0 ? levels.join(' › ') : 'Sem subproduto';
                     return (
                       <div 
                         key={mapItem.id}
