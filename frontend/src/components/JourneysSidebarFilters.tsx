@@ -27,7 +27,7 @@ export const JourneysSidebarFilters: React.FC<Props> = ({
   const products = useMemo(() => {
     const set = new Set<string>();
     eligibleMaps.forEach(a => {
-      const p = Array.isArray(a.ancestor_titles) ? a.ancestor_titles[1] : '';
+      const p = a.produto || '';
       if (p) set.add(String(p).trim());
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
@@ -37,9 +37,9 @@ export const JourneysSidebarFilters: React.FC<Props> = ({
     if (!selectedProduct) return [];
     const set = new Set<string>();
     eligibleMaps.forEach(a => {
-      const p = Array.isArray(a.ancestor_titles) ? String(a.ancestor_titles[1] || '').trim() : '';
+      const p = String(a.produto || '').trim();
       if (p === selectedProduct) {
-        const sub = Array.isArray(a.ancestor_titles) ? a.ancestor_titles[2] : '';
+        const sub = a.subproduto || '';
         if (sub) set.add(String(sub).trim());
       }
     });
@@ -51,8 +51,8 @@ export const JourneysSidebarFilters: React.FC<Props> = ({
     const list: {id: string, name: string}[] = [];
     const seen = new Set<string>();
     eligibleMaps.forEach(a => {
-      const p = Array.isArray(a.ancestor_titles) ? String(a.ancestor_titles[1] || '').trim() : '';
-      const sub = Array.isArray(a.ancestor_titles) ? String(a.ancestor_titles[2] || '').trim() : '';
+      const p = String(a.produto || '').trim();
+      const sub = String(a.subproduto || '').trim();
       if (p === selectedProduct && sub === selectedSubproduct) {
         const title = String(a.titulo || a.id).trim();
         const idStr = String(a.id);
