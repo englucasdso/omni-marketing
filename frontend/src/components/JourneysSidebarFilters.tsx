@@ -9,6 +9,7 @@ interface Props {
   onSelectSubproduct: (val: string) => void;
   selectedMapId: string;
   onSelectMapId: (val: string) => void;
+  isLoading?: boolean;
 }
 
 export const JourneysSidebarFilters: React.FC<Props> = ({
@@ -18,7 +19,8 @@ export const JourneysSidebarFilters: React.FC<Props> = ({
   selectedSubproduct,
   onSelectSubproduct,
   selectedMapId,
-  onSelectMapId
+  onSelectMapId,
+  isLoading
 }) => {
   const eligibleMaps = useMemo(() => {
     return artifacts.filter(a => a.artifact_type === 'MAPA' && Array.isArray(a.screens) && a.screens.length > 0);
@@ -27,8 +29,8 @@ export const JourneysSidebarFilters: React.FC<Props> = ({
   const products = useMemo(() => {
     const set = new Set<string>();
     eligibleMaps.forEach(a => {
-      const p = a.produto || '';
-      if (p) set.add(String(p).trim());
+      const p = String(a.produto || '').trim();
+      if (p) set.add(p);
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [eligibleMaps]);
@@ -39,11 +41,15 @@ export const JourneysSidebarFilters: React.FC<Props> = ({
     eligibleMaps.forEach(a => {
       const p = String(a.produto || '').trim();
       if (p === selectedProduct) {
-        const sub = a.subproduto || '';
-        if (sub) set.add(String(sub).trim());
+        const sub = String(a.subproduto || '').trim();
+        set.add(sub || 'SEM_SUBPRODUTO');
       }
     });
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
+    return Array.from(set).sort((a, b) => {
+      const displayA = a === 'SEM_SUBPRODUTO' ? 'Sem subproduto' : a;
+      const displayB = b === 'SEM_SUBPRODUTO' ? 'Sem subproduto' : b;
+      return displayA.localeCompare(displayB);
+    });
   }, [eligibleMaps, selectedProduct]);
 
   const maps = useMemo(() => {
@@ -52,7 +58,9 @@ export const JourneysSidebarFilters: React.FC<Props> = ({
     const seen = new Set<string>();
     eligibleMaps.forEach(a => {
       const p = String(a.produto || '').trim();
-      const sub = String(a.subproduto || '').trim();
+      const rawSub = String(a.subproduto || '').trim();
+      const sub = rawSub || 'SEM_SUBPRODUTO';
+      
       if (p === selectedProduct && sub === selectedSubproduct) {
         const title = String(a.titulo || a.id).trim();
         const idStr = String(a.id);
@@ -64,6 +72,22 @@ export const JourneysSidebarFilters: React.FC<Props> = ({
     });
     return list.sort((a, b) => a.name.localeCompare(b.name));
   }, [eligibleMaps, selectedProduct, selectedSubproduct]);
+
+  if (isLoading) {
+    return (
+      <div className="p-4 text-sm text-gray-500 dark:text-slate-400">
+        Carregando filtros...
+      </div>
+    );
+  }
+
+  if (eligibleMaps.length === 0) {
+    return (
+      <div className="p-4 text-sm text-gray-500 dark:text-slate-400">
+        Nenhum mapa com telas disponível.
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -97,7 +121,7 @@ export const JourneysSidebarFilters: React.FC<Props> = ({
         >
           <option value="">Selecione...</option>
           {subproducts.map(s => (
-            <option key={s} value={s}>{s}</option>
+            <option key={s} value={s}>{s === 'SEM_SUBPRODUTO' ? 'Sem subproduto' : s}</option>
           ))}
         </select>
       </div>

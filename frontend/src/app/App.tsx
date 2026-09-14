@@ -481,6 +481,7 @@ export default function App() {
     else if (newState === 'insights' && insightsActiveTab === 'resumo_executivo') navigate('/hub-de-artefatos/insights/resumo-executivo');
     else if (newState === 'operational_insights') navigate('/hub-de-artefatos/insights-operacionais');
     else if (newState === 'graph') navigate('/hub-de-artefatos/conexoes');
+    else if (newState === 'journeys') navigate('/hub-de-artefatos/jornadas');
     else if (newState === 'empty' || newState === 'decision') navigate('/hub-de-artefatos');
   };
 
@@ -528,6 +529,8 @@ export default function App() {
       setRawAppState('operational_insights');
     } else if (p === '/hub-de-artefatos/conexoes') {
       setRawAppState('graph');
+    } else if (p === '/hub-de-artefatos/jornadas') {
+      setRawAppState('journeys');
     } else {
       // Not found handling / default
       if (p !== '/hub-de-artefatos' && p !== '/') {
@@ -556,7 +559,7 @@ export default function App() {
   const [fullInventory, setFullInventory] = useState<Artifact[]>([]);
 
   useEffect(() => {
-    if ((appState === "operational_insights" || appState === "home") && fullInventory.length === 0) {
+    if ((appState === "operational_insights" || appState === "home" || appState === "journeys") && fullInventory.length === 0) {
       setLoading(true);
       fetchInventory()
         .then((res) => {
@@ -1495,6 +1498,7 @@ export default function App() {
             onSelectSubproduct={setJourneySubproduct}
             selectedMapId={journeyMapId}
             onSelectMapId={setJourneyMapId}
+            isLoading={loading}
           />
         ) : (
         <SidebarContextualArea
