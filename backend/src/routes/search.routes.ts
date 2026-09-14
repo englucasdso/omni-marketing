@@ -39,6 +39,102 @@ router.post("/insights/artifacts", async (req, res) => {
   }
 });
 
+router.post("/insights/journeys/analyze", async (req, res) => {
+  try {
+    const { artifact } = req.body;
+    if (!artifact) return res.status(400).json({ error: "No artifact sent" });
+
+    // Deterministic base sequencing
+    const screens = [...(artifact.screens || [])].sort((a: any, b: any) => {
+      const idxA = a.screen_index ?? 9999;
+      const idxB = b.screen_index ?? 9999;
+      if (idxA !== idxB) return idxA - idxB;
+      return (a.screen_id || "").localeCompare(b.screen_id || "");
+    });
+
+    const nodes: any[] = [];
+    const edges: any[] = [];
+    const warnings: string[] = [];
+
+    // Simulate AI analysis since we cannot use an SDK or hardcode URLs
+    for (let i = 0; i < screens.length; i++) {
+      const screen = screens[i];
+      const screenId = String(screen.screen_id || i);
+      const id = `journey-screen-${artifact.id}-${screenId}`;
+
+      nodes.push({
+        id,
+        kind: 'screen',
+        screenId: screen.screen_id,
+        label: `Tela ${screen.screen_index || i + 1}`,
+        summary: screen.instruction || "Sem instrução",
+        confidence: 'INFERIDO',
+        evidence: ['DOCUMENT_ORDER'],
+        rationale: "Ordem documental."
+      });
+
+      if (i > 0) {
+        const prevScreen = screens[i - 1];
+        const prevId = `journey-screen-${artifact.id}-${prevScreen.screen_id || (i - 1)}`;
+        
+        // Simulating a decision diamond based on instruction text heuristic
+        const hasDecision = (screen.instruction || "").toLowerCase().includes("erro") || 
+                           (prevScreen.instruction || "").toLowerCase().includes("ou");
+                           
+        if (hasDecision) {
+          const decisionId = `journey-decision-${artifact.id}-${prevScreen.screen_id || (i-1)}-bifurcacao`;
+          nodes.push({
+            id: decisionId,
+            kind: 'decision',
+            sourceScreenIds: [prevScreen.screen_id],
+            label: "Decisão",
+            condition: "Bifurcação inferida pela instrução",
+            confidence: 'AMBIGUO',
+            evidence: ['INSTRUCTION'],
+            rationale: "Instrução sugere múltiplos caminhos."
+          });
+          edges.push({
+            id: `journey-edge-${prevId}-${decisionId}-seq`,
+            source: prevId,
+            target: decisionId,
+            confidence: 'AMBIGUO',
+            evidence: ['INSTRUCTION'],
+            rationale: "Caminho ambíguo."
+          });
+          edges.push({
+            id: `journey-edge-${decisionId}-${id}-seq`,
+            source: decisionId,
+            target: id,
+            confidence: 'AMBIGUO',
+            evidence: ['INSTRUCTION'],
+            rationale: "Destino possível."
+          });
+        } else {
+          edges.push({
+            id: `journey-edge-${prevId}-${id}-seq`,
+            source: prevId,
+            target: id,
+            confidence: 'INFERIDO',
+            evidence: ['DOCUMENT_ORDER'],
+            rationale: "Sequência documental padrão."
+          });
+        }
+      }
+    }
+
+    res.json({
+      artifactId: artifact.id,
+      artifactVersion: artifact.version || "1.0",
+      nodes,
+      edges,
+      warnings
+    });
+  } catch (error: any) {
+    console.error("[API] Erro ao analisar jornada:", error);
+    res.status(500).json({ error: "Erro ao gerar jornada com IA." });
+  }
+});
+
 router.post("/cancel-inventory", async (req, res) => {
   console.log(`[API] POST /api/cancel-inventory - Solicitação de cancelamento recebida.`);
   try {

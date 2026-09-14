@@ -9,7 +9,8 @@ import {
   RefreshCw,
   Plug,
   X,
-  Compass
+  Compass,
+  Route
 } from 'lucide-react';
 
 export interface NavItem {
@@ -241,6 +242,43 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               </button>
             </div>
             
+            <div className="relative">
+              <button
+                onClick={() => {
+                  onNavigate({ id: 'journeys', label: 'Jornadas', path: '/hub-de-artefatos/jornadas', icon: Route });
+                  if (onCloseMobile) onCloseMobile();
+                }}
+                onMouseEnter={(e) => {
+                  if (!isExpanded && !isMobileOpen) {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setHoveredTooltip({
+                      id: 'journeys',
+                      top: rect.top + rect.height / 2,
+                      label: 'Jornadas',
+                    });
+                  }
+                }}
+                onMouseLeave={() => setHoveredTooltip(null)}
+                aria-current={currentRouteId === 'journeys' ? 'page' : undefined}
+                aria-label="Jornadas"
+                className={`flex items-center w-full h-11 rounded-xl transition-all duration-150 cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-omni-brand-accent
+                  ${currentRouteId === 'journeys'
+                    ? 'bg-red-50/80 dark:bg-red-950/40 text-omni-brand-primary border border-red-200/70 dark:border-red-900/50 shadow-neu-raised font-semibold'
+                    : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-100/70 dark:hover:bg-slate-800/60 font-medium'
+                  }
+                `}
+              >
+                <div className="w-10 h-10 flex items-center justify-center shrink-0">
+                  <Route className={`w-5 h-5 transition-transform duration-150 ${currentRouteId === 'journeys' ? 'text-omni-brand-primary scale-105' : 'text-gray-500 dark:text-slate-400'}`} />
+                </div>
+                <span className={`text-xs font-ui whitespace-nowrap ml-2 transition-all duration-150 truncate ${
+                  isExpanded || isMobileOpen ? 'opacity-100' : 'opacity-0 md:w-0'
+                }`}>
+                  Jornadas
+                </span>
+              </button>
+            </div>
+
             <div className="relative">
               <button
                 disabled

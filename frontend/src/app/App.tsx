@@ -16,6 +16,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { useNavigate, useLocation, Routes, Route } from "react-router-dom";
 import { X, AlertTriangle, Target, Network, Filter, CheckCircle2, AlertCircle, Clock, User, Info, Shield, LogOut, Trash2, Plus, Settings, Landmark, LayoutList, RefreshCw, Check, Loader2, KeyRound, Activity, ArrowRight, Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ExternalLink, Download, Sparkles, FileText, Layers, Tag, Code2, Eye, ArrowUpDown, Calendar, RotateCcw } from "lucide-react";
 import { ConexoesCanvas } from "../components/ConexoesCanvas";
+import { JourneysCanvas } from "../components/JourneysCanvas";
+import { JourneysSidebarFilters } from "../components/JourneysSidebarFilters";
 import { getOperationalInsights } from "../utils/inventoryHelpers";
 import { fetchInventory, searchContent, fetchUsers, createUser, updateUser, deleteUser } from "../services/api";
 import { Artifact, Insights, SearchResponse, User as UserType, UserRole, UserStatus } from "../types";
@@ -460,7 +462,7 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [rawAppState, setRawAppState] = useState<"home" | "catalog" | "initial" | "results" | "decision" | "insights" | "empty" | "inventory_table" | "graph" | "auth" | "syncing" | "events_capture" | "operational_insights" | "copilot" | "produtos_analise" | "parametros_analise">("initial");
+  const [rawAppState, setRawAppState] = useState<"home" | "catalog" | "initial" | "results" | "decision" | "insights" | "empty" | "inventory_table" | "graph" | "auth" | "syncing" | "events_capture" | "operational_insights" | "copilot" | "produtos_analise" | "parametros_analise" | "journeys">("initial");
   const appState = rawAppState;
 
   const [insightsActiveTab, setRawInsightsActiveTab] = useState<"indicadores" | "resumo_executivo">("indicadores");
@@ -514,6 +516,8 @@ export default function App() {
       setRawAppState('produtos_analise');
     } else if (p === '/hub-de-artefatos/por-parametro') {
       setRawAppState('parametros_analise');
+    } else if (p === '/hub-de-artefatos/jornadas') {
+      setRawAppState('journeys');
     } else if (p === '/hub-de-artefatos/insights') {
       setRawAppState('insights');
       setRawInsightsActiveTab('indicadores');
@@ -536,6 +540,9 @@ export default function App() {
   const [capturePlatform, setCapturePlatform] = useState<string | null>(null);
   const [isSyncAuthOpen, setIsSyncAuthOpen] = useState(false);
   const [isSearchActive, setIsSearchActive] = useState(false);
+  const [journeyProduct, setJourneyProduct] = useState("");
+  const [journeySubproduct, setJourneySubproduct] = useState("");
+  const [journeyMapId, setJourneyMapId] = useState("");
   const [tableFilter, setTableFilter] = useState("");
   const [lastSync, setLastSync] = useState<string | null>(localStorage.getItem('last_sync'));
   const [showExportModal, setShowExportModal] = useState(false);
@@ -1479,6 +1486,17 @@ export default function App() {
       lastSync={lastSync}
       onSyncClick={() => setIsSyncAuthOpen(true)}
       contextualContent={
+        appState === 'journeys' ? (
+          <JourneysSidebarFilters
+            artifacts={fullInventory}
+            selectedProduct={journeyProduct}
+            onSelectProduct={setJourneyProduct}
+            selectedSubproduct={journeySubproduct}
+            onSelectSubproduct={setJourneySubproduct}
+            selectedMapId={journeyMapId}
+            onSelectMapId={setJourneyMapId}
+          />
+        ) : (
         <SidebarContextualArea
           currentRouteId={appState}
           cardSearch={cardSearch}
@@ -1549,6 +1567,7 @@ export default function App() {
           isInsightsFilterActive={isInsightsFilterActive}
           onResetInsightsFilters={resetInsightsFilters}
         />
+        )
       }
     >
       <div className="relative w-full flex-1 flex flex-col min-h-screen">
@@ -2133,6 +2152,25 @@ export default function App() {
                   data={results} 
                   isEmbedded={true}
                   onOpenMap={(art) => setDetailModalItem(art)}
+                />
+              </motion.section>
+            )}
+          </AnimatePresence>
+
+          {/* Journeys Visualization Section */}
+          <AnimatePresence>
+            {appState === "journeys" && (
+              <motion.section 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="journeys-container pb-20 space-y-6 flex flex-col flex-1"
+                style={{ height: 'calc(100vh - 100px)' }}
+              >
+                <JourneysCanvas
+                  artifacts={fullInventory}
+                  selectedMapId={journeyMapId}
+                  onSelectScreen={(screen) => setDetailModalItem(screen)}
                 />
               </motion.section>
             )}
