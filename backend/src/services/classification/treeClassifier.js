@@ -119,6 +119,75 @@ export function resolveCanonicalTaxonomy(row, rowMap = new Map(), rootPageId = '
   };
 }
 
+export function isValidSnippet(snippet) {
+  if (!snippet || typeof snippet !== 'object') return false;
+
+  // 1. raw_code não vazio
+  if (typeof snippet.raw_code === 'string' && snippet.raw_code.trim().length > 0) {
+    return true;
+  }
+  // 2. event_normalized não vazio
+  if (typeof snippet.event_normalized === 'string' && snippet.event_normalized.trim().length > 0) {
+    return true;
+  }
+  // 3. base_key não vazio
+  if (typeof snippet.base_key === 'string' && snippet.base_key.trim().length > 0) {
+    return true;
+  }
+  // 4. parâmetros estruturados
+  if (Array.isArray(snippet.parameters) && snippet.parameters.length > 0) {
+    return true;
+  }
+  if (snippet.parametros && typeof snippet.parametros === 'object' && Object.keys(snippet.parametros).length > 0) {
+    return true;
+  }
+
+  return false;
+}
+
+export function evaluateStructuredContent(item) {
+  const screens = Array.isArray(item.screens) ? item.screens : [];
+  let structuredScreensCount = 0;
+  let validSnippetsCount = 0;
+
+  for (const screen of screens) {
+    if (!screen || typeof screen !== 'object') continue;
+    const snippets = Array.isArray(screen.snippets) ? screen.snippets : [];
+    let screenSnippets = 0;
+    for (const snip of snippets) {
+      if (isValidSnippet(snip)) {
+        validSnippetsCount++;
+        screenSnippets++;
+      }
+    }
+    if (screenSnippets > 0 || screen.screen_id || screen.screen_index !== undefined || screen.status || screen.status_raw || screen.instruction) {
+      structuredScreensCount++;
+    }
+  }
+
+  return {
+    screensCount: structuredScreensCount,
+    snippetsCount: validSnippetsCount,
+    hasStructuredContent: structuredScreensCount >= 1 && validSnippetsCount >= 1
+  };
+}
+
+export function getTreeLevel(row) {
+  if (row.depth !== undefined && row.depth !== null) {
+    return Number(row.depth) + 1;
+  }
+  if (row.taxonomy_depth !== undefined && row.taxonomy_depth !== null) {
+    return Number(row.taxonomy_depth) + 1;
+  }
+  if (Array.isArray(row.ancestor_ids) && row.ancestor_ids.length > 0) {
+    return row.ancestor_ids.length + 1;
+  }
+  if (row.nivel !== undefined && row.nivel !== null) {
+    return Number(row.nivel);
+  }
+  return 1;
+}
+
 export function classifyTree(rows, rootPageId) {
   const rootStr = String(rootPageId || '');
 
@@ -159,15 +228,37 @@ export function classifyTree(rows, rootPageId) {
       }
     }
 
-    // Classification Logic
-    if (hasChildren) {
-      classified.artifact_type = 'NO';
-    } else if (hasTrackingSnippets) {
-      classified.artifact_type = 'MAPA';
-    } else if (hasDocumentationSignals) {
-      classified.artifact_type = 'DOCUMENTACAO';
+    const level = getTreeLevel(classified);
+    const { screensCount, snippetsCount, hasStructuredContent } = evaluateStructuredContent(classified);
+
+    // Classification Logic com regra canônica de precedência
+    if (level >= 4) {
+      // A partir do nível 4, verificar o conteúdo estruturado extraído da própria página
+      if (hasStructuredContent) {
+        // Se a página possuir pelo menos uma tela estruturada e pelo menos um snippet válido: MAPA
+        classified.artifact_type = 'MAPA';
+        if (hasChildren) {
+          const logDepth = classified.depth !== undefined ? classified.depth : (level - 1);
+          console.log(`[ArtifactClassifier] page=${classified.id} depth=${logDepth} screens=${screensCount} snippets=${snippetsCount} type=MAPA reason=STRUCTURED_CONTENT`);
+        }
+      } else if (hasChildren) {
+        classified.artifact_type = 'NO';
+      } else if (hasDocumentationSignals) {
+        classified.artifact_type = 'DOCUMENTACAO';
+      } else {
+        classified.artifact_type = 'NO';
+      }
     } else {
-      classified.artifact_type = 'NO';
+      // Níveis 2 e 3 continuam sendo páginas estruturais da taxonomia
+      if (hasChildren) {
+        classified.artifact_type = 'NO';
+      } else if (hasStructuredContent || hasTrackingSnippets) {
+        classified.artifact_type = 'MAPA';
+      } else if (hasDocumentationSignals) {
+        classified.artifact_type = 'DOCUMENTACAO';
+      } else {
+        classified.artifact_type = 'NO';
+      }
     }
 
     // Normalization
@@ -208,6 +299,30 @@ export function classifyTree(rows, rootPageId) {
         } else {
           classified.homologation_status = 'NAO_HOMOLOGADO';
         }
+      }
+
+      if (!classified.measurement_class || classified.measurement_class === 'NAO_CLASSIFICADO') {
+        let hasGa4 = false;
+        let hasGa3 = false;
+        for (const screen of screens) {
+          for (const snip of (screen.snippets || [])) {
+            if (snip.measurement_class === 'GA4') hasGa4 = true;
+            else if (snip.measurement_class === 'GA3') hasGa3 = true;
+            else if (snip.measurement_class === 'HIBRIDO') {
+              hasGa4 = true;
+              hasGa3 = true;
+            }
+          }
+        }
+        if (hasGa4 && hasGa3) classified.measurement_class = 'HIBRIDO';
+        else if (hasGa4) classified.measurement_class = 'GA4';
+        else if (hasGa3) classified.measurement_class = 'GA3';
+      }
+
+      if (!classified.tipo_mapa || classified.tipo_mapa === 'Nó' || classified.tipo_mapa === 'Doc') {
+        classified.tipo_mapa = (classified.measurement_class && classified.measurement_class !== 'NAO_CLASSIFICADO')
+          ? classified.measurement_class
+          : 'GA4';
       }
     }
 

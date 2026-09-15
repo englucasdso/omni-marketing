@@ -1,14 +1,26 @@
 import fs from "fs";
 import path from "path";
-import { resolveCanonicalTaxonomy } from "./classification/treeClassifier.js";
+import { resolveCanonicalTaxonomy, evaluateStructuredContent, getTreeLevel } from "./classification/treeClassifier.js";
 
 const DATA_FILE = path.join(process.cwd(), "backend/data/inventario.json");
 
 export function normalizeInventoryItem(item: any) {
   if (!item) return null;
   
-  // Confia estritamente no backend. Se não tiver, cai pra NAO_CLASSIFICADO.
-  const artifact_type = item.artifact_type || 'NAO_CLASSIFICADO';
+  let artifact_type = item.artifact_type || 'NAO_CLASSIFICADO';
+  const level = getTreeLevel(item);
+  const { screensCount, snippetsCount, hasStructuredContent } = evaluateStructuredContent(item);
+
+  // Regra canônica de precedência para artefatos a partir do nível 4:
+  // Se a página possuir pelo menos 1 tela estruturada e pelo menos 1 snippet válido,
+  // prevalece como MAPA mesmo que salva anteriormente como NÓ ou com filhos.
+  if (level >= 4) {
+    if (hasStructuredContent && artifact_type !== 'MAPA') {
+      const logDepth = item.depth !== undefined ? item.depth : (level - 1);
+      console.log(`[ArtifactClassifier] page=${item.id} depth=${logDepth} screens=${screensCount} snippets=${snippetsCount} type=MAPA reason=STRUCTURED_CONTENT`);
+      artifact_type = 'MAPA';
+    }
+  }
   
   let measurement_class = item.measurement_class || 'NAO_CLASSIFICADO';
 
@@ -19,11 +31,18 @@ export function normalizeInventoryItem(item: any) {
   let validatedScreens = isMap && item.validated_screens !== undefined ? item.validated_screens : 
     (item.status_summary?.VALIDADO || 0);
 
+  if (isMap && validatedScreens === 0 && screens.length > 0) {
+    validatedScreens = screens.filter((s: any) => {
+      const st = String(s.status || '').toUpperCase().trim();
+      return st === 'VALIDADO' || st.includes('VALIDADO');
+    }).length;
+  }
+
   let homologation_percentage = isMap && item.homologation_percentage !== undefined ? item.homologation_percentage : 
     (totalScreens > 0 ? Math.round((validatedScreens / totalScreens) * 100) : 0);
 
   let homologation_status = isMap ? item.homologation_status : 'NAO_HOMOLOGADO';
-  if (isMap && !homologation_status) {
+  if (isMap && (!homologation_status || (homologation_status === 'NAO_HOMOLOGADO' && validatedScreens > 0))) {
     if (totalScreens > 0 && validatedScreens === totalScreens) {
       homologation_status = 'HOMOLOGADO';
     } else if (validatedScreens > 0 && validatedScreens < totalScreens) {
@@ -31,6 +50,25 @@ export function normalizeInventoryItem(item: any) {
     } else {
       homologation_status = 'NAO_HOMOLOGADO';
     }
+  }
+
+  // Detectar classe de mensuração se não definida
+  if (isMap && (!measurement_class || measurement_class === 'NAO_CLASSIFICADO')) {
+    let hasGa4 = false;
+    let hasGa3 = false;
+    for (const screen of screens) {
+      for (const snip of (screen.snippets || [])) {
+        if (snip.measurement_class === 'GA4') hasGa4 = true;
+        else if (snip.measurement_class === 'GA3') hasGa3 = true;
+        else if (snip.measurement_class === 'HIBRIDO') {
+          hasGa4 = true;
+          hasGa3 = true;
+        }
+      }
+    }
+    if (hasGa4 && hasGa3) measurement_class = 'HIBRIDO';
+    else if (hasGa4) measurement_class = 'GA4';
+    else if (hasGa3) measurement_class = 'GA3';
   }
 
   // Resolução canônica de taxonomia
@@ -89,7 +127,9 @@ export function normalizeInventoryItem(item: any) {
     status_divergent: Boolean(item.status_divergent),
     parameter_summary: Array.isArray(item.parameter_summary) ? item.parameter_summary : [],
     pattern_summary: Array.isArray(item.pattern_summary) ? item.pattern_summary : [],
-    tipo_mapa: item.tipo_mapa || (artifact_type === 'DOCUMENTACAO' ? 'Doc' : (measurement_class === 'NAO_CLASSIFICADO' ? 'Não classificado' : measurement_class))
+    tipo_mapa: isMap
+      ? (item.tipo_mapa && item.tipo_mapa !== 'Nó' && item.tipo_mapa !== 'Doc' ? item.tipo_mapa : (measurement_class !== 'NAO_CLASSIFICADO' ? measurement_class : 'GA4'))
+      : (item.tipo_mapa || (artifact_type === 'DOCUMENTACAO' ? 'Doc' : (measurement_class === 'NAO_CLASSIFICADO' ? 'Não classificado' : measurement_class)))
   };
 }
 

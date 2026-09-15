@@ -98,7 +98,7 @@ export class MeasurementClassifier {
       return {
         artifact_type,
         measurement_class: 'NAO_CLASSIFICADO',
-        status_summary: {},
+        status_summary: statusSummary,
         declared_status: null,
         calculated_status: 'NAO_IDENTIFICADO',
         homologation_status: 'NAO_HOMOLOGADO',
