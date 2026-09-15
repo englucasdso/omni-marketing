@@ -41,6 +41,7 @@ import { CanonicalInsightsDashboard } from "../components/CanonicalInsightsDashb
 import { AppShell } from "../components/AppShell";
 import { PageHeader } from "../components/PageHeader";
 import { SidebarContextualArea } from "../components/SidebarContextualArea";
+import { SearchCenter } from "../components/search/SearchCenter";
 
 // Espaçamento lateral global reutilizado no cabeçalho e rodapé para alinhamento no mesmo eixo vertical
 const GLOBAL_SCREEN_PADDING = "px-6 sm:px-8";
@@ -64,8 +65,28 @@ const INITIAL_USERS: UserType[] = [
   }
 ];
 
-const GraphView = ({ data, isEmbedded = false, onClose, onOpenMap }: { data: Artifact[], isEmbedded?: boolean, onClose?: () => void, onOpenMap?: (item: Artifact) => void }) => {
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+const GraphView = ({ 
+  data, 
+  isEmbedded = false, 
+  targetArtifactId,
+  onClearTargetArtifactId,
+  onClose, 
+  onOpenMap 
+}: { 
+  data: Artifact[], 
+  isEmbedded?: boolean, 
+  targetArtifactId?: string | null,
+  onClearTargetArtifactId?: () => void,
+  onClose?: () => void, 
+  onOpenMap?: (item: Artifact) => void 
+}) => {
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(targetArtifactId || null);
+
+  useEffect(() => {
+    if (targetArtifactId) {
+      setSelectedItemId(targetArtifactId);
+    }
+  }, [targetArtifactId]);
 
   const handleSelectItem = useCallback((id: string | null) => {
     setSelectedItemId(id);
@@ -87,7 +108,13 @@ const GraphView = ({ data, isEmbedded = false, onClose, onOpenMap }: { data: Art
 
   const content = (
     <div className="flex-1 rounded-[40px] overflow-hidden border border-gray-100 dark:border-slate-700/50 shadow-sm relative w-full h-[calc(100vh-250px)] min-h-[600px] flex">
-      <ConexoesCanvas data={data} selectedItemId={selectedItemId} onSelectItem={handleSelectItem} />
+      <ConexoesCanvas 
+        data={data} 
+        selectedItemId={selectedItemId} 
+        targetArtifactId={targetArtifactId}
+        onClearTargetArtifactId={onClearTargetArtifactId}
+        onSelectItem={handleSelectItem} 
+      />
     </div>
   );
 
@@ -468,6 +495,17 @@ export default function App() {
   const [insightsActiveTab, setRawInsightsActiveTab] = useState<"indicadores" | "resumo_executivo">("indicadores");
   const [detailModalItem, setDetailModalItem] = useState<Artifact | null>(null);
   const [detailTarget, setDetailTarget] = useState<{ screenId?: string; snippetIndex?: number } | null>(null);
+  const [conexoesTargetArtifactId, setConexoesTargetArtifactId] = useState<string | null>(null);
+
+  const handleViewInTree = useCallback((artifactId: string) => {
+    setConexoesTargetArtifactId(artifactId);
+    navigate(`/hub-de-artefatos/conexoes?artifactId=${encodeURIComponent(artifactId)}`);
+  }, [navigate]);
+
+  const handleClearConexoesTarget = useCallback(() => {
+    setConexoesTargetArtifactId(null);
+    navigate('/hub-de-artefatos/conexoes', { replace: true });
+  }, [navigate]);
 
   const setAppState = (newState: typeof rawAppState, updateUrl = true) => {
     setRawAppState(newState);
@@ -496,6 +534,16 @@ export default function App() {
   // Sync state from URL
   useEffect(() => {
     const p = location.pathname;
+    const searchParams = new URLSearchParams(location.search);
+    const targetArtId = searchParams.get('artifactId');
+
+    if (p === '/hub-de-artefatos/conexoes') {
+      setRawAppState('graph');
+      setConexoesTargetArtifactId(targetArtId || null);
+    } else {
+      setConexoesTargetArtifactId(null);
+    }
+
     if (p === '/' || p === '/home') {
       setRawAppState('initial');
       navigate('/hub-de-artefatos', { replace: true });
@@ -538,7 +586,7 @@ export default function App() {
         navigate('/hub-de-artefatos', { replace: true });
       }
     }
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
 
   const [showSummary, setShowSummary] = useState(false);
   const [capturePlatform, setCapturePlatform] = useState<string | null>(null);
@@ -2160,8 +2208,10 @@ export default function App() {
                   subtitle="Mapeamento relacional de produtos, subprodutos e artefatos de tagueamento."
                 />
                 <GraphView 
-                  data={results} 
+                  data={fullInventory && fullInventory.length > 0 ? fullInventory : results} 
                   isEmbedded={true}
+                  targetArtifactId={conexoesTargetArtifactId}
+                  onClearTargetArtifactId={handleClearConexoesTarget}
                   onOpenMap={(art) => setDetailModalItem(art)}
                 />
               </motion.section>
@@ -2204,6 +2254,25 @@ export default function App() {
                   Extrair Dados
                 </button>
               }
+            />
+
+            {/* Centro de Busca Unificado (Conteúdo, Parâmetros e Perguntar à IA) */}
+            <SearchCenter
+              artifacts={fullInventory}
+              onOpenDetails={(art) => setDetailModalItem(art)}
+              onOpenSnippet={(art, screenId, snippetIdx) => {
+                setDetailModalItem(art);
+                setDetailTarget(screenId ? { screenId, snippetIndex: snippetIdx } : null);
+              }}
+              onViewInTree={handleViewInTree}
+              onOpenJourney={(mapId) => {
+                setJourneyMapId(mapId);
+                navigate('/hub-de-artefatos/jornadas');
+              }}
+              onApplyToCards={(searchTerm) => {
+                setCardSearch(searchTerm);
+                setCardPage(1);
+              }}
             />
 
             {/* Âncora para rolagem suave ao trocar de página */}
@@ -2305,13 +2374,22 @@ export default function App() {
                   </div>
 
                   <div className="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-gray-100 dark:border-slate-800">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <button 
                         className="px-2 py-1.5 font-ui text-sm text-gray-600 dark:text-slate-300 flex items-center gap-1 cursor-pointer hover:text-bradesco-red transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bradesco-red rounded" 
                         onClick={() => setDetailModalItem(item)}
                       >
                         Ver detalhes
                         <ChevronRight className="w-4 h-4 ml-1" />
+                      </button>
+                      <button 
+                        type="button"
+                        className="px-2.5 py-1.5 font-ui text-sm text-gray-600 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer hover:text-[#7B0209] dark:hover:text-red-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7B0209] rounded"
+                        onClick={() => handleViewInTree(item.id)}
+                        title="Ver e destacar na árvore de conexões"
+                      >
+                        <Network className="w-4 h-4 text-gray-400 group-hover:text-[#7B0209]" />
+                        Ver na árvore
                       </button>
                     </div>
                   </div>
@@ -2873,6 +2951,7 @@ export default function App() {
         initialTab={detailTarget ? 'telas' : undefined}
         initialScreenId={detailTarget?.screenId}
         initialSnippetIndex={detailTarget?.snippetIndex}
+        onViewInTree={handleViewInTree}
         onClose={() => {
           setDetailModalItem(null);
           setDetailTarget(null);

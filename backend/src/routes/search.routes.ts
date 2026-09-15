@@ -12,6 +12,7 @@ import { runCollection, abortCollection } from "../integrations/confluenceClient
 import { generateInsightsAnalysis } from "../services/ai.service.js";
 import { generateExecutiveSummary } from "../services/executiveSummary.service.js";
 import { analyzeJourneyWithAI, buildDocumentarySequence } from "../services/journeyAnalysis.service.js";
+import { searchSemantic } from "../services/semanticSearch.service.js";
 
 const router = Router();
 
@@ -138,6 +139,35 @@ router.get("/search", (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: "Erro ao processar busca" });
+  }
+});
+
+/**
+ * ROTA: POST /api/search/semantic
+ * Executa busca semântica em dois estágios utilizando IA (Gemini) sobre o inventário real.
+ */
+router.post("/search/semantic", async (req, res) => {
+  const { question, query, filters, limit } = req.body || {};
+  const queryText = String(question || query || "").trim();
+
+  if (!queryText) {
+    return res.status(400).json({
+      error: "Pergunta é obrigatória para a busca com IA.",
+      message: "Faça uma pergunta sobre os artefatos disponíveis."
+    });
+  }
+
+  try {
+    const result = await searchSemantic(queryText, filters, limit || 10);
+    return res.json(result);
+  } catch (error: any) {
+    const isConfigError = String(error.message || "").includes("Configuração ausente:");
+    const statusCode = isConfigError ? 400 : 502;
+    console.error(`[SearchAI] Falha na busca por IA: ${error.message}`);
+    return res.status(statusCode).json({
+      error: error.message || "Não foi possível concluir a busca por IA.",
+      message: "Não foi possível concluir a busca por IA."
+    });
   }
 });
 

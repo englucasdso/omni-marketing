@@ -15,6 +15,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import dagre from 'dagre';
+import { AlertCircle } from 'lucide-react';
 import { Artifact } from '../types';
 
 // ==========================================
@@ -31,47 +32,83 @@ const ExpandButton = ({ isExpanded, onClick, count }: any) => (
   </button>
 );
 
-const ProdutoNode = React.memo(({ data }: any) => (
-  <>
-    <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800 opacity-0" />
-    <div className="p-5 flat-card rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-850 shadow-neu-card w-[260px] h-[92px] relative transition-all hover:border-[#7B0209] group flex flex-col justify-center">
-      {data.hasChildren && (
-        <ExpandButton isExpanded={data.isExpanded} onClick={data.onToggle} count={data.childrenCount} />
-      )}
-      <span className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Produto</span>
-      <h4 className="text-base font-heading font-bold text-gray-900 dark:text-slate-50 tracking-tight leading-tight line-clamp-2 group-hover:text-[#7B0209] transition-colors">{data.label}</h4>
-    </div>
-    <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-[#7B0209] !border-2 !border-white dark:!border-slate-800" />
-  </>
-));
+const ProdutoNode = React.memo(({ data }: any) => {
+  const isSelected = data.isSelected;
+  return (
+    <>
+      <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800 opacity-0" />
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={data.onSelect}
+        className={`p-5 flat-card rounded-2xl border w-[260px] h-[92px] relative transition-all group flex flex-col justify-center cursor-pointer ${
+          isSelected
+            ? 'bg-red-50 dark:bg-red-950/40 border-[#7B0209] shadow-lg ring-4 ring-[#7B0209]/30'
+            : 'bg-white dark:bg-slate-850 border-gray-200 dark:border-slate-800 shadow-neu-card hover:border-[#7B0209]'
+        }`}
+      >
+        {data.hasChildren && (
+          <ExpandButton isExpanded={data.isExpanded} onClick={data.onToggle} count={data.childrenCount} />
+        )}
+        <span className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Produto</span>
+        <h4 className="text-base font-heading font-bold text-gray-900 dark:text-slate-50 tracking-tight leading-tight line-clamp-2 group-hover:text-[#7B0209] transition-colors">{data.label}</h4>
+      </div>
+      <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-[#7B0209] !border-2 !border-white dark:!border-slate-800" />
+    </>
+  );
+});
 
-const SubprodutoNode = React.memo(({ data }: any) => (
-  <>
-    <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
-    <div className="p-4 flat-card rounded-2xl border border-gray-200 dark:border-slate-800 bg-gray-50/90 dark:bg-slate-800/90 shadow-neu-card w-[250px] h-[86px] relative transition-all hover:border-[#E30328] group flex flex-col justify-center">
-      {data.hasChildren && (
-        <ExpandButton isExpanded={data.isExpanded} onClick={data.onToggle} count={data.childrenCount} />
-      )}
-      <span className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Subproduto</span>
-      <h4 className="text-sm font-heading font-bold text-gray-800 dark:text-slate-100 tracking-tight line-clamp-2 group-hover:text-[#E30328] transition-colors">{data.label}</h4>
-    </div>
-    <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
-  </>
-));
+const SubprodutoNode = React.memo(({ data }: any) => {
+  const isSelected = data.isSelected;
+  return (
+    <>
+      <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={data.onSelect}
+        className={`p-4 flat-card rounded-2xl border w-[250px] h-[86px] relative transition-all group flex flex-col justify-center cursor-pointer ${
+          isSelected
+            ? 'bg-red-50 dark:bg-red-950/40 border-[#7B0209] shadow-lg ring-4 ring-[#7B0209]/30'
+            : 'bg-gray-50/90 dark:bg-slate-800/90 border-gray-200 dark:border-slate-800 shadow-neu-card hover:border-[#E30328]'
+        }`}
+      >
+        {data.hasChildren && (
+          <ExpandButton isExpanded={data.isExpanded} onClick={data.onToggle} count={data.childrenCount} />
+        )}
+        <span className="text-[10px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Subproduto</span>
+        <h4 className="text-sm font-heading font-bold text-gray-800 dark:text-slate-100 tracking-tight line-clamp-2 group-hover:text-[#E30328] transition-colors">{data.label}</h4>
+      </div>
+      <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
+    </>
+  );
+});
 
-const CategoriaNode = React.memo(({ data }: any) => (
-  <>
-    <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
-    <div className="p-4 flat-card rounded-2xl border border-gray-200 dark:border-slate-800 bg-gray-100/90 dark:bg-slate-900/90 shadow-neu-card w-[240px] h-[80px] relative transition-all hover:border-gray-400 group flex flex-col justify-center">
-      {data.hasChildren && (
-        <ExpandButton isExpanded={data.isExpanded} onClick={data.onToggle} count={data.childrenCount} />
-      )}
-      <span className="text-[9px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Categoria</span>
-      <h4 className="text-xs font-heading font-bold text-gray-800 dark:text-slate-100 tracking-tight line-clamp-2 transition-colors">{data.label}</h4>
-    </div>
-    <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
-  </>
-));
+const CategoriaNode = React.memo(({ data }: any) => {
+  const isSelected = data.isSelected;
+  return (
+    <>
+      <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={data.onSelect}
+        className={`p-4 flat-card rounded-2xl border w-[240px] h-[80px] relative transition-all group flex flex-col justify-center cursor-pointer ${
+          isSelected
+            ? 'bg-red-50 dark:bg-red-950/40 border-[#7B0209] shadow-lg ring-4 ring-[#7B0209]/30'
+            : 'bg-gray-100/90 dark:bg-slate-900/90 border-gray-200 dark:border-slate-800 shadow-neu-card hover:border-gray-400'
+        }`}
+      >
+        {data.hasChildren && (
+          <ExpandButton isExpanded={data.isExpanded} onClick={data.onToggle} count={data.childrenCount} />
+        )}
+        <span className="text-[9px] font-ui font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Categoria</span>
+        <h4 className="text-xs font-heading font-bold text-gray-800 dark:text-slate-100 tracking-tight line-clamp-2 transition-colors">{data.label}</h4>
+      </div>
+      <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
+    </>
+  );
+});
 
 const MapaNode = React.memo(({ data }: any) => {
   const isSelected = data.isSelected;
@@ -81,10 +118,10 @@ const MapaNode = React.memo(({ data }: any) => {
       <div 
         role="button"
         tabIndex={0}
-        className={`p-4 flat-card rounded-2xl border transition-all cursor-pointer w-[320px] h-[82px] flex flex-col justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-bradesco-red ${
+        className={`p-4 flat-card rounded-2xl border transition-all cursor-pointer w-[320px] h-[82px] flex flex-col justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#7B0209] ${
           isSelected 
-            ? 'bg-red-50 dark:bg-red-900/20 border-[#EF4444] shadow-md ring-1 ring-[#EF4444]'
-            : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm hover:border-[#EF4444]'
+            ? 'bg-red-50 dark:bg-red-950/40 border-[#7B0209] shadow-lg ring-4 ring-[#7B0209]/30'
+            : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm hover:border-[#7B0209]'
         }`}
         onClick={data.onSelect}
         onKeyDown={(e) => {
@@ -95,12 +132,12 @@ const MapaNode = React.memo(({ data }: any) => {
         }}
       >
         <div className="flex items-center gap-2 mb-1">
-          <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-red-100 text-[#EF4444] dark:bg-red-900/40 dark:text-red-400">
+          <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-red-100 text-[#7B0209] dark:bg-red-900/40 dark:text-red-400">
             Mapa
           </span>
           <span className="text-[10px] text-gray-400 font-mono truncate">{data.item?.id || ''}</span>
         </div>
-        <h4 className={`text-xs font-bold leading-tight line-clamp-2 ${isSelected ? 'text-[#EF4444]' : 'text-gray-900 dark:text-slate-100'}`}>
+        <h4 className={`text-xs font-bold leading-tight line-clamp-2 ${isSelected ? 'text-[#7B0209] dark:text-red-400' : 'text-gray-900 dark:text-slate-100'}`}>
           {data.label}
         </h4>
       </div>
@@ -115,10 +152,12 @@ const DocumentoNode = React.memo(({ data }: any) => {
     <>
       <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800" />
       <div 
+        role="button"
+        tabIndex={0}
         className={`p-4 flat-card rounded-2xl border transition-all cursor-pointer w-[320px] h-[82px] flex flex-col justify-center ${
           isSelected 
-            ? 'bg-slate-50 dark:bg-slate-700/50 border-[#64748B] shadow-md ring-1 ring-[#64748B]'
-            : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm hover:border-[#64748B]'
+            ? 'bg-red-50 dark:bg-red-950/40 border-[#7B0209] shadow-lg ring-4 ring-[#7B0209]/30'
+            : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm hover:border-[#7B0209]'
         }`}
         onClick={data.onSelect}
       >
@@ -128,7 +167,7 @@ const DocumentoNode = React.memo(({ data }: any) => {
           </span>
           <span className="text-[10px] text-gray-400 font-mono truncate">{data.item?.id || ''}</span>
         </div>
-        <h4 className={`text-xs font-bold leading-tight line-clamp-2 ${isSelected ? 'text-[#64748B]' : 'text-gray-900 dark:text-slate-100'}`}>
+        <h4 className={`text-xs font-bold leading-tight line-clamp-2 ${isSelected ? 'text-[#7B0209] dark:text-red-400' : 'text-gray-900 dark:text-slate-100'}`}>
           {data.label}
         </h4>
       </div>
@@ -222,12 +261,16 @@ interface ConexoesCanvasInnerProps {
   onSelectItem?: (id: string) => void;
   data: Artifact[];
   selectedItemId?: string | null;
+  targetArtifactId?: string | null;
+  onClearTargetArtifactId?: () => void;
   onOpenMap?: (map: Artifact) => void;
 }
 
 const ConexoesCanvasInner: React.FC<ConexoesCanvasInnerProps> = ({
   data,
   selectedItemId,
+  targetArtifactId,
+  onClearTargetArtifactId,
   onOpenMap,
   onSelectItem
 }) => {
@@ -238,6 +281,8 @@ const ConexoesCanvasInner: React.FC<ConexoesCanvasInnerProps> = ({
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [lastClickedNode, setLastClickedNode] = useState<string | null>(null);
   const [isFirstRender, setIsFirstRender] = useState(true);
+  const [pendingCenterNodeId, setPendingCenterNodeId] = useState<string | null>(null);
+  const [isTargetNotFound, setIsTargetNotFound] = useState(false);
 
   // 1. Compute tree relationships securely
   const { roots, byParent, byId } = useMemo(() => {
@@ -279,6 +324,41 @@ const ConexoesCanvasInner: React.FC<ConexoesCanvasInnerProps> = ({
 
     return { roots: topLevel, byParent: mapByParent, byId: mapById };
   }, [data]);
+
+  // Handle targetArtifactId auto-expansion and focus
+  useEffect(() => {
+    if (!targetArtifactId || data.length === 0) {
+      setIsTargetNotFound(false);
+      return;
+    }
+
+    const target = byId.get(targetArtifactId);
+    if (!target) {
+      setIsTargetNotFound(true);
+      return;
+    }
+
+    setIsTargetNotFound(false);
+
+    // Collect all ancestors up to the root
+    const ancestors = new Set<string>();
+    let curr = target;
+    while (curr && curr.parent_id) {
+      ancestors.add(curr.parent_id);
+      curr = byId.get(curr.parent_id) as Artifact;
+    }
+
+    setExpandedNodes(prev => {
+      const next = new Set(prev);
+      ancestors.forEach(id => next.add(id));
+      return next;
+    });
+
+    if (onSelectItem) {
+      onSelectItem(targetArtifactId);
+    }
+    setPendingCenterNodeId(targetArtifactId);
+  }, [targetArtifactId, byId, data.length, onSelectItem]);
 
   // 2. Action Handlers
   const handleToggle = useCallback((nodeId: string) => {
@@ -375,16 +455,25 @@ const ConexoesCanvasInner: React.FC<ConexoesCanvasInnerProps> = ({
     setNodes(layouted);
     setEdges(newEdges);
     
-    if (isFirstRender) {
+    if (pendingCenterNodeId) {
+      const targetNode = layouted.find(n => n.id === pendingCenterNodeId);
+      if (targetNode) {
+        setPendingCenterNodeId(null);
+        setTimeout(() => {
+          reactFlowInstance.setCenter(
+            targetNode.position.x + 150,
+            targetNode.position.y + 40,
+            { zoom: 1.0, duration: 800 }
+          );
+        }, 80);
+      }
+    } else if (isFirstRender) {
       setTimeout(() => {
         reactFlowInstance.fitView({ padding: 0.3, duration: 800, minZoom: 0.1, maxZoom: 1 });
       }, 50);
       setIsFirstRender(false);
-    } else if (lastClickedNode) {
-      // Optional: Gentle viewport correction if children spill too far out of view
-      // But preserving clicked node position is already handled by getDagreLayout dx/dy shift.
     }
-  }, [newNodes, newEdges, reactFlowInstance, isFirstRender]);
+  }, [newNodes, newEdges, reactFlowInstance, isFirstRender, pendingCenterNodeId]);
 
 
   // Update selection without triggering layout recalculation
@@ -399,7 +488,7 @@ const ConexoesCanvasInner: React.FC<ConexoesCanvasInnerProps> = ({
         ...e,
         style: {
           ...e.style,
-          stroke: childIsSelected ? '#EF4444' : '#cbd5e1',
+          stroke: childIsSelected ? '#7B0209' : '#cbd5e1',
           strokeWidth: childIsSelected ? 3 : 2,
           zIndex: childIsSelected ? 10 : 0
         }
@@ -409,6 +498,28 @@ const ConexoesCanvasInner: React.FC<ConexoesCanvasInnerProps> = ({
 
   return (
     <div className="w-full h-full relative flex-1" style={{ width: '100%', height: '100%', minHeight: '600px' }}>
+      {/* Target artifact not found notification banner */}
+      {isTargetNotFound && (
+        <div className="absolute top-4 left-4 right-4 z-50 flex items-center justify-between p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/90 border border-amber-300 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 shadow-lg animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            <span className="font-semibold">Não foi possível localizar este artefato na árvore.</span>
+          </div>
+          {onClearTargetArtifactId && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsTargetNotFound(false);
+                onClearTargetArtifactId();
+              }}
+              className="px-3 py-1 rounded-xl bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-100 font-bold hover:bg-amber-300 transition-colors cursor-pointer"
+            >
+              Limpar e ver árvore
+            </button>
+          )}
+        </div>
+      )}
+
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -447,6 +558,8 @@ export interface ConexoesCanvasProps {
   onSelectItem?: (id: string) => void;
   data: Artifact[];
   selectedItemId?: string | null;
+  targetArtifactId?: string | null;
+  onClearTargetArtifactId?: () => void;
   onOpenMap?: (map: Artifact) => void;
 }
 

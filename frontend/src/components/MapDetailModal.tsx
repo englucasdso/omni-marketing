@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, ExternalLink, FileText, AlertTriangle, Layers, Tag, Code2, Copy, Check, 
-  ChevronDown, ChevronUp, Image as ImageIcon, ArrowRight, CheckCircle2, AlertCircle
+  ChevronDown, ChevronUp, Image as ImageIcon, ArrowRight, CheckCircle2, AlertCircle,
+  Network
 } from 'lucide-react';
 import { Artifact, ScreenItem, SnippetItem } from '../types';
 import { getStatusStyle, normalizarStatus } from '../utils/statusUtils';
@@ -14,6 +15,7 @@ interface MapDetailModalProps {
   initialTab?: 'telas' | 'parametros' | 'padroes' | 'detalhes';
   initialScreenId?: string;
   initialSnippetIndex?: number;
+  onViewInTree?: (id: string) => void;
 }
 
 export const MapDetailModal: React.FC<MapDetailModalProps> = ({ 
@@ -21,7 +23,8 @@ export const MapDetailModal: React.FC<MapDetailModalProps> = ({
   onClose,
   initialTab,
   initialScreenId,
-  initialSnippetIndex
+  initialSnippetIndex,
+  onViewInTree
 }) => {
   const [activeTab, setActiveTab] = useState<'telas' | 'parametros' | 'padroes' | 'detalhes'>(initialTab || 'telas');
   const [copiedSnippetId, setCopiedSnippetId] = useState<string | null>(null);
@@ -232,6 +235,20 @@ export const MapDetailModal: React.FC<MapDetailModalProps> = ({
 
             {/* Ações: Confluence & Fechar */}
             <div className="flex items-center gap-2">
+              {onViewInTree && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onViewInTree(item.id);
+                    onClose();
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 text-xs font-ui font-medium text-gray-700 dark:text-slate-300 hover:text-[#7B0209] hover:border-[#7B0209]/40 bg-white dark:bg-slate-800 transition-colors cursor-pointer"
+                  title="Ver e destacar na árvore de conexões"
+                >
+                  <Network className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#7B0209]" />
+                  Ver na árvore
+                </button>
+              )}
               {item.link && (
                 <a 
                   href={item.link} 
