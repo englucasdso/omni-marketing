@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -131,6 +131,9 @@ const MapaNode = React.memo(({ data }: any) => {
           }
         }}
       >
+        {data.hasChildren && (
+          <ExpandButton isExpanded={data.isExpanded} onClick={data.onToggle} count={data.childrenCount} />
+        )}
         <div className="flex items-center gap-2 mb-1">
           <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-red-100 text-[#7B0209] dark:bg-red-900/40 dark:text-red-400">
             Mapa
@@ -141,7 +144,11 @@ const MapaNode = React.memo(({ data }: any) => {
           {data.label}
         </h4>
       </div>
-      <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800 opacity-0" />
+      <Handle 
+        type="source" 
+        position={Position.Bottom} 
+        className={`!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800 ${data.hasChildren ? '' : 'opacity-0'}`} 
+      />
     </>
   );
 });
@@ -160,7 +167,16 @@ const DocumentoNode = React.memo(({ data }: any) => {
             : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm hover:border-[#7B0209]'
         }`}
         onClick={data.onSelect}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            data.onSelect?.();
+          }
+        }}
       >
+        {data.hasChildren && (
+          <ExpandButton isExpanded={data.isExpanded} onClick={data.onToggle} count={data.childrenCount} />
+        )}
         <div className="flex items-center gap-2 mb-1">
           <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-slate-100 text-[#64748B] dark:bg-slate-800/40 dark:text-slate-400">
             Documento
@@ -171,7 +187,11 @@ const DocumentoNode = React.memo(({ data }: any) => {
           {data.label}
         </h4>
       </div>
-      <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800 opacity-0" />
+      <Handle 
+        type="source" 
+        position={Position.Bottom} 
+        className={`!w-2.5 !h-2.5 !bg-gray-400 !border-2 !border-white dark:!border-slate-800 ${data.hasChildren ? '' : 'opacity-0'}`} 
+      />
     </>
   );
 });
@@ -264,6 +284,7 @@ interface ConexoesCanvasInnerProps {
   targetArtifactId?: string | null;
   onClearTargetArtifactId?: () => void;
   onOpenMap?: (map: Artifact) => void;
+  onOpenItem?: (item: Artifact) => void;
 }
 
 const ConexoesCanvasInner: React.FC<ConexoesCanvasInnerProps> = ({
@@ -272,6 +293,7 @@ const ConexoesCanvasInner: React.FC<ConexoesCanvasInnerProps> = ({
   targetArtifactId,
   onClearTargetArtifactId,
   onOpenMap,
+  onOpenItem,
   onSelectItem
 }) => {
   const reactFlowInstance = useReactFlow();
@@ -283,6 +305,7 @@ const ConexoesCanvasInner: React.FC<ConexoesCanvasInnerProps> = ({
   const [isFirstRender, setIsFirstRender] = useState(true);
   const [pendingCenterNodeId, setPendingCenterNodeId] = useState<string | null>(null);
   const [isTargetNotFound, setIsTargetNotFound] = useState(false);
+  const lastProcessedTargetIdRef = useRef<string | null>(null);
 
   // 1. Compute tree relationships securely
   const { roots, byParent, byId } = useMemo(() => {
@@ -325,10 +348,20 @@ const ConexoesCanvasInner: React.FC<ConexoesCanvasInnerProps> = ({
     return { roots: topLevel, byParent: mapByParent, byId: mapById };
   }, [data]);
 
+  const onSelectItemRef = useRef(onSelectItem);
+  useEffect(() => {
+    onSelectItemRef.current = onSelectItem;
+  }, [onSelectItem]);
+
   // Handle targetArtifactId auto-expansion and focus
   useEffect(() => {
     if (!targetArtifactId || data.length === 0) {
       setIsTargetNotFound(false);
+      lastProcessedTargetIdRef.current = null;
+      return;
+    }
+
+    if (lastProcessedTargetIdRef.current === targetArtifactId) {
       return;
     }
 
@@ -338,6 +371,7 @@ const ConexoesCanvasInner: React.FC<ConexoesCanvasInnerProps> = ({
       return;
     }
 
+    lastProcessedTargetIdRef.current = targetArtifactId;
     setIsTargetNotFound(false);
 
     // Collect all ancestors up to the root
@@ -354,11 +388,11 @@ const ConexoesCanvasInner: React.FC<ConexoesCanvasInnerProps> = ({
       return next;
     });
 
-    if (onSelectItem) {
-      onSelectItem(targetArtifactId);
+    if (onSelectItemRef.current) {
+      onSelectItemRef.current(targetArtifactId);
     }
     setPendingCenterNodeId(targetArtifactId);
-  }, [targetArtifactId, byId, data.length, onSelectItem]);
+  }, [targetArtifactId, byId, data.length]);
 
   // 2. Action Handlers
   const handleToggle = useCallback((nodeId: string) => {
@@ -399,10 +433,6 @@ const ConexoesCanvasInner: React.FC<ConexoesCanvasInnerProps> = ({
       
       if (item.artifact_type === 'MAPA') type = 'mapa';
       else if (item.artifact_type === 'DOCUMENTACAO') type = 'documento';
-      
-      if (hasChildren && (type === 'mapa' || type === 'documento')) {
-         type = 'categoria';
-      }
 
       n.push({
         id: item.id,
@@ -416,7 +446,16 @@ const ConexoesCanvasInner: React.FC<ConexoesCanvasInnerProps> = ({
           isExpanded,
           isSelected: false, // Updated by selection effect
           onToggle: () => handleToggle(item.id),
-          onSelect: () => { if (onSelectItem) onSelectItem(item.id); if (onOpenMap) onOpenMap(item); }
+          onSelect: () => {
+            if (onSelectItem) onSelectItem(item.id);
+            if (type === 'mapa' || type === 'documento' || item.artifact_type === 'MAPA' || item.artifact_type === 'DOCUMENTACAO') {
+              if (onOpenItem) {
+                onOpenItem(item);
+              } else if (onOpenMap) {
+                onOpenMap(item);
+              }
+            }
+          }
         }
       });
 
@@ -443,7 +482,7 @@ const ConexoesCanvasInner: React.FC<ConexoesCanvasInnerProps> = ({
     roots.forEach(r => traverse(r, 0));
 
     return { newNodes: n, newEdges: e };
-  }, [roots, byParent, expandedNodes, handleToggle, onOpenMap]);
+  }, [roots, byParent, expandedNodes, handleToggle, onOpenMap, onOpenItem, onSelectItem]);
 
   // 4. Apply Layout & Update React Flow State
   useEffect(() => {
@@ -459,6 +498,7 @@ const ConexoesCanvasInner: React.FC<ConexoesCanvasInnerProps> = ({
       const targetNode = layouted.find(n => n.id === pendingCenterNodeId);
       if (targetNode) {
         setPendingCenterNodeId(null);
+        setIsFirstRender(false);
         setTimeout(() => {
           reactFlowInstance.setCenter(
             targetNode.position.x + 150,
@@ -561,6 +601,7 @@ export interface ConexoesCanvasProps {
   targetArtifactId?: string | null;
   onClearTargetArtifactId?: () => void;
   onOpenMap?: (map: Artifact) => void;
+  onOpenItem?: (item: Artifact) => void;
 }
 
 export const ConexoesCanvas: React.FC<ConexoesCanvasProps> = (props) => (

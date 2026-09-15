@@ -59,14 +59,8 @@ export function resolveCanonicalTaxonomy(row, rowMap = new Map(), rootPageId = '
       produto_id = ancestorIds[1] || (row.parent_id ? String(row.parent_id) : null);
       produto = getTitle(produto_id, ancestorTitles[1] || row.produto);
 
-      if (row.artifact_type === 'NO') {
-        subproduto_id = rowIdStr;
-        subproduto = String(row.titulo || row.title || '').trim();
-      } else {
-        // Artefato folha colocado diretamente no produto não tem subproduto
-        subproduto_id = null;
-        subproduto = '';
-      }
+      subproduto_id = rowIdStr;
+      subproduto = String(row.titulo || row.title || '').trim();
     } else if (depth === 3) {
       // Nível humano 4 (depth 3) = Filho direto de Subproduto
       produto_id = ancestorIds[1] || null;
@@ -122,23 +116,53 @@ export function resolveCanonicalTaxonomy(row, rowMap = new Map(), rootPageId = '
 export function isValidSnippet(snippet) {
   if (!snippet || typeof snippet !== 'object') return false;
 
-  // 1. raw_code não vazio
-  if (typeof snippet.raw_code === 'string' && snippet.raw_code.trim().length > 0) {
+  const raw = String(snippet.raw_code || '');
+
+  // Código de instalação do GTM não transforma uma página em mapa
+  const isGtmInstall = 
+    raw.includes('googletagmanager.com/gtm.js') ||
+    raw.includes('gtm.start') ||
+    (snippet.event_raw === 'gtm.js' && (!snippet.parameters || snippet.parameters.length <= 1));
+
+  if (isGtmInstall) {
+    const hasOtherParams = Array.isArray(snippet.parameters) && snippet.parameters.some(p => {
+      const path = (p.path || p.name || '').toLowerCase();
+      return path !== 'gtm.start' && path !== 'event';
+    });
+    if (!hasOtherParams && (!snippet.event_normalized || snippet.event_normalized === 'gtmjs')) {
+      return false;
+    }
+  }
+
+  // A evidência precisa ter sido reconhecida pelo parser como conteúdo analítico:
+  // 1. event_normalized válido (não vazio e não gtmjs)
+  if (typeof snippet.event_normalized === 'string' && snippet.event_normalized.trim().length > 0 && snippet.event_normalized !== 'gtmjs') {
     return true;
   }
-  // 2. event_normalized não vazio
-  if (typeof snippet.event_normalized === 'string' && snippet.event_normalized.trim().length > 0) {
+  // 2. base_key válido
+  if (typeof snippet.base_key === 'string' && snippet.base_key.trim().length > 0 && snippet.base_key !== 'gtmjs' && snippet.base_key !== 'noevent') {
     return true;
   }
-  // 3. base_key não vazio
-  if (typeof snippet.base_key === 'string' && snippet.base_key.trim().length > 0) {
-    return true;
-  }
-  // 4. parâmetros estruturados
+  // 3. parâmetros analíticos estruturados
   if (Array.isArray(snippet.parameters) && snippet.parameters.length > 0) {
-    return true;
+    const hasAnalyticsParam = snippet.parameters.some(p => {
+      const path = (p.path || p.name || '').toLowerCase();
+      return path !== 'gtm.start';
+    });
+    if (hasAnalyticsParam) return true;
   }
   if (snippet.parametros && typeof snippet.parametros === 'object' && Object.keys(snippet.parametros).length > 0) {
+    return true;
+  }
+  // 4. padrão de mensuração reconhecido
+  if (snippet.measurement_class && ['GA4', 'GA3', 'HIBRIDO'].includes(snippet.measurement_class)) {
+    return true;
+  }
+  if (Array.isArray(snippet.detected_paths) && snippet.detected_paths.length > 0) {
+    const hasAnalyticsPath = snippet.detected_paths.some(p => p.toLowerCase() !== 'gtm.start');
+    if (hasAnalyticsPath) return true;
+  }
+  if (snippet.pattern_id && snippet.pattern_id !== 'noevent' && snippet.pattern_id !== 'gtmjs') {
     return true;
   }
 
@@ -160,7 +184,7 @@ export function evaluateStructuredContent(item) {
         screenSnippets++;
       }
     }
-    if (screenSnippets > 0 || screen.screen_id || screen.screen_index !== undefined || screen.status || screen.status_raw || screen.instruction) {
+    if (screenSnippets > 0) {
       structuredScreensCount++;
     }
   }
@@ -172,20 +196,24 @@ export function evaluateStructuredContent(item) {
   };
 }
 
-export function getTreeLevel(row) {
+export function getTreeDepth(row) {
   if (row.depth !== undefined && row.depth !== null) {
-    return Number(row.depth) + 1;
+    return Number(row.depth);
   }
   if (row.taxonomy_depth !== undefined && row.taxonomy_depth !== null) {
-    return Number(row.taxonomy_depth) + 1;
+    return Number(row.taxonomy_depth);
   }
   if (Array.isArray(row.ancestor_ids) && row.ancestor_ids.length > 0) {
-    return row.ancestor_ids.length + 1;
+    return row.ancestor_ids.length;
   }
   if (row.nivel !== undefined && row.nivel !== null) {
-    return Number(row.nivel);
+    return Number(row.nivel) - 1;
   }
-  return 1;
+  return 0;
+}
+
+export function getTreeLevel(row) {
+  return getTreeDepth(row) + 1;
 }
 
 export function classifyTree(rows, rootPageId) {
@@ -194,71 +222,67 @@ export function classifyTree(rows, rootPageId) {
   // 1. Determinar o tipo de artefato para todas as linhas primeiro
   const classifiedRows = rows.map(row => {
     const classified = { ...row };
+    const depth = getTreeDepth(classified);
+    const rowIdStr = String(classified.id);
 
-    // 1. RAIZ
-    if (String(classified.id) === rootStr || classified.depth === 0) {
+    // 1. depth 0: Sempre RAIZ
+    if (depth === 0 || (rootStr && rowIdStr === rootStr)) {
       classified.artifact_type = 'RAIZ';
+      classified.tipo_mapa = 'Nó';
+      classified.measurement_class = 'NAO_CLASSIFICADO';
       classified.homologation_status = null;
       classified.homologation_percentage = null;
       classified.validated_screens = null;
       classified.total_screens = null;
-      classified.measurement_class = 'NAO_CLASSIFICADO';
       return classified;
     }
 
+    // 2. depth 1 e depth 2: Sempre NO
+    // Produto e subproduto são nós estruturais, mesmo quando não possuem filhos.
+    // Não transformar produto ou subproduto em mapa por causa de código, tabela, título ou metadado existente na página.
+    if (depth === 1 || depth === 2) {
+      classified.artifact_type = 'NO';
+      classified.tipo_mapa = 'Nó';
+      classified.measurement_class = 'NAO_CLASSIFICADO';
+      classified.homologation_status = null;
+      classified.homologation_percentage = null;
+      classified.validated_screens = null;
+      classified.total_screens = null;
+      return classified;
+    }
+
+    // 3. depth >= 3:
     // Signals
     const hasChildren = classified.has_children === true || classified.children_count > 0 || classified.is_leaf === false;
-    let hasTrackingSnippets = false;
     let hasDocumentationSignals = false;
-    let isEmptyPage = false;
     
     if (classified.structural_metadata && classified.structural_metadata.signals) {
       const sigs = classified.structural_metadata.signals;
-      hasTrackingSnippets = sigs.has_tracking_snippets === true;
       hasDocumentationSignals = sigs.has_documentation_signals === true;
-      isEmptyPage = sigs.is_empty_page === true;
+    }
+    if (classified.signals && classified.signals.has_documentation_signals === true) {
+      hasDocumentationSignals = true;
+    }
+    if (classified.has_documentation_signals === true || classified.hasDocContent === true) {
+      hasDocumentationSignals = true;
     }
 
-    // Check parameter summary or pattern summary if tracking snippets is false (safety net)
-    if (!hasTrackingSnippets) {
-      const hasParamSum = classified.parameter_summary && classified.parameter_summary.length > 0;
-      const hasPatternSum = classified.pattern_summary && classified.pattern_summary.length > 0;
-      if (hasParamSum || hasPatternSum) {
-        hasTrackingSnippets = true;
-      }
-    }
-
-    const level = getTreeLevel(classified);
     const { screensCount, snippetsCount, hasStructuredContent } = evaluateStructuredContent(classified);
 
-    // Classification Logic com regra canônica de precedência
-    if (level >= 4) {
-      // A partir do nível 4, verificar o conteúdo estruturado extraído da própria página
-      if (hasStructuredContent) {
-        // Se a página possuir pelo menos uma tela estruturada e pelo menos um snippet válido: MAPA
-        classified.artifact_type = 'MAPA';
-        if (hasChildren) {
-          const logDepth = classified.depth !== undefined ? classified.depth : (level - 1);
-          console.log(`[ArtifactClassifier] page=${classified.id} depth=${logDepth} screens=${screensCount} snippets=${snippetsCount} type=MAPA reason=STRUCTURED_CONTENT`);
-        }
-      } else if (hasChildren) {
-        classified.artifact_type = 'NO';
-      } else if (hasDocumentationSignals) {
-        classified.artifact_type = 'DOCUMENTACAO';
-      } else {
-        classified.artifact_type = 'NO';
-      }
-    } else {
-      // Níveis 2 e 3 continuam sendo páginas estruturais da taxonomia
+    // * MAPA: possui pelo menos uma tela estruturada contendo pelo menos um snippet analítico válido;
+    // * DOCUMENTACAO: não é mapa, não funciona como agrupador com filhos e possui conteúdo documental reconhecido;
+    // * NO: não possui evidência suficiente de mapa e funciona como agrupador estrutural ou página vazia.
+    // Uma página com telas e snippets válidos deve ser MAPA mesmo quando has_children === true.
+    // A presença de filhos não pode sobrescrever evidência real de mapa.
+    if (hasStructuredContent) {
+      classified.artifact_type = 'MAPA';
       if (hasChildren) {
-        classified.artifact_type = 'NO';
-      } else if (hasStructuredContent || hasTrackingSnippets) {
-        classified.artifact_type = 'MAPA';
-      } else if (hasDocumentationSignals) {
-        classified.artifact_type = 'DOCUMENTACAO';
-      } else {
-        classified.artifact_type = 'NO';
+        console.log(`[ArtifactClassifier] page=${classified.id} depth=${depth} screens=${screensCount} snippets=${snippetsCount} type=MAPA reason=STRUCTURED_CONTENT (has_children=true)`);
       }
+    } else if (!hasChildren && hasDocumentationSignals) {
+      classified.artifact_type = 'DOCUMENTACAO';
+    } else {
+      classified.artifact_type = 'NO';
     }
 
     // Normalization

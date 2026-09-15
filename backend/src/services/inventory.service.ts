@@ -7,18 +7,40 @@ const DATA_FILE = path.join(process.cwd(), "backend/data/inventario.json");
 export function normalizeInventoryItem(item: any) {
   if (!item) return null;
   
-  let artifact_type = item.artifact_type || 'NAO_CLASSIFICADO';
-  const level = getTreeLevel(item);
-  const { screensCount, snippetsCount, hasStructuredContent } = evaluateStructuredContent(item);
+  let depth = item.depth !== undefined && item.depth !== null ? Number(item.depth) : null;
+  if (depth === null) {
+    if (item.taxonomy_depth !== undefined && item.taxonomy_depth !== null) {
+      depth = Number(item.taxonomy_depth);
+    } else if (Array.isArray(item.ancestor_ids) && item.ancestor_ids.length > 0) {
+      depth = item.ancestor_ids.length;
+    } else if (item.nivel !== undefined && item.nivel !== null) {
+      depth = Number(item.nivel) - 1;
+    } else {
+      depth = 3;
+    }
+  }
 
-  // Regra canônica de precedência para artefatos a partir do nível 4:
-  // Se a página possuir pelo menos 1 tela estruturada e pelo menos 1 snippet válido,
-  // prevalece como MAPA mesmo que salva anteriormente como NÓ ou com filhos.
-  if (level >= 4) {
-    if (hasStructuredContent && artifact_type !== 'MAPA') {
-      const logDepth = item.depth !== undefined ? item.depth : (level - 1);
-      console.log(`[ArtifactClassifier] page=${item.id} depth=${logDepth} screens=${screensCount} snippets=${snippetsCount} type=MAPA reason=STRUCTURED_CONTENT`);
+  let artifact_type = item.artifact_type || 'NAO_CLASSIFICADO';
+
+  if (depth === 0) {
+    artifact_type = 'RAIZ';
+  } else if (depth === 1 || depth === 2) {
+    artifact_type = 'NO';
+  } else {
+    const { hasStructuredContent } = evaluateStructuredContent(item);
+    const hasChildren = item.has_children === true || (item.children_count && item.children_count > 0) || item.is_leaf === false;
+    const hasDoc = Boolean(
+      item.structural_metadata?.signals?.has_documentation_signals ||
+      item.signals?.has_documentation_signals ||
+      item.has_documentation_signals ||
+      item.hasDocContent
+    );
+    if (hasStructuredContent) {
       artifact_type = 'MAPA';
+    } else if (!hasChildren && (hasDoc || item.artifact_type === 'DOCUMENTACAO')) {
+      artifact_type = 'DOCUMENTACAO';
+    } else {
+      artifact_type = 'NO';
     }
   }
   

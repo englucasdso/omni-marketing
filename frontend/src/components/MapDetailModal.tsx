@@ -246,7 +246,7 @@ export const MapDetailModal: React.FC<MapDetailModalProps> = ({
                   title="Ver e destacar na árvore de conexões"
                 >
                   <Network className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#7B0209]" />
-                  Ver na árvore
+                  Acessar na árvore
                 </button>
               )}
               {item.link && (

@@ -90,11 +90,9 @@ const GraphView = ({
 
   const handleSelectItem = useCallback((id: string | null) => {
     setSelectedItemId(id);
+  }, []);
 
-    if (!id) return;
-
-    const item = data.find(artifact => String(artifact.id) === String(id));
-
+  const handleOpenItem = useCallback((item: Artifact) => {
     if (
       item &&
       (
@@ -104,7 +102,7 @@ const GraphView = ({
     ) {
       onOpenMap?.(item);
     }
-  }, [data, onOpenMap]);
+  }, [onOpenMap]);
 
   const content = (
     <div className="flex-1 rounded-[40px] overflow-hidden border border-gray-100 dark:border-slate-700/50 shadow-sm relative w-full h-[calc(100vh-250px)] min-h-[600px] flex">
@@ -114,6 +112,7 @@ const GraphView = ({
         targetArtifactId={targetArtifactId}
         onClearTargetArtifactId={onClearTargetArtifactId}
         onSelectItem={handleSelectItem} 
+        onOpenItem={handleOpenItem}
       />
     </div>
   );
@@ -498,9 +497,15 @@ export default function App() {
   const [conexoesTargetArtifactId, setConexoesTargetArtifactId] = useState<string | null>(null);
 
   const handleViewInTree = useCallback((artifactId: string) => {
+    setDetailModalItem(null);
+    setDetailTarget(null);
     setConexoesTargetArtifactId(artifactId);
     navigate(`/hub-de-artefatos/conexoes?artifactId=${encodeURIComponent(artifactId)}`);
   }, [navigate]);
+
+  const handleOpenMapDetail = useCallback((art: Artifact) => {
+    setDetailModalItem(art);
+  }, []);
 
   const handleClearConexoesTarget = useCallback(() => {
     setConexoesTargetArtifactId(null);
@@ -2212,7 +2217,7 @@ export default function App() {
                   isEmbedded={true}
                   targetArtifactId={conexoesTargetArtifactId}
                   onClearTargetArtifactId={handleClearConexoesTarget}
-                  onOpenMap={(art) => setDetailModalItem(art)}
+                  onOpenMap={handleOpenMapDetail}
                 />
               </motion.section>
             )}
