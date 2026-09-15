@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   ChevronRight, ArrowUpRight, Filter, AlertTriangle
 } from 'lucide-react';
-import { Artifact } from '../types';
+import { Artifact, ResolvedArtifactTaxonomy } from '../types';
 import { PageHeader } from './PageHeader';
 import { normalizarStatus, OfficialStatus } from '../utils/statusUtils';
 import { 
@@ -13,6 +13,7 @@ import {
   useDebouncedSearch 
 } from '../utils/contextualSearch';
 import { ContextualEmptyState } from './ContextualEmptyState';
+import { resolveArtifactTaxonomy } from '../utils/taxonomyResolver';
 
 interface ProductAnalysisViewProps {
   artifacts: Artifact[];
@@ -22,60 +23,6 @@ interface ProductAnalysisViewProps {
   onSearchChange?: (val: string) => void;
   selectedSubproduto?: string;
   onSubprodutoChange?: (val: string) => void;
-}
-
-interface MapTaxonomy {
-  productKey: string;
-  displayedProductName: string;
-  productName: string;
-  productId: string;
-  subproductName: string;
-  subproductId: string;
-  descendantPath: { id: string; name: string }[];
-}
-
-function extractMapTaxonomy(artifact: Artifact): MapTaxonomy {
-  const ancestorIds = Array.isArray(artifact.ancestor_ids)
-    ? artifact.ancestor_ids.map(value => String(value || '').trim())
-    : [];
-  const ancestorTitles = Array.isArray(artifact.ancestor_titles)
-    ? artifact.ancestor_titles.map(value => String(value || '').trim())
-    : [];
-
-  const productName = ancestorTitles[1] || '';
-  const productId = ancestorIds[1] || '';
-
-  const productKey = productId
-    ? `produto:${productId}`
-    : productName
-      ? `produto:${normalizeSearchText(productName)}`
-      : 'SEM_PRODUTO';
-
-  const displayedProductName =
-    productName || 'Sem Produto';
-
-  const subproductName = ancestorTitles[2] || '';
-  const subproductId = ancestorIds[2] || '';
-
-  const descendantPath = ancestorTitles
-    .slice(2)
-    .map((name, index) => ({
-      id:
-        ancestorIds[index + 2] ||
-        `nivel:${index + 2}:${normalizeSearchText(name)}`,
-      name
-    }))
-    .filter(item => item.name);
-
-  return {
-    productKey,
-    displayedProductName,
-    productName,
-    productId,
-    subproductName,
-    subproductId,
-    descendantPath
-  };
 }
 
 export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({ 
@@ -95,12 +42,12 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
   const effectiveSubproduto = selectedSubproduto !== undefined ? selectedSubproduto : localSelectedSubproduto;
   const setEffectiveSubproduto = onSubprodutoChange || setLocalSelectedSubproduto;
 
-  // Cache taxonômico de cada mapa obtido exclusivamente da árvore do Confluence
+  // Cache taxonômico de cada mapa obtido exclusivamente do backend
   const mapTaxonomyById = useMemo(() => {
-    const map = new Map<string, MapTaxonomy>();
+    const map = new Map<string, ResolvedArtifactTaxonomy>();
     artifacts.forEach(art => {
       if (art.artifact_type === 'MAPA') {
-        map.set(String(art.id), extractMapTaxonomy(art));
+        map.set(String(art.id), resolveArtifactTaxonomy(art));
       }
     });
     return map;
@@ -136,8 +83,10 @@ export const ProductAnalysisView: React.FC<ProductAnalysisViewProps> = ({
       if (globallySeenMapIds.has(mapIdStr)) return;
       globallySeenMapIds.add(mapIdStr);
 
-      const taxonomy = mapTaxonomyById.get(mapIdStr) || extractMapTaxonomy(art);
-      const { productKey, displayedProductName, descendantPath } = taxonomy;
+      const taxonomy = mapTaxonomyById.get(mapIdStr) || resolveArtifactTaxonomy(art);
+      const productKey = taxonomy.productKey;
+      const displayedProductName = taxonomy.produto_nome;
+      const descendantPath = taxonomy.descendantPath;
 
       if (!productEntries.has(productKey)) {
         productEntries.set(productKey, {

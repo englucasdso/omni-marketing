@@ -1,12 +1,133 @@
+/**
+ * treeClassifier.js
+ * Classificação canônica estrutural e taxonômica do Hub de Artefatos.
+ * 
+ * Regra canônica: A taxonomia segue exclusivamente a posição real da página
+ * na árvore iniciada pela página raiz:
+ * - Nível humano 1 = depth 0 (Raiz)
+ * - Nível humano 2 = depth 1 (Produto)
+ * - Nível humano 3 = depth 2 (Subproduto)
+ * - Nível humano 4+ = descendant_path
+ * 
+ * Separação de conceitos: Nível taxonômico é estritamente desacoplado do tipo de artefato (MAPA/DOC/NO).
+ */
+
+export function resolveCanonicalTaxonomy(row, rowMap = new Map(), rootPageId = '') {
+  const rootStr = String(rootPageId || '');
+  const rowIdStr = String(row.id);
+  const depth = row.depth !== undefined ? Number(row.depth) : (row.taxonomy_depth || row.nivel || 0);
+
+  const ancestorIds = Array.isArray(row.ancestor_ids) ? row.ancestor_ids.map(String) : [];
+  const ancestorTitles = Array.isArray(row.ancestor_titles) ? row.ancestor_titles.map(t => String(t || '').trim()) : [];
+
+  let produto = '';
+  let produto_id = null;
+  let subproduto = '';
+  let subproduto_id = null;
+  let descendant_path_ids = [];
+  let descendant_path_titles = [];
+
+  const getTitle = (id, fallbackTitle) => {
+    if (id && rowMap.has(String(id))) {
+      const found = rowMap.get(String(id));
+      const t = found?.titulo || found?.title;
+      if (t) return String(t).trim();
+    }
+    return String(fallbackTitle || '').trim();
+  };
+
+  // 1. Raiz (depth 0)
+  if (depth === 0 || (rootStr && rowIdStr === rootStr) || row.artifact_type === 'RAIZ') {
+    return {
+      produto: '',
+      produto_id: null,
+      subproduto: '',
+      subproduto_id: null,
+      descendant_path_ids: [],
+      descendant_path_titles: []
+    };
+  }
+
+  // 2. Com ancestrais da árvore (novo crawl ou dados com hierarquia preservada)
+  if (ancestorIds.length > 0) {
+    if (depth === 1) {
+      // Nível humano 2 (depth 1) = Produto
+      produto_id = rowIdStr;
+      produto = String(row.titulo || row.title || '').trim();
+    } else if (depth === 2) {
+      // Nível humano 3 (depth 2) = Subproduto
+      produto_id = ancestorIds[1] || (row.parent_id ? String(row.parent_id) : null);
+      produto = getTitle(produto_id, ancestorTitles[1] || row.produto);
+
+      if (row.artifact_type === 'NO') {
+        subproduto_id = rowIdStr;
+        subproduto = String(row.titulo || row.title || '').trim();
+      } else {
+        // Artefato folha colocado diretamente no produto não tem subproduto
+        subproduto_id = null;
+        subproduto = '';
+      }
+    } else if (depth === 3) {
+      // Nível humano 4 (depth 3) = Filho direto de Subproduto
+      produto_id = ancestorIds[1] || null;
+      produto = getTitle(produto_id, ancestorTitles[1] || row.produto);
+      subproduto_id = ancestorIds[2] || (row.parent_id ? String(row.parent_id) : null);
+      subproduto = getTitle(subproduto_id, ancestorTitles[2] || row.subproduto);
+
+      if (row.artifact_type === 'NO') {
+        descendant_path_ids = [rowIdStr];
+        descendant_path_titles = [String(row.titulo || row.title || '').trim()];
+      }
+    } else {
+      // Nível humano 5+ (depth >= 4) = Descendentes profundos
+      produto_id = ancestorIds[1] || null;
+      produto = getTitle(produto_id, ancestorTitles[1] || row.produto);
+      subproduto_id = ancestorIds[2] || null;
+      subproduto = getTitle(subproduto_id, ancestorTitles[2] || row.subproduto);
+
+      const dIds = [];
+      const dTitles = [];
+      for (let i = 3; i < ancestorIds.length; i++) {
+        const aId = String(ancestorIds[i]);
+        dIds.push(aId);
+        dTitles.push(getTitle(aId, ancestorTitles[i]));
+      }
+      if (row.artifact_type === 'NO') {
+        dIds.push(rowIdStr);
+        dTitles.push(String(row.titulo || row.title || '').trim());
+      }
+      descendant_path_ids = dIds;
+      descendant_path_titles = dTitles;
+    }
+  } else {
+    // 3. Fallback determinístico para registros legados sem ancestor_ids
+    produto = String(row.produto || '').trim();
+    produto_id = row.produto_id ? String(row.produto_id) : (produto ? produto : null);
+    subproduto = String(row.subproduto || '').trim();
+    subproduto_id = row.subproduto_id ? String(row.subproduto_id) : (subproduto ? subproduto : null);
+    descendant_path_ids = Array.isArray(row.descendant_path_ids) ? row.descendant_path_ids.map(String) : [];
+    descendant_path_titles = Array.isArray(row.descendant_path_titles) ? row.descendant_path_titles.map(String) : [];
+  }
+
+  return {
+    produto,
+    produto_id,
+    subproduto,
+    subproduto_id,
+    descendant_path_ids,
+    descendant_path_titles
+  };
+}
+
 export function classifyTree(rows, rootPageId) {
-  const rootStr = String(rootPageId);
+  const rootStr = String(rootPageId || '');
 
   // 1. Determinar o tipo de artefato para todas as linhas primeiro
   const classifiedRows = rows.map(row => {
     const classified = { ...row };
 
     // 1. RAIZ
-    if (String(classified.id) === rootStr) {
+    if (String(classified.id) === rootStr || classified.depth === 0) {
       classified.artifact_type = 'RAIZ';
       classified.homologation_status = null;
       classified.homologation_percentage = null;
@@ -40,16 +161,12 @@ export function classifyTree(rows, rootPageId) {
 
     // Classification Logic
     if (hasChildren) {
-      // 2. Página com filhos
       classified.artifact_type = 'NO';
     } else if (hasTrackingSnippets) {
-      // 3. Página folha com snippet real
       classified.artifact_type = 'MAPA';
     } else if (hasDocumentationSignals) {
-      // 4. Página folha com conteúdo útil
       classified.artifact_type = 'DOCUMENTACAO';
     } else {
-      // 5. Página folha vazia
       classified.artifact_type = 'NO';
     }
 
@@ -97,115 +214,27 @@ export function classifyTree(rows, rootPageId) {
     return classified;
   });
 
-  // 2. Mapeamento por ID para resolução taxonômica estrutural
+  // 2. Mapeamento por ID para resolução taxonômica estrutural canônica
   const rowMap = new Map(classifiedRows.map(r => [String(r.id), r]));
 
-  // 3. Resolução taxonômica por ancestrais
+  // 3. Resolução taxonômica canônica por profundidade real na árvore
   return classifiedRows.map(classified => {
-    const ancestorIds = Array.isArray(classified.ancestor_ids) ? classified.ancestor_ids : [];
-    const ancestorTitles = Array.isArray(classified.ancestor_titles) ? classified.ancestor_titles : [];
-    const mapIdStr = String(classified.id);
-    const mapTitle = String(classified.titulo || '').trim().toLowerCase();
+    const tax = resolveCanonicalTaxonomy(classified, rowMap, rootPageId);
 
-    // Coletar ancestrais estruturais
-    const structuralAncestors = [];
-    for (let i = 0; i < ancestorIds.length; i++) {
-      const aId = String(ancestorIds[i]);
-      if (aId === mapIdStr) continue; // Não incluir o próprio nó
-      
-      const anc = rowMap.get(aId);
-      const depth = anc?.depth !== undefined ? Number(anc.depth) : i;
-      const type = anc?.artifact_type;
+    classified.produto = tax.produto;
+    classified.produto_id = tax.produto_id;
+    classified.subproduto = tax.subproduto;
+    classified.subproduto_id = tax.subproduto_id;
+    classified.descendant_path_ids = tax.descendant_path_ids;
+    classified.descendant_path_titles = tax.descendant_path_titles;
 
-      // Raiz nunca é produto
-      if (i === 0 || depth === 0 || type === 'RAIZ' || aId === rootStr) continue;
-
-      // Apenas nós estruturais (mapas e documentação não são nós estruturais)
-      if (type === 'MAPA' || type === 'DOCUMENTACAO') continue;
-
-      const title = String(anc?.titulo || ancestorTitles[i] || aId).trim();
-      if (title.toLowerCase() === mapTitle) continue;
-
-      structuralAncestors.push({
-        id: aId,
-        title,
-        depth: depth > 0 ? depth : structuralAncestors.length + 1
-      });
-    }
-
-    // Se ancestorIds não estava disponível, usar ancestorTitles como fallback
-    if (structuralAncestors.length === 0 && ancestorTitles.length > 1) {
-      for (let i = 1; i < ancestorTitles.length; i++) {
-        const title = String(ancestorTitles[i] || '').trim();
-        if (!title || title.toLowerCase() === mapTitle) continue;
-        structuralAncestors.push({
-          id: ancestorIds[i] ? String(ancestorIds[i]) : `anc-${i}`,
-          title,
-          depth: i
-        });
-      }
-    }
-
-    let produto = '';
-    let produto_id = null;
-    let subproduto = '';
-    let subproduto_id = null;
-    let categorias = [];
-    let categoria_ids = [];
-    let subproduto_path = [];
-    let subproduto_path_ids = [];
-
-    if (classified.artifact_type === 'RAIZ') {
-      // Raiz não tem produto nem subproduto
-    } else if (classified.artifact_type === 'NO') {
-      if (classified.depth === 1) {
-        // O nó de nível 1 é o próprio produto estrutural
-        produto = classified.titulo;
-        produto_id = String(classified.id);
-      } else if (classified.depth === 2) {
-        // O nó de nível 2 é o próprio subproduto estrutural
-        produto = structuralAncestors[0]?.title || ancestorTitles[1] || '';
-        produto_id = structuralAncestors[0]?.id || (ancestorIds[1] ? String(ancestorIds[1]) : null);
-        subproduto = classified.titulo;
-        subproduto_id = String(classified.id);
-        subproduto_path = [classified.titulo];
-        subproduto_path_ids = [String(classified.id)];
-      } else if (classified.depth > 2) {
-        produto = structuralAncestors[0]?.title || ancestorTitles[1] || '';
-        produto_id = structuralAncestors[0]?.id || (ancestorIds[1] ? String(ancestorIds[1]) : null);
-        subproduto = structuralAncestors[1]?.title || ancestorTitles[2] || '';
-        subproduto_id = structuralAncestors[1]?.id || (ancestorIds[2] ? String(ancestorIds[2]) : null);
-        categorias = [...structuralAncestors.slice(2).map(s => s.title), classified.titulo];
-        categoria_ids = [...structuralAncestors.slice(2).map(s => s.id), String(classified.id)];
-        subproduto_path = [...structuralAncestors.slice(1).map(s => s.title), classified.titulo];
-        subproduto_path_ids = [...structuralAncestors.slice(1).map(s => s.id), String(classified.id)];
-      }
-    } else {
-      // MAPA ou DOCUMENTACAO (artefatos finais)
-      // O mapa nunca pode virar produto ou subproduto!
-      if (structuralAncestors.length >= 1) {
-        produto = structuralAncestors[0].title;
-        produto_id = structuralAncestors[0].id;
-      }
-      if (structuralAncestors.length >= 2) {
-        subproduto = structuralAncestors[1].title;
-        subproduto_id = structuralAncestors[1].id;
-        categorias = structuralAncestors.slice(2).map(s => s.title);
-        categoria_ids = structuralAncestors.slice(2).map(s => s.id);
-        subproduto_path = structuralAncestors.slice(1).map(s => s.title);
-        subproduto_path_ids = structuralAncestors.slice(1).map(s => s.id);
-      }
-    }
-
-    classified.produto = produto;
-    classified.produto_id = produto_id;
-    classified.subproduto = subproduto;
-    classified.subproduto_id = subproduto_id;
-    classified.categorias = categorias;
-    classified.categoria_ids = categoria_ids;
-    classified.subproduto_path = subproduto_path;
-    classified.subproduto_path_ids = subproduto_path_ids;
+    // Campos de compatibilidade para legados
+    classified.categorias = tax.descendant_path_titles;
+    classified.categoria_ids = tax.descendant_path_ids;
+    classified.subproduto_path = tax.subproduto ? [tax.subproduto, ...tax.descendant_path_titles] : [...tax.descendant_path_titles];
+    classified.subproduto_path_ids = tax.subproduto_id ? [tax.subproduto_id, ...tax.descendant_path_ids] : [...tax.descendant_path_ids];
 
     return classified;
   });
 }
+

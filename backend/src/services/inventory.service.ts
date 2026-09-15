@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { resolveCanonicalTaxonomy } from "./classification/treeClassifier.js";
 
 const DATA_FILE = path.join(process.cwd(), "backend/data/inventario.json");
 
@@ -32,6 +33,16 @@ export function normalizeInventoryItem(item: any) {
     }
   }
 
+  // Resolução canônica de taxonomia
+  const tax = resolveCanonicalTaxonomy(item);
+
+  const produto = tax.produto || (item.produto ? String(item.produto).trim() : '');
+  const produto_id = tax.produto_id || (item.produto_id ? String(item.produto_id).trim() : (produto || null));
+  const subproduto = tax.subproduto || (item.subproduto ? String(item.subproduto).trim() : '');
+  const subproduto_id = tax.subproduto_id || (item.subproduto_id ? String(item.subproduto_id).trim() : (subproduto || null));
+  const descendant_path_ids = tax.descendant_path_ids.length > 0 ? tax.descendant_path_ids : (Array.isArray(item.descendant_path_ids) ? item.descendant_path_ids : []);
+  const descendant_path_titles = tax.descendant_path_titles.length > 0 ? tax.descendant_path_titles : (Array.isArray(item.descendant_path_titles) ? item.descendant_path_titles : []);
+
   return {
     ...item,
     artifact_type,
@@ -43,6 +54,16 @@ export function normalizeInventoryItem(item: any) {
     ancestor_ids: Array.isArray(item.ancestor_ids) ? item.ancestor_ids : [],
     ancestor_titles: Array.isArray(item.ancestor_titles) ? item.ancestor_titles : [],
     full_path: item.full_path || item.titulo || '',
+    produto,
+    produto_id,
+    subproduto,
+    subproduto_id,
+    descendant_path_ids,
+    descendant_path_titles,
+    categorias: descendant_path_titles,
+    categoria_ids: descendant_path_ids,
+    subproduto_path: subproduto ? [subproduto, ...descendant_path_titles] : [...descendant_path_titles],
+    subproduto_path_ids: subproduto_id ? [subproduto_id, ...descendant_path_ids] : [...descendant_path_ids],
     has_children: Boolean(item.has_children),
     children_count: Number(item.children_count || 0),
     is_leaf: Boolean(item.is_leaf !== undefined ? item.is_leaf : (!item.has_children)),

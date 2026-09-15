@@ -564,11 +564,14 @@ export default function App() {
       fetchInventory()
         .then((res) => {
           setFullInventory(res.resultados);
+          if (results.length === 0) {
+            setResults(res.resultados);
+          }
         })
         .catch((e) => console.error(e))
         .finally(() => setLoading(false));
     }
-  }, [appState, fullInventory.length]);
+  }, [appState, fullInventory.length, results.length]);
 
   useEffect(() => {
     const mainCatalogStates = ["inventory_table", "results", "produtos_analise", "parametros_analise", "insights", "graph"];
@@ -969,6 +972,9 @@ export default function App() {
         : await searchContent(q);
 
       setResults(data.resultados);
+      if (isInventory) {
+        setFullInventory(data.resultados);
+      }
       setInsights(getFilteredInsights(data.resultados, q) || null);
 
       if (isInventory) {

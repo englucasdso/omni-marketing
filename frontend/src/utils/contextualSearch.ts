@@ -93,7 +93,14 @@ export function buildArtifactSearchableText(artifact: Artifact): string {
   if (artifact.id) parts.push(artifact.id);
   if (artifact.titulo) parts.push(artifact.titulo);
   if (artifact.produto) parts.push(artifact.produto);
+  if (artifact.produto_id) parts.push(artifact.produto_id);
   if (artifact.subproduto) parts.push(artifact.subproduto);
+  if (artifact.subproduto_id) parts.push(artifact.subproduto_id);
+  if (artifact.descendant_path_titles && artifact.descendant_path_titles.length > 0) {
+    for (let i = 0; i < artifact.descendant_path_titles.length; i++) {
+      parts.push(artifact.descendant_path_titles[i]);
+    }
+  }
   if (artifact.responsavel) parts.push(artifact.responsavel);
   if (artifact.artifact_type) parts.push(artifact.artifact_type);
   if (artifact.measurement_class) parts.push(artifact.measurement_class);

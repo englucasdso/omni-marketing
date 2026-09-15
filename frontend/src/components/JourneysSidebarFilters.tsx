@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Artifact } from '../types';
+import { resolveArtifactTaxonomy } from '../utils/taxonomyResolver';
 
 interface Props {
   artifacts: Artifact[];
@@ -23,26 +24,32 @@ export const JourneysSidebarFilters: React.FC<Props> = ({
   isLoading
 }) => {
   const eligibleMaps = useMemo(() => {
-    return artifacts.filter(a => a.artifact_type === 'MAPA' && Array.isArray(a.screens) && a.screens.length > 0);
+    return (artifacts || []).filter(a => a.artifact_type === 'MAPA' && Array.isArray(a.screens) && a.screens.length > 0);
   }, [artifacts]);
+
+  const mapTaxonomies = useMemo(() => {
+    return eligibleMaps.map(a => ({
+      artifact: a,
+      taxonomy: resolveArtifactTaxonomy(a)
+    }));
+  }, [eligibleMaps]);
 
   const products = useMemo(() => {
     const set = new Set<string>();
-    eligibleMaps.forEach(a => {
-      const p = String(a.produto || '').trim();
-      if (p) set.add(p);
+    mapTaxonomies.forEach(({ taxonomy }) => {
+      const p = taxonomy.produto_nome;
+      if (p && p !== 'Sem Produto') set.add(p);
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [eligibleMaps]);
+  }, [mapTaxonomies]);
 
   const subproducts = useMemo(() => {
     if (!selectedProduct) return [];
     const set = new Set<string>();
-    eligibleMaps.forEach(a => {
-      const p = String(a.produto || '').trim();
-      if (p === selectedProduct) {
-        const sub = String(a.subproduto || '').trim();
-        set.add(sub || 'SEM_SUBPRODUTO');
+    mapTaxonomies.forEach(({ taxonomy }) => {
+      if (taxonomy.produto_nome === selectedProduct) {
+        const sub = taxonomy.subproduto_nome === 'Sem Subproduto' ? 'SEM_SUBPRODUTO' : taxonomy.subproduto_nome;
+        set.add(sub);
       }
     });
     return Array.from(set).sort((a, b) => {
@@ -50,20 +57,19 @@ export const JourneysSidebarFilters: React.FC<Props> = ({
       const displayB = b === 'SEM_SUBPRODUTO' ? 'Sem subproduto' : b;
       return displayA.localeCompare(displayB);
     });
-  }, [eligibleMaps, selectedProduct]);
+  }, [mapTaxonomies, selectedProduct]);
 
   const maps = useMemo(() => {
     if (!selectedProduct || !selectedSubproduct) return [];
     const list: {id: string, name: string}[] = [];
     const seen = new Set<string>();
-    eligibleMaps.forEach(a => {
-      const p = String(a.produto || '').trim();
-      const rawSub = String(a.subproduto || '').trim();
-      const sub = rawSub || 'SEM_SUBPRODUTO';
+    mapTaxonomies.forEach(({ artifact, taxonomy }) => {
+      const p = taxonomy.produto_nome;
+      const sub = taxonomy.subproduto_nome === 'Sem Subproduto' ? 'SEM_SUBPRODUTO' : taxonomy.subproduto_nome;
       
       if (p === selectedProduct && sub === selectedSubproduct) {
-        const title = String(a.titulo || a.id).trim();
-        const idStr = String(a.id);
+        const title = String(artifact.titulo || artifact.id).trim();
+        const idStr = String(artifact.id);
         if (!seen.has(idStr)) {
           seen.add(idStr);
           list.push({ id: idStr, name: title });
@@ -71,7 +77,7 @@ export const JourneysSidebarFilters: React.FC<Props> = ({
       }
     });
     return list.sort((a, b) => a.name.localeCompare(b.name));
-  }, [eligibleMaps, selectedProduct, selectedSubproduct]);
+  }, [mapTaxonomies, selectedProduct, selectedSubproduct]);
 
   if (isLoading) {
     return (

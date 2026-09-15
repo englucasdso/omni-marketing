@@ -114,6 +114,8 @@ export interface Artifact {
   subproduto_id?: string | null;
   subproduto_path?: string[];
   subproduto_path_ids?: string[];
+  descendant_path_ids?: string[];
+  descendant_path_titles?: string[];
   categorias?: string[];
   categoria_ids?: string[];
   artifact_type?: ArtifactType;
@@ -246,4 +248,10 @@ export interface ResolvedArtifactTaxonomy {
   displayPath: string;
   productKey: string;
   subproductKey: string;
+  produto_id: string;
+  produto_nome: string;
+  subproduto_id: string;
+  subproduto_nome: string;
+  descendant_path_ids: string[];
+  descendant_path_titles: string[];
 }
