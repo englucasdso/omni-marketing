@@ -467,6 +467,7 @@ export default function App() {
 
   const [insightsActiveTab, setRawInsightsActiveTab] = useState<"indicadores" | "resumo_executivo">("indicadores");
   const [detailModalItem, setDetailModalItem] = useState<Artifact | null>(null);
+  const [detailTarget, setDetailTarget] = useState<{ screenId?: string; snippetIndex?: number } | null>(null);
 
   const setAppState = (newState: typeof rawAppState, updateUrl = true) => {
     setRawAppState(newState);
@@ -2180,7 +2181,10 @@ export default function App() {
                 <JourneysCanvas
                   artifacts={fullInventory}
                   selectedMapId={journeyMapId}
-                  onSelectScreen={(screen) => setDetailModalItem(screen)}
+                  onOpenScreen={(map, target) => {
+                    setDetailModalItem(map);
+                    setDetailTarget(target || null);
+                  }}
                 />
               </motion.section>
             )}
@@ -2866,7 +2870,13 @@ export default function App() {
       {/* Modal de Detalhes Canônico de Telas e Snippets */}
       <MapDetailModal 
         item={detailModalItem} 
-        onClose={() => setDetailModalItem(null)} 
+        initialTab={detailTarget ? 'telas' : undefined}
+        initialScreenId={detailTarget?.screenId}
+        initialSnippetIndex={detailTarget?.snippetIndex}
+        onClose={() => {
+          setDetailModalItem(null);
+          setDetailTarget(null);
+        }} 
       />
 
       </div>

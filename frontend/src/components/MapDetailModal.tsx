@@ -11,25 +11,80 @@ import { formatUltimaSincronizacao } from '../utils/helpers';
 interface MapDetailModalProps {
   item: Artifact | null;
   onClose: () => void;
+  initialTab?: 'telas' | 'parametros' | 'padroes' | 'detalhes';
+  initialScreenId?: string;
+  initialSnippetIndex?: number;
 }
 
-export const MapDetailModal: React.FC<MapDetailModalProps> = ({ item, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'telas' | 'parametros' | 'padroes' | 'detalhes'>('telas');
+export const MapDetailModal: React.FC<MapDetailModalProps> = ({ 
+  item, 
+  onClose,
+  initialTab,
+  initialScreenId,
+  initialSnippetIndex
+}) => {
+  const [activeTab, setActiveTab] = useState<'telas' | 'parametros' | 'padroes' | 'detalhes'>(initialTab || 'telas');
   const [copiedSnippetId, setCopiedSnippetId] = useState<string | null>(null);
   const [expandedScreens, setExpandedScreens] = useState<Record<string, boolean>>({});
   const [expandedParams, setExpandedParams] = useState<Record<string, boolean>>({});
+  const [highlightedSnippetKey, setHighlightedSnippetKey] = useState<string | null>(null);
   const modalBodyRef = useRef<HTMLDivElement>(null);
 
-  // Reiniciar estado interno sempre que trocar de artefato
+  // Reiniciar ou inicializar estado interno com foco em tela e snippet se fornecido
   useEffect(() => {
-    setActiveTab('telas');
-    setExpandedScreens({});
+    if (!item) return;
+
+    if (initialTab) {
+      setActiveTab(initialTab);
+    } else {
+      setActiveTab('telas');
+    }
+
     setExpandedParams({});
     setCopiedSnippetId(null);
-    if (modalBodyRef.current) {
-      modalBodyRef.current.scrollTop = 0;
+
+    if (initialScreenId !== undefined) {
+      const screensList = item.screens || [];
+      const foundScreen = screensList.find((s, idx) => 
+        String(s.screen_id) === String(initialScreenId) ||
+        String(s.screen_index) === String(initialScreenId) ||
+        `screen-${idx}` === String(initialScreenId)
+      );
+      const targetKey = foundScreen ? (foundScreen.screen_id || `screen-${screensList.indexOf(foundScreen)}`) : initialScreenId;
+      
+      setExpandedScreens({ [targetKey]: true });
+
+      const targetSnipIdx = initialSnippetIndex !== undefined ? Number(initialSnippetIndex) : 0;
+      setHighlightedSnippetKey(`${targetKey}-snippet-${targetSnipIdx}`);
+
+      const highlightTimer = setTimeout(() => {
+        setHighlightedSnippetKey(null);
+      }, 3000);
+
+      const scrollTimer = setTimeout(() => {
+        const snippetEl = modalBodyRef.current?.querySelector(`[data-screen-id="${targetKey}"][data-snippet-index="${targetSnipIdx}"]`);
+        if (snippetEl) {
+          snippetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          const screenEl = modalBodyRef.current?.querySelector(`[data-screen-id="${targetKey}"]`);
+          if (screenEl) {
+            screenEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+      }, 200);
+
+      return () => {
+        clearTimeout(highlightTimer);
+        clearTimeout(scrollTimer);
+      };
+    } else {
+      setExpandedScreens({});
+      setHighlightedSnippetKey(null);
+      if (modalBodyRef.current) {
+        modalBodyRef.current.scrollTop = 0;
+      }
     }
-  }, [item?.id]);
+  }, [item?.id, initialTab, initialScreenId, initialSnippetIndex]);
 
   if (!item) return null;
 
@@ -318,6 +373,7 @@ export const MapDetailModal: React.FC<MapDetailModalProps> = ({ item, onClose })
                   return (
                     <div 
                       key={screenKey}
+                      data-screen-id={screenKey}
                       className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 transition-colors"
                     >
                       {/* Linha compacta da tela (Accordion Header) */}
@@ -361,10 +417,20 @@ export const MapDetailModal: React.FC<MapDetailModalProps> = ({ item, onClose })
                               {screenSnippets.map((snip, snIdx) => {
                                 const isCopied = copiedSnippetId === snip.snippet_id;
                                 const snipParamCount = snip.parameters?.length || 0;
+                                const isHighlighted = highlightedSnippetKey === `${screenKey}-snippet-${snIdx}`;
                                 return (
-                                  <div key={snip.snippet_id || snIdx} className="space-y-2">
+                                  <div 
+                                    key={snip.snippet_id || snIdx} 
+                                    data-screen-id={screenKey}
+                                    data-snippet-index={snIdx}
+                                    className="space-y-2"
+                                  >
                                     {/* Bloco preto de código */}
-                                    <div className="bg-slate-950 text-slate-100 rounded-xl p-4 font-mono text-xs border border-slate-800">
+                                    <div className={`bg-slate-950 text-slate-100 rounded-xl p-4 font-mono text-xs border transition-all duration-500 ${
+                                      isHighlighted 
+                                        ? 'border-[#7B0209] ring-4 ring-[#7B0209]/40 shadow-lg shadow-[#7B0209]/20' 
+                                        : 'border-slate-800'
+                                    }`}>
                                       <div className="flex items-center justify-between mb-2 text-[10px] text-slate-400 border-b border-slate-800 pb-2">
                                         <div className="flex items-center gap-2">
                                           <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-200 font-bold">
