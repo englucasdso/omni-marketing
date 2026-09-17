@@ -35,8 +35,12 @@ export function normalizeInventoryItem(item: any) {
       item.has_documentation_signals ||
       item.hasDocContent
     );
+    const isIncompleteOrError = item.content_scan_completed === false || Boolean(item.content_scan_error);
+
     if (hasStructuredContent) {
       artifact_type = 'MAPA';
+    } else if (isIncompleteOrError) {
+      artifact_type = 'NAO_CLASSIFICADO';
     } else if (!hasChildren && (hasDoc || item.artifact_type === 'DOCUMENTACAO')) {
       artifact_type = 'DOCUMENTACAO';
     } else {
@@ -49,9 +53,9 @@ export function normalizeInventoryItem(item: any) {
   // Apenas mapas possuem telas e percentuais
   const isMap = artifact_type === 'MAPA';
   const screens = isMap && Array.isArray(item.screens) ? item.screens : [];
-  const totalScreens = screens.length;
-  let validatedScreens = isMap && item.validated_screens !== undefined ? item.validated_screens : 
-    (item.status_summary?.VALIDADO || 0);
+  const totalScreens = isMap ? screens.length : null;
+  let validatedScreens = isMap ? (item.validated_screens !== undefined ? item.validated_screens : 
+    (item.status_summary?.VALIDADO || 0)) : null;
 
   if (isMap && validatedScreens === 0 && screens.length > 0) {
     validatedScreens = screens.filter((s: any) => {
@@ -60,14 +64,14 @@ export function normalizeInventoryItem(item: any) {
     }).length;
   }
 
-  let homologation_percentage = isMap && item.homologation_percentage !== undefined ? item.homologation_percentage : 
-    (totalScreens > 0 ? Math.round((validatedScreens / totalScreens) * 100) : 0);
+  let homologation_percentage = isMap ? (item.homologation_percentage !== undefined ? item.homologation_percentage : 
+    (Number(totalScreens) > 0 ? Math.round((Number(validatedScreens) / Number(totalScreens)) * 100) : 0)) : null;
 
-  let homologation_status = isMap ? item.homologation_status : 'NAO_HOMOLOGADO';
-  if (isMap && (!homologation_status || (homologation_status === 'NAO_HOMOLOGADO' && validatedScreens > 0))) {
-    if (totalScreens > 0 && validatedScreens === totalScreens) {
+  let homologation_status = isMap ? (item.homologation_status || 'NAO_HOMOLOGADO') : null;
+  if (isMap && (!item.homologation_status || (homologation_status === 'NAO_HOMOLOGADO' && Number(validatedScreens) > 0))) {
+    if (Number(totalScreens) > 0 && validatedScreens === totalScreens) {
       homologation_status = 'HOMOLOGADO';
-    } else if (validatedScreens > 0 && validatedScreens < totalScreens) {
+    } else if (Number(validatedScreens) > 0 && Number(validatedScreens) < Number(totalScreens)) {
       homologation_status = 'PARCIAL';
     } else {
       homologation_status = 'NAO_HOMOLOGADO';
@@ -151,7 +155,7 @@ export function normalizeInventoryItem(item: any) {
     pattern_summary: Array.isArray(item.pattern_summary) ? item.pattern_summary : [],
     tipo_mapa: isMap
       ? (item.tipo_mapa && item.tipo_mapa !== 'Nó' && item.tipo_mapa !== 'Doc' ? item.tipo_mapa : (measurement_class !== 'NAO_CLASSIFICADO' ? measurement_class : 'GA4'))
-      : (item.tipo_mapa || (artifact_type === 'DOCUMENTACAO' ? 'Doc' : (measurement_class === 'NAO_CLASSIFICADO' ? 'Não classificado' : measurement_class)))
+      : (artifact_type === 'NAO_CLASSIFICADO' ? 'Não classificado' : (artifact_type === 'DOCUMENTACAO' ? 'Doc' : (item.tipo_mapa || 'Nó')))
   };
 }
 

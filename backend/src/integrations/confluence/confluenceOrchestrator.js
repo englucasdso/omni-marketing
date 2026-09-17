@@ -7,6 +7,7 @@ import { classifyTree } from "../../services/classification/treeClassifier.js";
 import { InventoryRepository } from '../../repositories/inventoryRepository.js';
 
 const CONFLUENCE_BASE_URL = 'https://confluence.bradesco.com.br:8443';
+const CURRENT_CONTENT_SCAN_VERSION = 2;
 
 export class ConfluenceOrchestrator {
   constructor() {
@@ -29,13 +30,13 @@ export class ConfluenceOrchestrator {
     }
   }
 
-  extrairProdutoSubprodutoDaTrilha(ancestorTitles = []) {
+  extrairProdutoSubprodutoDaTrilha(ancestorTitles = [], fallbackProduto = '', fallbackSubproduto = '') {
     const titles = Array.isArray(ancestorTitles)
       ? ancestorTitles.map(value => String(value || '').trim())
       : [];
     return {
-      produto: titles[1] || '',
-      subproduto: titles[2] || ''
+      produto: titles[1] || (typeof fallbackProduto === 'string' ? fallbackProduto.trim() : '') || '',
+      subproduto: titles[2] || (typeof fallbackSubproduto === 'string' ? fallbackSubproduto.trim() : '') || ''
     };
   }
 
@@ -109,6 +110,7 @@ export class ConfluenceOrchestrator {
         let signature_hash = '';
         let content_scan_completed = false;
         let content_scan_version = CURRENT_CONTENT_SCAN_VERSION;
+        let content_scan_error = null;
 
         const currentVersion = String(node.version || (node.raw_page && node.raw_page.version && node.raw_page.version.number) || '');
         const currentUpdated = String(node.ultima_atualizacao || (node.raw_page && node.raw_page.history && node.raw_page.history.lastUpdated && node.raw_page.history.lastUpdated.when) || '');
@@ -206,11 +208,51 @@ export class ConfluenceOrchestrator {
               else stats.new++;
             } catch (readErr) {
               console.warn(`[ConfluenceOrchestrator] Não foi possível ler conteúdo detalhado da página ${idStr} (${node.title}): ${readErr.message}`);
-              artifact_type = 'NO';
-              measurement_class = 'NAO_CLASSIFICADO';
-              tipo_mapa = 'Nó';
-              content_scan_completed = true;
-              content_scan_version = CURRENT_CONTENT_SCAN_VERSION;
+              content_scan_completed = false;
+              content_scan_version = null;
+              content_scan_error = {
+                message: String(readErr.message || 'Erro ao ler detalhes do mapa'),
+                occurred_at: new Date().toISOString()
+              };
+
+              const hasValidCachedScreens = cached && Array.isArray(cached.screens) && cached.screens.length > 0;
+              if (hasValidCachedScreens) {
+                cabecalho = {
+                  produto_servico: cached.produto_servico,
+                  numero_task: cached.numero_da_task,
+                  figma_xd: cached.figma_xd,
+                  ga4_stream_id: cached.propriedade_ga4_stream_id,
+                  firebase: cached.firebase,
+                  gtm_id: cached.gtm_id,
+                  dominio: cached.dominio_exclusivo_web,
+                  status_homologacao: cached.declared_status
+                };
+                headerObj = cached.header || {};
+                telasDoMapa = cached.screens || [];
+                artifact_type = cached.artifact_type || 'MAPA';
+                measurement_class = cached.measurement_class || 'NAO_CLASSIFICADO';
+                tipo_mapa = cached.tipo_mapa || 'Doc';
+                statusSummary = cached.status_summary || {};
+                declaredStatus = cached.declared_status || null;
+                calculatedStatus = cached.calculated_status || 'NAO_IDENTIFICADO';
+                homologationStatus = cached.homologation_status || 'NAO_HOMOLOGADO';
+                homologationPercentage = cached.homologation_percentage || 0;
+                validatedScreens = cached.validated_screens || 0;
+                totalScreens = cached.total_screens || 0;
+                statusDivergent = Boolean(cached.status_divergent);
+                homologado = Boolean(cached.homologado);
+                parameterSummary = cached.parameter_summary || [];
+                patternSummary = cached.pattern_summary || [];
+                gtm_ids = Array.isArray(cached.gtm_ids) ? cached.gtm_ids : (cached.gtm_id ? [cached.gtm_id] : []);
+                structural_metadata = cached.structural_metadata || null;
+                signature_hash = cached.signature_hash || '';
+              } else {
+                artifact_type = 'NAO_CLASSIFICADO';
+                measurement_class = 'NAO_CLASSIFICADO';
+                tipo_mapa = 'Não classificado';
+                telasDoMapa = [];
+              }
+
               if (cached) stats.altered++;
               else stats.new++;
             }
@@ -239,8 +281,6 @@ export class ConfluenceOrchestrator {
           ultima_atualizacao: currentUpdated,
           responsavel: String(node.responsavel || '').trim(),
           versao: currentVersion,
-          content_scan_completed,
-          content_scan_version,
           // Estrutura hierárquica completa
           depth: Number(node.depth !== undefined ? node.depth : depth),
           nivel: Number(node.depth !== undefined ? node.depth : depth),
@@ -286,6 +326,7 @@ export class ConfluenceOrchestrator {
           tipo_mapa: tipo_mapa || 'Doc',
           content_scan_completed: nodeDepth >= 3 ? content_scan_completed : false,
           content_scan_version: nodeDepth >= 3 ? content_scan_version : null,
+          content_scan_error: nodeDepth >= 3 ? content_scan_error : null,
         };
 
         allRows.push(row);

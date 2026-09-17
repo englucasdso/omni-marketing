@@ -116,53 +116,56 @@ export function resolveCanonicalTaxonomy(row, rowMap = new Map(), rootPageId = '
 export function isValidSnippet(snippet) {
   if (!snippet || typeof snippet !== 'object') return false;
 
-  const raw = String(snippet.raw_code || '');
+  const raw = String(snippet.raw_code || '').trim();
+  const normalizedEvent = String(snippet.event_normalized || '').trim().toLowerCase();
+  const baseKey = String(snippet.base_key || '').trim().toLowerCase();
 
   // Código de instalação do GTM não transforma uma página em mapa
-  const isGtmInstall = 
-    raw.includes('googletagmanager.com/gtm.js') ||
-    raw.includes('gtm.start') ||
-    (snippet.event_raw === 'gtm.js' && (!snippet.parameters || snippet.parameters.length <= 1));
+  const isGtmInstallation =
+    /googletagmanager\.com\/gtm\.js/i.test(raw) ||
+    /googletagmanager\.com\/ns\.html/i.test(raw) ||
+    /['"]?event['"]?\s*:\s*['"]gtm\.js['"]/i.test(raw) ||
+    /gtm\.start/i.test(raw);
 
-  if (isGtmInstall) {
-    const hasOtherParams = Array.isArray(snippet.parameters) && snippet.parameters.some(p => {
-      const path = (p.path || p.name || '').toLowerCase();
-      return path !== 'gtm.start' && path !== 'event';
-    });
-    if (!hasOtherParams && (!snippet.event_normalized || snippet.event_normalized === 'gtmjs')) {
-      return false;
-    }
-  }
+  if (isGtmInstallation) return false;
 
-  // A evidência precisa ter sido reconhecida pelo parser como conteúdo analítico:
-  // 1. event_normalized válido (não vazio e não gtmjs)
-  if (typeof snippet.event_normalized === 'string' && snippet.event_normalized.trim().length > 0 && snippet.event_normalized !== 'gtmjs') {
-    return true;
-  }
-  // 2. base_key válido
-  if (typeof snippet.base_key === 'string' && snippet.base_key.trim().length > 0 && snippet.base_key !== 'gtmjs' && snippet.base_key !== 'noevent') {
-    return true;
-  }
-  // 3. parâmetros analíticos estruturados
+  // 1. raw_code não vazio contendo um disparo analítico real
+  const hasAnalyticalRawCode =
+    /datalayer\s*\.\s*push\s*\(/i.test(raw) ||
+    /['"]?event['"]?\s*:/i.test(raw);
+
+  if (hasAnalyticalRawCode) return true;
+
+  // 2. event_normalized válido
+  if (normalizedEvent && normalizedEvent !== 'gtmjs') return true;
+
+  // 3. base_key válido
+  if (baseKey && baseKey !== 'gtmjs' && baseKey !== 'noevent') return true;
+
+  // 4. parâmetros analíticos estruturados
   if (Array.isArray(snippet.parameters) && snippet.parameters.length > 0) {
-    const hasAnalyticsParam = snippet.parameters.some(p => {
-      const path = (p.path || p.name || '').toLowerCase();
-      return path !== 'gtm.start';
-    });
-    if (hasAnalyticsParam) return true;
+    return true;
   }
   if (snippet.parametros && typeof snippet.parametros === 'object' && Object.keys(snippet.parametros).length > 0) {
     return true;
   }
-  // 4. padrão de mensuração reconhecido
-  if (snippet.measurement_class && ['GA4', 'GA3', 'HIBRIDO'].includes(snippet.measurement_class)) {
+
+  // 5. detected_paths analíticos
+  if (Array.isArray(snippet.detected_paths) && snippet.detected_paths.length > 0) {
     return true;
   }
-  if (Array.isArray(snippet.detected_paths) && snippet.detected_paths.length > 0) {
-    const hasAnalyticsPath = snippet.detected_paths.some(p => p.toLowerCase() !== 'gtm.start');
-    if (hasAnalyticsPath) return true;
+
+  // 6. measurement_class igual a GA4, GA3 ou HIBRIDO
+  if (['GA4', 'GA3', 'HIBRIDO'].includes(snippet.measurement_class)) {
+    return true;
   }
-  if (snippet.pattern_id && snippet.pattern_id !== 'noevent' && snippet.pattern_id !== 'gtmjs') {
+
+  // 7. pattern_id analítico válido
+  if (
+    snippet.pattern_id &&
+    snippet.pattern_id !== 'noevent' &&
+    snippet.pattern_id !== 'gtmjs'
+  ) {
     return true;
   }
 
@@ -269,6 +272,8 @@ export function classifyTree(rows, rootPageId) {
 
     const { screensCount, snippetsCount, hasStructuredContent } = evaluateStructuredContent(classified);
 
+    const isIncompleteOrError = classified.content_scan_completed === false || Boolean(classified.content_scan_error);
+
     // * MAPA: possui pelo menos uma tela estruturada contendo pelo menos um snippet analítico válido;
     // * DOCUMENTACAO: não é mapa, não funciona como agrupador com filhos e possui conteúdo documental reconhecido;
     // * NO: não possui evidência suficiente de mapa e funciona como agrupador estrutural ou página vazia.
@@ -279,6 +284,8 @@ export function classifyTree(rows, rootPageId) {
       if (hasChildren) {
         console.log(`[ArtifactClassifier] page=${classified.id} depth=${depth} screens=${screensCount} snippets=${snippetsCount} type=MAPA reason=STRUCTURED_CONTENT (has_children=true)`);
       }
+    } else if (isIncompleteOrError) {
+      classified.artifact_type = 'NAO_CLASSIFICADO';
     } else if (!hasChildren && hasDocumentationSignals) {
       classified.artifact_type = 'DOCUMENTACAO';
     } else {
@@ -286,7 +293,14 @@ export function classifyTree(rows, rootPageId) {
     }
 
     // Normalization
-    if (classified.artifact_type === 'NO') {
+    if (classified.artifact_type === 'NAO_CLASSIFICADO') {
+      classified.tipo_mapa = 'Não classificado';
+      classified.measurement_class = 'NAO_CLASSIFICADO';
+      classified.homologation_status = null;
+      classified.homologation_percentage = null;
+      classified.validated_screens = null;
+      classified.total_screens = null;
+    } else if (classified.artifact_type === 'NO') {
       classified.tipo_mapa = 'Nó';
       classified.measurement_class = 'NAO_CLASSIFICADO';
       classified.homologation_status = null;
