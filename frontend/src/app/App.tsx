@@ -608,6 +608,12 @@ export default function App() {
   const [executiveSummaryResult, setExecutiveSummaryResult] = useState<any>(null);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
 
+  // Estado centralizado da busca ativa (ActiveSearch)
+  const [activeSearch, setActiveSearch] = useState<ActiveSearch | null>(null);
+  const activeSearchRef = useRef<ActiveSearch | null>(null);
+  activeSearchRef.current = activeSearch;
+  const [searchSessionId, setSearchSessionId] = useState(0);
+
   const [fullInventory, setFullInventory] = useState<Artifact[]>([]);
 
   useEffect(() => {
@@ -616,25 +622,25 @@ export default function App() {
       fetchInventory()
         .then((res) => {
           setFullInventory(res.resultados);
-          if (results.length === 0) {
+          if (results.length === 0 && activeSearch === null && activeSearchRef.current === null) {
             setResults(res.resultados);
           }
         })
         .catch((e) => console.error(e))
         .finally(() => setLoading(false));
     }
-  }, [appState, fullInventory.length, results.length]);
+  }, [appState, fullInventory.length, results.length, activeSearch]);
 
   useEffect(() => {
     const mainCatalogStates = ["inventory_table", "results", "produtos_analise", "parametros_analise", "insights", "graph"];
+    // O carregamento automático do inventário só pode acontecer quando não existe uma busca ativa
+    if (activeSearch !== null || activeSearchRef.current !== null) {
+      return;
+    }
     if (mainCatalogStates.includes(appState) && results.length === 0 && !loading && !isSearchingRef.current && (query === "" || query === "inventario")) {
       executeSearch("inventario");
     }
-  }, [appState, results.length, loading]);
-
-  // Estado centralizado da busca ativa (ActiveSearch)
-  const [activeSearch, setActiveSearch] = useState<ActiveSearch | null>(null);
-  const [searchSessionId, setSearchSessionId] = useState(0);
+  }, [appState, results.length, loading, activeSearch]);
 
   // Callback de transporte de resultados para a tela de Cards
   const handleApplyToCards = useCallback((
@@ -672,10 +678,7 @@ export default function App() {
     const isFullBase = (currentMode === 'conteudo' && (!searchQuery.trim() || searchQuery.toLowerCase().trim() === 'inventario' || searchQuery.toLowerCase().trim() === 'inventário') && uniqueIds.length === 0);
     const finalResults = isFullBase ? fullInventory : resolvedArtifacts;
 
-    // 6. Atualizar results
-    setResults(finalResults);
-
-    // 7. Atualizar ActiveSearch
+    // 6. Atualizar ActiveSearch antes de setResults para blindar contra qualquer corrida
     const newActiveSearch: ActiveSearch = {
       mode: currentMode,
       query: searchQuery,
@@ -690,7 +693,11 @@ export default function App() {
       matchedTerms: meta?.matchedTerms,
       queryKind: meta?.queryKind,
     };
+    activeSearchRef.current = newActiveSearch;
     setActiveSearch(newActiveSearch);
+
+    // 7. Atualizar results
+    setResults(finalResults);
 
     // 8. Resetar a paginação e limpar cardSearch para não conflitar
     setCardSearch("");
@@ -1545,6 +1552,7 @@ export default function App() {
 
     // 2. Limpar busca textual e objeto central de ActiveSearch
     setQuery("");
+    activeSearchRef.current = null;
     setActiveSearch(null);
 
     // 3. Restaurar resultados para o inventário já carregado (sem descarregar nem recarregar do backend)
@@ -2359,11 +2367,26 @@ export default function App() {
             {/* Mensagem padronizada quando não houver resultado */}
             {totalCardsCount === 0 && (
               <ContextualEmptyState
-                searchTerm={cardSearch}
+                searchTerm={cardSearch || (activeSearch?.query ? activeSearch.query : '')}
                 hasActiveFilters={hasActiveCardFilters}
-                onClearSearch={() => setCardSearch("")}
+                onClearSearch={() => {
+                  setCardSearch("");
+                  if (activeSearch && results.length === 0) {
+                    resetSearchSession();
+                  }
+                }}
                 onClearFilters={clearOnlyCardFilters}
                 onClearAll={resetCardFilters}
+                customTitle={
+                  activeSearch && results.length === 0
+                    ? "Nenhum artefato encontrado para os critérios pesquisados"
+                    : undefined
+                }
+                customDescription={
+                  activeSearch && results.length === 0
+                    ? `Nenhum artefato contém exatamente os critérios pesquisados: "${activeSearch.query}".`
+                    : undefined
+                }
               />
             )}
 

@@ -40,10 +40,24 @@ export interface WorkerArtifactItem {
       parameters?: Array<{
         name?: string;
         path?: string;
+        raw_value?: any;
+        normalized_value?: any;
         value?: any;
+        value_type?: string;
       }>;
     }>;
   }>;
+}
+
+export interface IndexedSnippetParameter {
+  name: string;
+  normName: string;
+  path: string;
+  normPath: string;
+  raw_value: string;
+  normalized_value: string;
+  value: string;
+  normValue: string;
 }
 
 export interface IndexedSnippet {
@@ -57,14 +71,7 @@ export interface IndexedSnippet {
   raw_code_clean: string;
   raw_code_normalized: string;
   normRawCode: string;
-  parameters: Array<{
-    name: string;
-    normName: string;
-    path: string;
-    normPath: string;
-    value: string;
-    normValue: string;
-  }>;
+  parameters: IndexedSnippetParameter[];
   normParamNames: Set<string>;
   normParamPaths: Set<string>;
   normParamValues: Set<string>;
@@ -192,14 +199,22 @@ class ArtifactSearchEngine {
     this.indexedArtifacts = artifacts.map((art) => {
       const screens: IndexedScreen[] = (art.screens || []).map((sc, scIdx) => {
         const snippets: IndexedSnippet[] = (sc.snippets || []).map((snip, snipIdx) => {
-          const params = (snip.parameters || []).map((p) => {
+          const params: IndexedSnippetParameter[] = (snip.parameters || []).map((p) => {
             const rawName = String(p.name || '').trim();
             const rawPath = String(p.path || '').trim();
-            const rawVal = p.value !== undefined && p.value !== null ? String(p.value).trim() : '';
+
+            // Prioridade: normalized_value, depois raw_value e somente depois value como compatibilidade legada
+            const pNormValStr = p.normalized_value !== undefined && p.normalized_value !== null ? String(p.normalized_value).trim() : '';
+            const pRawValStr = p.raw_value !== undefined && p.raw_value !== null ? String(p.raw_value).trim() : '';
+            const pValStr = p.value !== undefined && p.value !== null ? String(p.value).trim() : '';
+
+            const resolvedVal = pNormValStr || pRawValStr || pValStr;
+            const actualRawVal = pRawValStr || resolvedVal;
+            const actualNormVal = pNormValStr || resolvedVal;
 
             const nName = normalizeText(rawName);
             const nPath = normalizeText(rawPath);
-            const nVal = normalizeText(rawVal);
+            const nVal = normalizeText(resolvedVal);
 
             if (rawName && nName.length > 1) {
               const cur = this.nameFrequency.get(nName) || { original: rawName, count: 0 };
@@ -211,8 +226,8 @@ class ArtifactSearchEngine {
               cur.count++;
               this.pathFrequency.set(nPath, cur);
             }
-            if (rawVal && nVal.length > 1 && nVal.length < 50) {
-              const cur = this.valueFrequency.get(nVal) || { original: rawVal, count: 0 };
+            if (resolvedVal && nVal.length > 1 && nVal.length < 50) {
+              const cur = this.valueFrequency.get(nVal) || { original: resolvedVal, count: 0 };
               cur.count++;
               this.valueFrequency.set(nVal, cur);
             }
@@ -222,7 +237,9 @@ class ArtifactSearchEngine {
               normName: nName,
               path: rawPath,
               normPath: nPath,
-              value: rawVal,
+              raw_value: actualRawVal,
+              normalized_value: actualNormVal,
+              value: resolvedVal,
               normValue: nVal,
             };
           });
@@ -239,6 +256,8 @@ class ArtifactSearchEngine {
             if (p.normName) normParamNames.add(p.normName);
             if (p.normPath) normParamPaths.add(p.normPath);
             if (p.normValue) normParamValues.add(p.normValue);
+            if (p.raw_value) normParamValues.add(normalizeText(p.raw_value));
+            if (p.normalized_value) normParamValues.add(normalizeText(p.normalized_value));
           });
 
           return {
@@ -641,7 +660,18 @@ class ArtifactSearchEngine {
       if (nameMatches) {
         if (term.isKeyValue && targetVal !== undefined) {
           const pVal = String(p.value || '').toLowerCase().trim();
-          if (pVal === targetVal) {
+          const pRaw = String(p.raw_value || '').toLowerCase().trim();
+          const pNorm = String(p.normalized_value || '').toLowerCase().trim();
+          const normTargetVal = normalizeText(targetVal);
+
+          if (
+            pVal === targetVal ||
+            pRaw === targetVal ||
+            pNorm === targetVal ||
+            (normTargetVal && p.normValue === normTargetVal) ||
+            (normTargetVal && normalizeText(pRaw) === normTargetVal) ||
+            (normTargetVal && normalizeText(pNorm) === normTargetVal)
+          ) {
             return true;
           }
         } else {
@@ -650,26 +680,8 @@ class ArtifactSearchEngine {
       }
     }
 
-    // 2. Check event / base_key
-    if (targetKey === 'event' || targetKey === 'evento') {
-      if (term.isKeyValue && targetVal !== undefined) {
-        const snipEvent = snip.event_normalized.toLowerCase().trim();
-        const snipBase = snip.base_key.toLowerCase().trim();
-        if (snipEvent === targetVal || snipBase === targetVal) {
-          return true;
-        }
-      } else {
-        if (
-          snip.event_normalized ||
-          snip.base_key ||
-          snip.parameters.some((p) => p.name.toLowerCase().trim() === 'event')
-        ) {
-          return true;
-        }
-      }
-    }
-
-    // 3. Exact identifier boundary match in snippet.raw_code
+    // 2. Exact identifier boundary match in snippet.raw_code
+    // Note: event_normalized and base_key are derived metadata and must NOT satisfy an exact key search for 'event'.
     if (snip.raw_code) {
       const code = decodeHtmlEntities(snip.raw_code);
       const escapedKey = targetKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -746,12 +758,21 @@ class ArtifactSearchEngine {
       };
     }
 
+    // Explicit scope and condition handling:
+    // For queries with '+', the condition MUST be 'AND', regardless of heuristics.
+    const hasPlus = trimmed.includes('+');
+    const condition: 'AND' | 'OR' = hasPlus ? 'AND' : (options?.condition || 'AND');
+    const scope: 'SNIPPET' | 'SCREEN' = options?.scope || 'SNIPPET';
+
     const rawArtifactGroups: ParameterArtifactGroup[] = [];
 
     for (const art of this.indexedArtifacts) {
       const occurrencesMap = new Map<string, ParameterOccurrence>();
 
       for (const sc of art.screens) {
+        let screenHadCompleteSnippetMatch = false;
+
+        // 1. Evaluate individual snippets
         for (const snip of sc.snippets) {
           let bestQuality: ParameterMatchQuality | null = null;
           let qualityLabel = '';
@@ -785,19 +806,34 @@ class ArtifactSearchEngine {
             qualityScore = 800;
             matchedTerms = terms.length > 0 ? terms.map((t) => (t.isKeyValue ? `${t.name}: ${t.value}` : t.name)) : [cleanedQuery];
           }
-          // Tier 3: Todos os parâmetros solicitados encontrados no MESMO snippet
+          // Tier 3: Parâmetros no MESMO snippet
           else if (terms.length > 0) {
-            const allMatched = terms.every((t) => this.matchesParamTermInSnippet(snip, t));
-            if (allMatched) {
-              bestQuality = 'all_params_snippet';
-              qualityLabel = 'Todos os parâmetros encontrados';
-              qualityScore = 600;
-              matchedTerms = terms.map((t) => (t.isKeyValue ? `${t.name}: ${t.value}` : t.name));
+            if (condition === 'AND') {
+              const allMatched = terms.every((t) => this.matchesParamTermInSnippet(snip, t));
+              if (allMatched) {
+                bestQuality = 'all_params_snippet';
+                qualityLabel = 'Todos os parâmetros encontrados';
+                qualityScore = 600;
+                matchedTerms = terms.map((t) => (t.isKeyValue ? `${t.name}: ${t.value}` : t.name));
+              }
+            } else {
+              // OR condition
+              const matchedTermsList = terms.filter((t) => this.matchesParamTermInSnippet(snip, t));
+              if (matchedTermsList.length > 0) {
+                const isAll = matchedTermsList.length === terms.length;
+                bestQuality = isAll ? 'all_params_snippet' : 'partial_match';
+                qualityLabel = isAll ? 'Todos os parâmetros encontrados' : `${matchedTermsList.length} de ${terms.length} parâmetros encontrados`;
+                qualityScore = isAll ? 600 : 300 + (matchedTermsList.length * 50);
+                matchedTerms = matchedTermsList.map((t) => (t.isKeyValue ? `${t.name}: ${t.value}` : t.name));
+              }
             }
           }
 
           // If this snippet matched Tier 1, Tier 2, or Tier 3:
           if (bestQuality) {
+            if (qualityScore >= 600) {
+              screenHadCompleteSnippetMatch = true;
+            }
             const occKey = `${sc.screen_id}#${snip.snippet_index}`;
             const existing = occurrencesMap.get(occKey);
             if (!existing || existing.qualityScore < qualityScore) {
@@ -811,7 +847,7 @@ class ArtifactSearchEngine {
                 quality: bestQuality,
                 qualityLabel,
                 qualityScore,
-                matchedCount: terms.length,
+                matchedCount: matchedTerms.length,
                 totalCount: terms.length,
                 rawCodePreview: snip.raw_code ? snip.raw_code.slice(0, 320) : '',
                 rawCodeFull: snip.raw_code || '',
@@ -820,6 +856,68 @@ class ArtifactSearchEngine {
             }
           }
         } // end snippet loop
+
+        // 2. Se scope === 'SCREEN' e a tela como um todo satisfaz a condição
+        if (scope === 'SCREEN' && terms.length > 0 && !screenHadCompleteSnippetMatch) {
+          if (condition === 'AND') {
+            const allTermsOnScreen = terms.every((t) =>
+              sc.snippets.some((snip) => this.matchesParamTermInSnippet(snip, t))
+            );
+            if (allTermsOnScreen && sc.snippets.length > 0) {
+              const repSnip = sc.snippets.find((snip) =>
+                terms.some((t) => this.matchesParamTermInSnippet(snip, t))
+              ) || sc.snippets[0];
+
+              const occKey = `${sc.screen_id}#screen`;
+              occurrencesMap.set(occKey, {
+                screenId: sc.screen_id,
+                screenIndex: sc.screen_index,
+                screenTitle: sc.instruction || `Tela #${sc.screen_index}`,
+                snippetId: repSnip.snippet_id || `${sc.screen_id}_s${repSnip.snippet_index + 1}`,
+                snippetIndex: repSnip.snippet_index,
+                event: repSnip.event_normalized || repSnip.base_key || 'Tela',
+                quality: 'all_params_screen',
+                qualityLabel: 'Todos os parâmetros na mesma tela',
+                qualityScore: 450,
+                matchedCount: terms.length,
+                totalCount: terms.length,
+                rawCodePreview: repSnip.raw_code ? repSnip.raw_code.slice(0, 320) : '',
+                rawCodeFull: repSnip.raw_code || '',
+                matchedTerms: terms.map((t) => (t.isKeyValue ? `${t.name}: ${t.value}` : t.name)),
+              });
+            }
+          } else {
+            // OR condition no escopo SCREEN
+            const matchedTermsOnScreen = terms.filter((t) =>
+              sc.snippets.some((snip) => this.matchesParamTermInSnippet(snip, t))
+            );
+            if (matchedTermsOnScreen.length > 0 && sc.snippets.length > 0) {
+              const repSnip = sc.snippets.find((snip) =>
+                terms.some((t) => this.matchesParamTermInSnippet(snip, t))
+              ) || sc.snippets[0];
+
+              const occKey = `${sc.screen_id}#screen`;
+              occurrencesMap.set(occKey, {
+                screenId: sc.screen_id,
+                screenIndex: sc.screen_index,
+                screenTitle: sc.instruction || `Tela #${sc.screen_index}`,
+                snippetId: repSnip.snippet_id || `${sc.screen_id}_s${repSnip.snippet_index + 1}`,
+                snippetIndex: repSnip.snippet_index,
+                event: repSnip.event_normalized || repSnip.base_key || 'Tela',
+                quality: matchedTermsOnScreen.length === terms.length ? 'all_params_screen' : 'partial_match',
+                qualityLabel: matchedTermsOnScreen.length === terms.length
+                  ? 'Todos os parâmetros na mesma tela'
+                  : `${matchedTermsOnScreen.length} de ${terms.length} parâmetros encontrados`,
+                qualityScore: 350 + (matchedTermsOnScreen.length * 20),
+                matchedCount: matchedTermsOnScreen.length,
+                totalCount: terms.length,
+                rawCodePreview: repSnip.raw_code ? repSnip.raw_code.slice(0, 320) : '',
+                rawCodeFull: repSnip.raw_code || '',
+                matchedTerms: matchedTermsOnScreen.map((t) => (t.isKeyValue ? `${t.name}: ${t.value}` : t.name)),
+              });
+            }
+          }
+        }
       } // end screen loop
 
       const occurrences = Array.from(occurrencesMap.values());
