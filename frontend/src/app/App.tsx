@@ -20,7 +20,7 @@ import { JourneysCanvas } from "../components/JourneysCanvas";
 import { JourneysSidebarFilters } from "../components/JourneysSidebarFilters";
 import { getOperationalInsights } from "../utils/inventoryHelpers";
 import { fetchInventory, searchContent, fetchUsers, createUser, updateUser, deleteUser } from "../services/api";
-import { Artifact, Insights, SearchResponse, User as UserType, UserRole, UserStatus, ActiveSearch } from "../types";
+import { Artifact, Insights, SearchResponse, User as UserType, UserRole, UserStatus, ActiveSearch, ParameterArtifactGroupSummary } from "../types";
 import { normalizar, formatDataBR, getFilteredInsights } from "../utils/helpers";
 import { 
   buildArtifactSearchableText, 
@@ -645,6 +645,9 @@ export default function App() {
       aiQuestion?: string;
       scope?: 'SNIPPET' | 'SCREEN';
       operator?: 'AND' | 'OR';
+      parameterGroups?: Record<string, ParameterArtifactGroupSummary>;
+      matchedTerms?: string[];
+      queryKind?: string;
     }
   ) => {
     // 1. Receber filteredIds
@@ -682,6 +685,9 @@ export default function App() {
       aiQuestion: meta?.aiQuestion,
       scope: meta?.scope,
       operator: meta?.operator,
+      parameterGroups: meta?.parameterGroups,
+      matchedTerms: meta?.matchedTerms,
+      queryKind: meta?.queryKind,
     };
     setActiveSearch(newActiveSearch);
 
@@ -2378,11 +2384,85 @@ export default function App() {
                     )}
                   </div>
 
+                  {/* Detalhe de correspondência de Parâmetro / Snippet (Engenharia Reversa) */}
+                  {activeSearch?.mode === 'parametros' && activeSearch.parameterGroups?.[item.id] && (() => {
+                    const group = activeSearch.parameterGroups[item.id];
+                    const firstOcc = group.occurrences?.[0];
+                    const isPartial = group.isPartial;
+
+                    let qualityBadgeClass = 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+                    if (group.bestQuality === 'EXACT_SNIPPET') {
+                      qualityBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800';
+                    } else if (group.bestQuality === 'EXACT_CODE_SLICE') {
+                      qualityBadgeClass = 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800';
+                    } else if (group.bestQuality === 'COMPATIBLE_OBJECT') {
+                      qualityBadgeClass = 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800';
+                    } else if (group.bestQuality === 'SAME_PARAMETERS') {
+                      qualityBadgeClass = 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800';
+                    } else if (group.bestQuality === 'PARAM_NAME_DIFF_VAL') {
+                      qualityBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800';
+                    } else if (group.bestQuality === 'PARAM_NAME_ONLY') {
+                      qualityBadgeClass = 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800';
+                    }
+
+                    return (
+                      <div className="mb-6 p-4 rounded-xl bg-gray-50/80 dark:bg-slate-800/60 border border-gray-200/80 dark:border-slate-700/80 flex flex-col gap-2.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold border ${qualityBadgeClass}`}>
+                              {group.bestQualityLabel}
+                            </span>
+                            {isPartial && (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                                Correspondência parcial
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[11px] font-ui text-gray-500 dark:text-slate-400">
+                            {group.totalOccurrences} {group.totalOccurrences === 1 ? 'ocorrência' : 'ocorrências'} em {group.uniqueScreensCount} {group.uniqueScreensCount === 1 ? 'tela' : 'telas'}
+                          </span>
+                        </div>
+
+                        {firstOcc && (
+                          <div className="flex flex-col gap-1.5 pt-1">
+                            <div className="flex items-center justify-between text-[11px] text-gray-600 dark:text-slate-300">
+                              <span className="font-medium truncate max-w-[280px]">
+                                {firstOcc.screenTitle ? `Tela: ${firstOcc.screenTitle}` : `Tela #${firstOcc.screenIndex + 1}`}
+                                {firstOcc.event ? ` (Evento: ${firstOcc.event})` : ''}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDetailTarget({
+                                    screenId: firstOcc.screenId,
+                                    snippetIndex: firstOcc.snippetIndex,
+                                  });
+                                  setDetailModalItem(item);
+                                }}
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#7B0209] dark:text-red-400 hover:underline cursor-pointer"
+                              >
+                                <span>Ver no snippet do mapa</span>
+                                <ChevronRight className="w-3 h-3" />
+                              </button>
+                            </div>
+
+                            <pre className="p-3 rounded-lg bg-gray-900 text-gray-100 font-mono text-[11px] leading-relaxed overflow-x-auto max-h-36 custom-scrollbar border border-gray-800">
+                              <code>{firstOcc.rawCodePreview || firstOcc.rawCodeFull}</code>
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   <div className="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-gray-100 dark:border-slate-800">
                     <div className="flex items-center gap-2">
                       <button 
                         className="px-2 py-1.5 font-ui text-sm text-gray-600 dark:text-slate-300 flex items-center gap-1 cursor-pointer hover:text-bradesco-red transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bradesco-red rounded" 
-                        onClick={() => setDetailModalItem(item)}
+                        onClick={() => {
+                          setDetailTarget(null);
+                          setDetailModalItem(item);
+                        }}
                       >
                         Ver detalhes
                         <ChevronRight className="w-4 h-4 ml-1" />

@@ -6,14 +6,15 @@ import {
   Sparkles,
   FileText,
   Loader2,
-  Plus,
-  Trash2,
   Activity,
   AlertCircle,
   RefreshCw,
+  Code2,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Artifact, ActiveSearch } from '../../types';
+import { Artifact, ActiveSearch, ParameterArtifactGroupSummary } from '../../types';
 import { searchWorkerClient } from '../../services/searchWorkerClient';
 import type { ParameterCriterion } from '../../workers/artifactSearch.worker';
 
@@ -29,6 +30,9 @@ export interface SearchCenterProps {
       aiQuestion?: string;
       scope?: 'SNIPPET' | 'SCREEN';
       operator?: 'AND' | 'OR';
+      parameterGroups?: Record<string, ParameterArtifactGroupSummary>;
+      matchedTerms?: string[];
+      queryKind?: string;
     }
   ) => void;
   onNavigateToOperationalInsights?: () => void;
@@ -38,6 +42,39 @@ export interface SearchCenterProps {
   onViewInTree?: (artifactId: string) => void;
   onOpenJourney?: (mapId: string) => void;
 }
+
+const PARAM_EXAMPLES = [
+  {
+    title: 'Nome de parâmetro',
+    label: 'user_id',
+    code: 'user_id',
+    description: 'Localiza artefatos que usam este parâmetro',
+  },
+  {
+    title: 'Nome e valor',
+    label: 'tipo_pessoa: "PF"',
+    code: 'tipo_pessoa: "PF"',
+    description: 'Chave e valor específico',
+  },
+  {
+    title: 'Fragmento de código',
+    label: 'event + produto + tipo_pessoa',
+    code: `event: "contratacao",
+produto: "credito",
+tipo_pessoa: "PF"`,
+    description: 'Múltiplos parâmetros no trecho',
+  },
+  {
+    title: 'Disparo completo',
+    label: 'dataLayer.push({ ... })',
+    code: `dataLayer.push({
+  event: "contratacao",
+  produto: "credito",
+  tipo_pessoa: "PF"
+});`,
+    description: 'Engenharia reversa a partir de snippet completo',
+  },
+];
 
 export const SearchCenter: React.FC<SearchCenterProps> = ({
   artifacts,
@@ -54,13 +91,11 @@ export const SearchCenter: React.FC<SearchCenterProps> = ({
   const [aiQuestion, setAiQuestion] = useState('');
 
   // Parameter mode controls
-  const [criteria, setCriteria] = useState<ParameterCriterion[]>([]);
   const [criteriaCombination, setCriteriaCombination] = useState<'AND' | 'OR'>('AND');
   const [criteriaScope, setCriteriaScope] = useState<'SNIPPET' | 'SCREEN'>('SNIPPET');
-
-  // Parameter autocomplete
-  const [paramSuggestions, setParamSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [ignoreCase, setIgnoreCase] = useState(true);
+  const [ignoreWhitespace, setIgnoreWhitespace] = useState(true);
 
   // Status & Feedback states
   const [isSearching, setIsSearching] = useState(false);
@@ -69,8 +104,24 @@ export const SearchCenter: React.FC<SearchCenterProps> = ({
   const [isFocused, setIsFocused] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const suggestionsBoxRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Auto-resize for textarea in parameter mode
+  const adjustTextareaHeight = useCallback(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      const scrollH = textareaRef.current.scrollHeight;
+      const newH = Math.min(Math.max(scrollH, 44), 260);
+      textareaRef.current.style.height = `${newH}px`;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mode === 'parametros') {
+      adjustTextareaHeight();
+    }
+  }, [mode, paramInput, adjustTextareaHeight]);
 
   // Sync index with worker
   useEffect(() => {
@@ -89,9 +140,6 @@ export const SearchCenter: React.FC<SearchCenterProps> = ({
         setContentQuery(activeSearch.query || '');
       } else if (activeSearch.mode === 'parametros') {
         setParamInput(activeSearch.query || '');
-        if (activeSearch.parameterCriteria && activeSearch.parameterCriteria.length > 0) {
-          setCriteria(activeSearch.parameterCriteria);
-        }
         if (activeSearch.operator) {
           setCriteriaCombination(activeSearch.operator);
         }
@@ -104,50 +152,13 @@ export const SearchCenter: React.FC<SearchCenterProps> = ({
     }
   }, [activeSearch]);
 
-  // Click outside suggestions box
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        suggestionsBoxRef.current &&
-        !suggestionsBoxRef.current.contains(e.target as Node) &&
-        inputRef.current &&
-        !inputRef.current.contains(e.target as Node)
-      ) {
-        setShowSuggestions(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Fetch autocomplete suggestions for parameter mode
-  const handleParamInputChange = (val: string) => {
-    setParamInput(val);
-    const lastToken = val.split(/[+,]/).pop()?.trim() || '';
-    if (lastToken.length >= 2) {
-      searchWorkerClient
-        .getParameterSuggestions('qualquer', lastToken, 6)
-        .then((suggs) => {
-          setParamSuggestions(suggs);
-          setShowSuggestions(suggs.length > 0);
-        })
-        .catch(() => {
-          setParamSuggestions([]);
-          setShowSuggestions(false);
-        });
-    } else {
-      setParamSuggestions([]);
-      setShowSuggestions(false);
-    }
-  };
-
   // Titles per mode
   const getModeTitle = () => {
     switch (mode) {
       case 'conteudo':
         return 'Qual artefato você quer encontrar?';
       case 'parametros':
-        return 'Buscar por parâmetros de tagueamento';
+        return 'Buscar por parâmetros ou trecho de código';
       case 'ia':
         return 'O que você gostaria de perguntar à IA sobre os artefatos?';
     }
@@ -159,7 +170,7 @@ export const SearchCenter: React.FC<SearchCenterProps> = ({
       case 'conteudo':
         return 'Busque por ID, nome do mapa ou qualquer termo relacionado';
       case 'parametros':
-        return 'Digite o nome, caminho ou valor do parâmetro (ex: event, transaction_id, true)';
+        return 'Cole aqui um trecho de código, dataLayer.push, objeto JSON ou parâmetros como tipo_pessoa: "PF"';
       case 'ia':
         return 'Ex: Onde é disparado o evento de confirmação de pagamento?';
     }
@@ -173,7 +184,7 @@ export const SearchCenter: React.FC<SearchCenterProps> = ({
     if (mode === 'conteudo') {
       setContentQuery(val);
     } else if (mode === 'parametros') {
-      handleParamInputChange(val);
+      setParamInput(val);
     } else {
       setAiQuestion(val);
       if (aiError) setAiError(null);
@@ -183,60 +194,18 @@ export const SearchCenter: React.FC<SearchCenterProps> = ({
   const handleClearInput = () => {
     if (mode === 'conteudo') {
       setContentQuery('');
+      inputRef.current?.focus();
     } else if (mode === 'parametros') {
       setParamInput('');
-      setShowSuggestions(false);
+      if (textareaRef.current) {
+        textareaRef.current.style.height = '44px';
+        textareaRef.current.focus();
+      }
     } else {
       setAiQuestion('');
       setAiError(null);
+      inputRef.current?.focus();
     }
-    inputRef.current?.focus();
-  };
-
-  // Parse direct parameter typing (e.g. user_id + produto + fluxo or key=val)
-  const parseParamInputToCriteria = (rawInput: string): ParameterCriterion[] => {
-    const trimmed = rawInput.trim();
-    if (!trimmed) return [];
-
-    // Split by '+' or ',' for multiple parameters
-    const tokens = trimmed
-      .split(/[+,]/)
-      .map((t) => t.trim())
-      .filter(Boolean);
-
-    const parsed: ParameterCriterion[] = [];
-    for (const tok of tokens) {
-      if (tok.includes('=')) {
-        const [k, ...rest] = tok.split('=');
-        const v = rest.join('=').trim();
-        const keyTrimmed = k.trim();
-        if (keyTrimmed && v) {
-          parsed.push({
-            field: 'nome',
-            operator: 'igual',
-            value: keyTrimmed,
-          });
-          parsed.push({
-            field: 'valor',
-            operator: 'contem',
-            value: v,
-          });
-        } else if (keyTrimmed) {
-          parsed.push({
-            field: 'nome',
-            operator: 'contem',
-            value: keyTrimmed,
-          });
-        }
-      } else {
-        parsed.push({
-          field: 'qualquer',
-          operator: 'contem',
-          value: tok,
-        });
-      }
-    }
-    return parsed;
   };
 
   // Execute Search in Conteúdo Mode
@@ -272,52 +241,85 @@ export const SearchCenter: React.FC<SearchCenterProps> = ({
     }
   };
 
-  // Execute Search in Parâmetros Mode
-  const executeParamSearch = async () => {
+  // Execute Search in Parâmetros Mode (Deterministic Code & Parameter reverse-engineering)
+  const executeParamSearch = async (overrideInput?: string) => {
+    const rawQuery = (overrideInput !== undefined ? overrideInput : paramInput).trim();
     setIsSearching(true);
-    setShowSuggestions(false);
     try {
-      const parsedDirectCriteria = parseParamInputToCriteria(paramInput);
-      const combinedCriteria = [...parsedDirectCriteria, ...criteria];
-
-      if (combinedCriteria.length === 0) {
+      if (!rawQuery) {
         // If empty, return all artifacts
         const allIds = artifacts.map((a) => String(a.id));
         onApplyToCards?.('', allIds, {
           mode: 'parametros',
-          parameterCriteria: [],
           scope: criteriaScope,
           operator: criteriaCombination,
         });
         return;
       }
 
-      const res = await searchWorkerClient.searchParameters(
-        combinedCriteria,
-        criteriaCombination,
-        criteriaScope,
-        500
+      const res = await searchWorkerClient.searchCodeAndParameters(rawQuery, {
+        scope: criteriaScope,
+        condition: criteriaCombination,
+        limit: 500,
+      });
+
+      const groupMap: Record<string, ParameterArtifactGroupSummary> = {};
+      const allGroups = [...res.completeGroups, ...res.partialGroups];
+      allGroups.forEach((g) => {
+        groupMap[g.artifactId] = {
+          artifactId: g.artifactId,
+          totalOccurrences: g.totalOccurrences,
+          uniqueScreensCount: g.uniqueScreensCount,
+          uniqueSnippetsCount: g.uniqueSnippetsCount,
+          bestQuality: g.bestQuality,
+          bestQualityLabel: g.bestQualityLabel,
+          bestQualityScore: g.bestQualityScore,
+          isPartial: g.isPartial,
+          occurrences: g.occurrences.map((occ) => ({
+            screenId: occ.screenId,
+            screenIndex: occ.screenIndex,
+            screenTitle: occ.screenTitle,
+            snippetIndex: occ.snippetIndex,
+            event: occ.event,
+            quality: occ.quality,
+            qualityLabel: occ.qualityLabel,
+            rawCodePreview: occ.rawCodePreview,
+            rawCodeFull: occ.rawCodeFull,
+            matchedTerms: occ.matchedTerms,
+          })),
+        };
+      });
+
+      const matchedTerms = res.extractedParams.flatMap((p) =>
+        [p.name, p.value].filter((v): v is string => Boolean(v))
       );
 
-      const filteredIds = Array.from(new Set(res.results.map((r) => String(r.artifactId))));
-
-      onApplyToCards?.(paramInput, filteredIds, {
+      onApplyToCards?.(rawQuery, res.allArtifactIds, {
         mode: 'parametros',
-        parameterCriteria: combinedCriteria,
         scope: criteriaScope,
         operator: criteriaCombination,
+        parameterGroups: groupMap,
+        matchedTerms,
+        queryKind: res.queryKind,
       });
     } catch (err) {
       console.error('[SearchCenter] Parameter search error:', err);
-      onApplyToCards?.(paramInput, [], {
+      onApplyToCards?.(rawQuery, [], {
         mode: 'parametros',
-        parameterCriteria: criteria,
         scope: criteriaScope,
         operator: criteriaCombination,
       });
     } finally {
       setIsSearching(false);
     }
+  };
+
+  const handleSelectParamExample = (code: string) => {
+    setParamInput(code);
+    setTimeout(() => {
+      adjustTextareaHeight();
+    }, 0);
+    executeParamSearch(code);
   };
 
   // Execute Search in Perguntar à IA Mode
@@ -385,35 +387,12 @@ export const SearchCenter: React.FC<SearchCenterProps> = ({
     }
   };
 
-  // Handle Enter key
+  // Handle Enter key for single-line inputs
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleExecuteSearch();
     }
-  };
-
-  // Add explicit criterion in parameter mode
-  const handleAddCriterion = () => {
-    setCriteria((prev) => [...prev, { field: 'nome', operator: 'contem', value: '' }]);
-  };
-
-  const handleUpdateCriterion = (idx: number, updates: Partial<ParameterCriterion>) => {
-    setCriteria((prev) => {
-      const next = [...prev];
-      next[idx] = { ...next[idx], ...updates };
-      return next;
-    });
-  };
-
-  const handleRemoveCriterion = (idx: number) => {
-    setCriteria((prev) => prev.filter((_, i) => i !== idx));
-  };
-
-  const handleClearCriteria = () => {
-    setCriteria([]);
-    setParamInput('');
-    setShowSuggestions(false);
   };
 
   return (
@@ -477,35 +456,71 @@ export const SearchCenter: React.FC<SearchCenterProps> = ({
       </div>
 
       {/* Central Unified Search Bar */}
-      <div className="w-full relative mb-4">
+      <div className="w-full relative mb-3">
         <div className="animated-border">
           <div
-            className={`inner-container glass-card py-3.5 px-5 flex items-center gap-3.5 transition-all duration-300 ${
+            className={`inner-container glass-card px-5 transition-all duration-300 ${
+              mode === 'parametros' ? 'py-3.5 flex items-start gap-3.5' : 'py-3.5 flex items-center gap-3.5'
+            } ${
               isFocused
                 ? 'bg-white dark:bg-slate-900 border-[#7B0209]/40 shadow-md ring-2 ring-[#7B0209]/20'
                 : 'border-gray-200 dark:border-slate-800'
             }`}
           >
-            <Search className="w-5 h-5 text-gray-400 dark:text-slate-500 shrink-0" />
+            <div className={`shrink-0 ${mode === 'parametros' ? 'pt-1 text-[#7B0209]' : 'text-gray-400 dark:text-slate-500'}`}>
+              {mode === 'parametros' ? (
+                <Code2 className="w-5 h-5 text-[#7B0209]" />
+              ) : (
+                <Search className="w-5 h-5" />
+              )}
+            </div>
 
-            <input
-              ref={inputRef}
-              type="text"
-              value={currentInputValue}
-              onChange={(e) => handleInputChange(e.target.value)}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              onKeyDown={handleKeyDown}
-              placeholder={getModePlaceholder()}
-              className="w-full bg-transparent border-none outline-none text-base sm:text-lg text-gray-900 dark:text-slate-50 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-0"
-            />
+            {mode === 'parametros' ? (
+              <textarea
+                ref={textareaRef}
+                value={paramInput}
+                onChange={(e) => {
+                  setParamInput(e.target.value);
+                  adjustTextareaHeight();
+                }}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    // Enter without shift on single line, or Ctrl/Cmd+Enter on multiline triggers search
+                    if (e.ctrlKey || e.metaKey || (!e.shiftKey && !paramInput.includes('\n'))) {
+                      e.preventDefault();
+                      executeParamSearch(paramInput);
+                    }
+                  }
+                }}
+                placeholder={getModePlaceholder()}
+                rows={1}
+                className="w-full bg-transparent border-none outline-none font-mono text-xs sm:text-sm text-gray-900 dark:text-slate-50 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-0 resize-none overflow-y-auto custom-scrollbar max-h-64 leading-relaxed"
+                style={{ minHeight: '44px' }}
+              />
+            ) : (
+              <input
+                ref={inputRef}
+                type="text"
+                value={mode === 'conteudo' ? contentQuery : aiQuestion}
+                onChange={(e) => handleInputChange(e.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                onKeyDown={handleKeyDown}
+                placeholder={getModePlaceholder()}
+                className="w-full bg-transparent border-none outline-none text-base sm:text-lg text-gray-900 dark:text-slate-50 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-0"
+              />
+            )}
 
             {/* Clear button */}
             {currentInputValue && !isSearching && !aiLoading && (
               <button
                 type="button"
                 onClick={handleClearInput}
-                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 transition-colors"
+                className={`p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 transition-colors shrink-0 ${
+                  mode === 'parametros' ? 'mt-1' : ''
+                }`}
                 title="Limpar campo"
                 aria-label="Limpar campo"
               >
@@ -515,7 +530,7 @@ export const SearchCenter: React.FC<SearchCenterProps> = ({
 
             {/* Spinner indicator if searching */}
             {(isSearching || aiLoading) && (
-              <Loader2 className="w-4 h-4 animate-spin text-[#7B0209] shrink-0" />
+              <Loader2 className={`w-4 h-4 animate-spin text-[#7B0209] shrink-0 ${mode === 'parametros' ? 'mt-2' : ''}`} />
             )}
 
             {/* Submit Action Button */}
@@ -523,7 +538,9 @@ export const SearchCenter: React.FC<SearchCenterProps> = ({
               type="button"
               onClick={handleExecuteSearch}
               disabled={isSearching || aiLoading}
-              className="px-5 py-2.5 rounded-xl bg-[#7B0209] hover:bg-[#630207] text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-50"
+              className={`px-5 py-2.5 rounded-xl bg-[#7B0209] hover:bg-[#630207] text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-50 ${
+                mode === 'parametros' ? 'mt-0.5' : ''
+              }`}
             >
               {mode === 'ia' ? (
                 <>
@@ -539,35 +556,6 @@ export const SearchCenter: React.FC<SearchCenterProps> = ({
             </button>
           </div>
         </div>
-
-        {/* Parameter Autocomplete Dropdown */}
-        {mode === 'parametros' && showSuggestions && paramSuggestions.length > 0 && (
-          <div
-            ref={suggestionsBoxRef}
-            className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden py-1"
-          >
-            <div className="px-3 py-1 text-[10px] uppercase font-bold tracking-wider text-gray-400 dark:text-slate-500 border-b border-gray-100 dark:border-slate-800">
-              Sugestões de parâmetros
-            </div>
-            {paramSuggestions.map((sugg, i) => (
-              <button
-                key={i}
-                type="button"
-                onMouseDown={() => {
-                  const parts = paramInput.split('+');
-                  parts[parts.length - 1] = ' ' + sugg + ' ';
-                  setParamInput(parts.join('+').trim());
-                  setShowSuggestions(false);
-                  inputRef.current?.focus();
-                }}
-                className="w-full text-left px-3.5 py-2 text-xs font-mono text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800 flex items-center justify-between transition-colors"
-              >
-                <span>{sugg}</span>
-                <span className="text-[10px] text-gray-400 dark:text-slate-500">adicionar</span>
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Mode-Specific Sub-Controls & Assistance */}
@@ -626,149 +614,165 @@ export const SearchCenter: React.FC<SearchCenterProps> = ({
         </div>
       )}
 
-      {/* Mode 2: Parâmetros Sub-Controls */}
+      {/* Mode 2: Parâmetros Assistance & Advanced Options */}
       {mode === 'parametros' && (
-        <div className="w-full flex flex-col gap-3.5 mt-2 px-1">
-          {/* Discreet Controls Bar: Combination + Scope + Add Button */}
-          <div className="flex flex-wrap items-center justify-between gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700">
-            <div className="flex flex-wrap items-center gap-2.5">
-              {/* AND / OR Combination */}
-              <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-lg border border-gray-200 dark:border-slate-700 text-xs font-semibold">
-                <button
-                  type="button"
-                  onClick={() => setCriteriaCombination('AND')}
-                  className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
-                    criteriaCombination === 'AND'
-                      ? 'bg-[#7B0209] text-white'
-                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
-                  }`}
-                >
-                  Todos — AND
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCriteriaCombination('OR')}
-                  className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
-                    criteriaCombination === 'OR'
-                      ? 'bg-[#7B0209] text-white'
-                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
-                  }`}
-                >
-                  Qualquer — OR
-                </button>
-              </div>
-
-              {/* Scope: Same Snippet vs Same Screen */}
-              <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-lg border border-gray-200 dark:border-slate-700 text-xs font-semibold">
-                <button
-                  type="button"
-                  onClick={() => setCriteriaScope('SNIPPET')}
-                  className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
-                    criteriaScope === 'SNIPPET'
-                      ? 'bg-[#7B0209] text-white'
-                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
-                  }`}
-                >
-                  No mesmo snippet
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCriteriaScope('SCREEN')}
-                  className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
-                    criteriaScope === 'SCREEN'
-                      ? 'bg-[#7B0209] text-white'
-                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
-                  }`}
-                >
-                  Na mesma tela
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {(criteria.length > 0 || paramInput) && (
-                <button
-                  type="button"
-                  onClick={handleClearCriteria}
-                  className="px-2.5 py-1.5 rounded-lg text-xs text-gray-500 hover:text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                >
-                  Limpar critérios
-                </button>
-              )}
-
+        <div className="w-full flex flex-col gap-3 px-1 mt-1">
+          {/* Clickable Quick Examples */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mr-1">
+              Exemplos rápidos:
+            </span>
+            {PARAM_EXAMPLES.map((ex, i) => (
               <button
+                key={i}
                 type="button"
-                onClick={handleAddCriterion}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#7B0209] text-white hover:bg-[#600207] shadow-sm transition-all cursor-pointer"
+                onClick={() => handleSelectParamExample(ex.code)}
+                className="group text-xs font-mono text-gray-600 dark:text-slate-300 hover:text-[#7B0209] dark:hover:text-red-400 transition-all flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-slate-800/80 hover:bg-red-50/50 dark:hover:bg-slate-800 border border-gray-200/70 dark:border-slate-700/70 hover:border-red-200 dark:hover:border-red-900/50 cursor-pointer shadow-sm"
+                title={ex.description}
               >
-                <Plus className="w-3.5 h-3.5" />
-                Adicionar parâmetro
+                <span className="text-[10px] font-sans font-medium text-gray-400 dark:text-slate-500 group-hover:text-[#7B0209]">
+                  {ex.title}:
+                </span>
+                <span className="font-semibold text-gray-800 dark:text-slate-200 group-hover:text-[#7B0209]">
+                  {ex.label}
+                </span>
               </button>
-            </div>
+            ))}
           </div>
 
-          {/* Criteria Rows (if any explicit criteria added) */}
-          {criteria.length > 0 && (
-            <div className="flex flex-col gap-2 p-3 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800">
-              {criteria.map((crit, idx) => (
-                <div
-                  key={idx}
-                  className="flex flex-wrap items-center gap-2 p-2 rounded-lg bg-gray-50/80 dark:bg-slate-800/80 border border-gray-200/70 dark:border-slate-700/70"
-                >
-                  {/* Field Selector */}
-                  <select
-                    value={crit.field}
-                    onChange={(e) =>
-                      handleUpdateCriterion(idx, {
-                        field: e.target.value as ParameterCriterion['field'],
-                      })
-                    }
-                    className="px-2.5 py-1.5 rounded-md text-xs font-ui bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-slate-200"
-                  >
-                    <option value="nome">Nome</option>
-                    <option value="caminho">Caminho</option>
-                    <option value="valor">Valor</option>
-                    <option value="qualquer">Qualquer campo</option>
-                  </select>
+          {/* Advanced Options Toggle */}
+          <div className="flex items-center justify-between pt-1">
+            <button
+              type="button"
+              onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-slate-400 hover:text-[#7B0209] dark:hover:text-red-400 transition-colors cursor-pointer py-1"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Opções avançadas</span>
+              {showAdvancedOptions ? (
+                <ChevronUp className="w-3.5 h-3.5" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5" />
+              )}
+            </button>
 
-                  {/* Operator Selector */}
-                  <select
-                    value={crit.operator}
-                    onChange={(e) =>
-                      handleUpdateCriterion(idx, {
-                        operator: e.target.value as ParameterCriterion['operator'],
-                      })
-                    }
-                    className="px-2.5 py-1.5 rounded-md text-xs font-ui bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-slate-200"
-                  >
-                    <option value="contem">contém</option>
-                    <option value="igual">igual a</option>
-                    <option value="comeca_com">começa com</option>
-                    <option value="existe">existe</option>
-                  </select>
+            {paramInput && (
+              <button
+                type="button"
+                onClick={() => {
+                  setParamInput('');
+                  setTimeout(() => adjustTextareaHeight(), 0);
+                  executeParamSearch('');
+                }}
+                className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 transition-colors cursor-pointer"
+              >
+                Limpar entrada
+              </button>
+            )}
+          </div>
 
-                  {/* Value Input */}
-                  <input
-                    type="text"
-                    value={crit.value}
-                    onChange={(e) => handleUpdateCriterion(idx, { value: e.target.value })}
-                    placeholder="Valor do critério..."
-                    className="flex-1 min-w-[140px] px-2.5 py-1.5 rounded-md text-xs font-mono bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-slate-200 placeholder-gray-400"
-                  />
+          {/* Advanced Options Content (Collapsed by Default) */}
+          <AnimatePresence>
+            {showAdvancedOptions && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="p-4 rounded-xl bg-gray-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 flex flex-wrap gap-6 items-center">
+                  {/* Escopo */}
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-slate-500">
+                      Escopo da correspondência
+                    </span>
+                    <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-lg border border-gray-200 dark:border-slate-700 text-xs font-semibold">
+                      <button
+                        type="button"
+                        onClick={() => setCriteriaScope('SNIPPET')}
+                        className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+                          criteriaScope === 'SNIPPET'
+                            ? 'bg-[#7B0209] text-white'
+                            : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
+                        }`}
+                      >
+                        No mesmo snippet
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCriteriaScope('SCREEN')}
+                        className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+                          criteriaScope === 'SCREEN'
+                            ? 'bg-[#7B0209] text-white'
+                            : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
+                        }`}
+                      >
+                        Na mesma tela
+                      </button>
+                    </div>
+                  </div>
 
-                  {/* Delete button */}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveCriterion(idx)}
-                    className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                    title="Remover critério"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {/* Combinação */}
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-slate-500">
+                      Combinação de parâmetros
+                    </span>
+                    <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-lg border border-gray-200 dark:border-slate-700 text-xs font-semibold">
+                      <button
+                        type="button"
+                        onClick={() => setCriteriaCombination('AND')}
+                        className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+                          criteriaCombination === 'AND'
+                            ? 'bg-[#7B0209] text-white'
+                            : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
+                        }`}
+                      >
+                        Todos (AND)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCriteriaCombination('OR')}
+                        className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+                          criteriaCombination === 'OR'
+                            ? 'bg-[#7B0209] text-white'
+                            : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
+                        }`}
+                      >
+                        Pelo menos um (OR)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Sensibilidade / Normalização */}
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-slate-500">
+                      Normalização de sintaxe
+                    </span>
+                    <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-slate-300 pt-1">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={ignoreCase}
+                          onChange={(e) => setIgnoreCase(e.target.checked)}
+                          className="rounded border-gray-300 text-[#7B0209] focus:ring-[#7B0209]"
+                        />
+                        <span>Ignorar maiúsculas/minúsculas</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={ignoreWhitespace}
+                          onChange={(e) => setIgnoreWhitespace(e.target.checked)}
+                          className="rounded border-gray-300 text-[#7B0209] focus:ring-[#7B0209]"
+                        />
+                        <span>Ignorar espaços e quebras de linha</span>
+                      </label>
+                    </div>
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
@@ -850,3 +854,4 @@ export const SearchCenter: React.FC<SearchCenterProps> = ({
     </div>
   );
 };
+

@@ -3,6 +3,7 @@ import type {
   ContentSearchResult,
   ParameterCriterion,
   ParameterSearchResult,
+  AdvancedParameterSearchResponse,
 } from '../workers/artifactSearch.worker';
 
 class SearchWorkerClient {
@@ -25,7 +26,7 @@ class SearchWorkerClient {
       );
 
       this.worker.onmessage = (event: MessageEvent) => {
-        const { type, queryId, results, total, durationMs, suggestions, error } = event.data || {};
+        const { type, queryId, results, total, durationMs, suggestions, response, error } = event.data || {};
 
         if (type === 'INDEX_READY') {
           this.isIndexReady = true;
@@ -42,6 +43,8 @@ class SearchWorkerClient {
           if (cb) {
             if (error) {
               cb({ error });
+            } else if (type === 'SEARCH_CODE_AND_PARAMETERS_RESULT') {
+              cb({ response });
             } else if (type === 'PARAMETER_SUGGESTIONS_RESULT') {
               cb({ suggestions });
             } else {
@@ -106,6 +109,43 @@ class SearchWorkerClient {
     });
   }
 
+  public searchCodeAndParameters(
+    rawQuery: string,
+    options?: {
+      matchType?: 'auto' | 'literal' | 'normalized' | 'params';
+      scope?: 'SNIPPET' | 'SCREEN';
+      condition?: 'AND' | 'OR';
+      limit?: number;
+    }
+  ): Promise<AdvancedParameterSearchResponse> {
+    if (!this.worker) {
+      return Promise.resolve({
+        completeGroups: [],
+        partialGroups: [],
+        allArtifactIds: [],
+        totalArtifactsCount: 0,
+        queryKind: 'parameter',
+        extractedParams: [],
+        durationMs: 0,
+      });
+    }
+
+    const queryId = ++this.currentQueryId;
+
+    return new Promise((resolve, reject) => {
+      this.pendingCallbacks.set(queryId, (res: any) => {
+        if (res?.error) reject(new Error(res.error));
+        else resolve(res.response);
+      });
+
+      this.worker?.postMessage({
+        type: 'SEARCH_CODE_AND_PARAMETERS',
+        queryId,
+        payload: { rawQuery, options },
+      });
+    });
+  }
+
   public searchParameters(
     criteria: ParameterCriterion[],
     combination: 'AND' | 'OR' = 'AND',
@@ -152,3 +192,4 @@ class SearchWorkerClient {
 }
 
 export const searchWorkerClient = new SearchWorkerClient();
+

@@ -256,6 +256,31 @@ export interface ResolvedArtifactTaxonomy {
   descendant_path_titles: string[];
 }
 
+export interface ParameterOccurrenceSummary {
+  screenId: string;
+  screenIndex: number;
+  screenTitle: string;
+  snippetIndex: number;
+  event: string;
+  quality: string;
+  qualityLabel: string;
+  rawCodePreview: string;
+  rawCodeFull?: string;
+  matchedTerms: string[];
+}
+
+export interface ParameterArtifactGroupSummary {
+  artifactId: string;
+  totalOccurrences: number;
+  uniqueScreensCount: number;
+  uniqueSnippetsCount: number;
+  bestQuality: string;
+  bestQualityLabel: string;
+  bestQualityScore: number;
+  isPartial: boolean;
+  occurrences: ParameterOccurrenceSummary[];
+}
+
 export interface ActiveSearch {
   mode: 'conteudo' | 'parametros' | 'ia';
   query: string;
@@ -266,5 +291,8 @@ export interface ActiveSearch {
   aiQuestion?: string;
   scope?: 'SNIPPET' | 'SCREEN';
   operator?: 'AND' | 'OR';
+  parameterGroups?: Record<string, ParameterArtifactGroupSummary>;
+  matchedTerms?: string[];
+  queryKind?: string;
 }
 

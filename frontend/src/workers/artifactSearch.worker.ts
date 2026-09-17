@@ -1,6 +1,16 @@
 // frontend/src/workers/artifactSearch.worker.ts
 // Native Vite Web Worker for indexing and querying artifacts
 
+import {
+  cleanCodeLiteral,
+  normalizeCodeForComparison,
+  detectQueryKind,
+  extractQueryParams,
+  normalizeText,
+  ParameterQueryKind,
+  ParsedQueryParam,
+} from '../utils/parameterSearchParser';
+
 export interface WorkerArtifactItem {
   id: string;
   titulo: string;
@@ -36,6 +46,8 @@ interface IndexedSnippet {
   base_key: string;
   normBaseKey: string;
   raw_code: string;
+  raw_code_clean: string;
+  raw_code_normalized: string;
   normRawCode: string;
   parameters: Array<{
     name: string;
@@ -45,6 +57,9 @@ interface IndexedSnippet {
     value: string;
     normValue: string;
   }>;
+  normParamNames: Set<string>;
+  normParamPaths: Set<string>;
+  normParamValues: Set<string>;
 }
 
 interface IndexedScreen {
@@ -101,6 +116,52 @@ export interface ParameterSearchResult {
   rawCodePreview?: string;
   event?: string;
   additionalMatchesCount: number;
+}
+
+export type ParameterMatchQuality =
+  | 'identical_snippet'
+  | 'literal_slice'
+  | 'normalized_code'
+  | 'all_params_snippet'
+  | 'all_params_screen'
+  | 'partial_match';
+
+export interface ParameterOccurrence {
+  screenId: string;
+  screenIndex: number;
+  screenTitle: string;
+  snippetIndex: number;
+  event: string;
+  quality: ParameterMatchQuality;
+  qualityLabel: string;
+  qualityScore: number;
+  matchedCount: number;
+  totalCount: number;
+  rawCodePreview: string;
+  rawCodeFull: string;
+  matchedTerms: string[];
+}
+
+export interface ParameterArtifactGroup {
+  artifactId: string;
+  totalOccurrences: number;
+  uniqueScreensCount: number;
+  uniqueSnippetsCount: number;
+  bestQuality: ParameterMatchQuality;
+  bestQualityLabel: string;
+  bestQualityScore: number;
+  isPartial: boolean;
+  occurrences: ParameterOccurrence[];
+}
+
+export interface AdvancedParameterSearchResponse {
+  completeGroups: ParameterArtifactGroup[];
+  partialGroups: ParameterArtifactGroup[];
+  allArtifactIds: string[];
+  totalArtifactsCount: number;
+  queryKind: ParameterQueryKind;
+  extractedParams: ParsedQueryParam[];
+  durationMs: number;
 }
 
 let indexedArtifacts: IndexedArtifact[] = [];
@@ -168,6 +229,16 @@ function buildIndex(artifacts: WorkerArtifactItem[]) {
         const rawBaseKey = String(snip.base_key || '').trim();
         const rawCode = String(snip.raw_code || '').trim();
 
+        const normParamNames = new Set<string>();
+        const normParamPaths = new Set<string>();
+        const normParamValues = new Set<string>();
+
+        params.forEach((p) => {
+          if (p.normName) normParamNames.add(p.normName);
+          if (p.normPath) normParamPaths.add(p.normPath);
+          if (p.normValue) normParamValues.add(p.normValue);
+        });
+
         return {
           snippet_index: snipIdx,
           event_normalized: rawEvent,
@@ -175,8 +246,13 @@ function buildIndex(artifacts: WorkerArtifactItem[]) {
           base_key: rawBaseKey,
           normBaseKey: normalize(rawBaseKey),
           raw_code: rawCode,
+          raw_code_clean: cleanCodeLiteral(rawCode),
+          raw_code_normalized: normalizeCodeForComparison(rawCode),
           normRawCode: normalize(rawCode),
           parameters: params,
+          normParamNames,
+          normParamPaths,
+          normParamValues,
         };
       });
 
@@ -592,6 +668,366 @@ function getSuggestions(field: string, input: string, limit = 10): string[] {
 }
 
 // =============================================================================
+// Advanced Code & Parameter Search
+// =============================================================================
+function searchCodeAndParameters(
+  rawQuery: string,
+  options?: {
+    matchType?: 'auto' | 'literal' | 'normalized' | 'params';
+    scope?: 'SNIPPET' | 'SCREEN';
+    condition?: 'AND' | 'OR';
+    limit?: number;
+  }
+): AdvancedParameterSearchResponse {
+  const startTime = Date.now();
+  const trimmed = (rawQuery || '').trim();
+
+  if (!trimmed) {
+    return {
+      completeGroups: [],
+      partialGroups: [],
+      allArtifactIds: [],
+      totalArtifactsCount: 0,
+      queryKind: 'parameter',
+      extractedParams: [],
+      durationMs: 0,
+    };
+  }
+
+  const queryKind = detectQueryKind(trimmed);
+  const cleanedQuery = cleanCodeLiteral(trimmed);
+  const normalizedQuery = normalizeCodeForComparison(trimmed);
+  const extractedParams = extractQueryParams(trimmed);
+
+  const matchType = options?.matchType || 'auto';
+  const scope = options?.scope || 'SNIPPET';
+  const condition = options?.condition || 'AND';
+
+  // Base list of terms to highlight
+  const searchTerms: string[] = [];
+  extractedParams.forEach((p) => {
+    if (p.name) searchTerms.push(p.name);
+    if (p.value) searchTerms.push(p.value);
+  });
+  if (cleanedQuery.length < 50) {
+    searchTerms.push(cleanedQuery);
+  }
+
+  const rawArtifactGroups: ParameterArtifactGroup[] = [];
+
+  for (const art of indexedArtifacts) {
+    const occurrencesMap = new Map<string, ParameterOccurrence>();
+
+    for (const sc of art.screens) {
+      // 1. Evaluate per snippet
+      for (const snip of sc.snippets) {
+        let bestQuality: ParameterMatchQuality | null = null;
+        let qualityLabel = '';
+        let qualityScore = 0;
+        let matchedCount = 0;
+        const totalCount = extractedParams.length > 0 ? extractedParams.length : 1;
+        const localMatchedTerms = new Set<string>();
+
+        // Layer 1: Identical snippet
+        if (
+          (matchType === 'auto' || matchType === 'literal' || matchType === 'normalized') &&
+          snip.raw_code_clean.length > 0 &&
+          snip.raw_code_clean === cleanedQuery
+        ) {
+          bestQuality = 'identical_snippet';
+          qualityLabel = 'Snippet idêntico';
+          qualityScore = 1000;
+          matchedCount = totalCount;
+          searchTerms.forEach((t) => localMatchedTerms.add(t));
+        }
+
+        // Layer 2: Literal slice
+        else if (
+          (matchType === 'auto' || matchType === 'literal') &&
+          cleanedQuery.length >= 3 &&
+          snip.raw_code_clean.includes(cleanedQuery)
+        ) {
+          bestQuality = 'literal_slice';
+          qualityLabel = 'Trecho exato';
+          qualityScore = 800;
+          matchedCount = totalCount;
+          localMatchedTerms.add(cleanedQuery);
+          searchTerms.forEach((t) => localMatchedTerms.add(t));
+        }
+
+        // Layer 3: Normalized code equivalent
+        else if (
+          (matchType === 'auto' || matchType === 'normalized') &&
+          normalizedQuery.length >= 3 &&
+          (snip.raw_code_normalized === normalizedQuery || snip.raw_code_normalized.includes(normalizedQuery))
+        ) {
+          bestQuality = 'normalized_code';
+          qualityLabel = 'Código equivalente';
+          qualityScore = 600;
+          matchedCount = totalCount;
+          searchTerms.forEach((t) => localMatchedTerms.add(t));
+        }
+
+        // Layer 4 & 6: Structured matching on snippet
+        if (
+          !bestQuality &&
+          extractedParams.length > 0 &&
+          (matchType === 'auto' || matchType === 'params')
+        ) {
+          let paramMatches = 0;
+
+          for (const param of extractedParams) {
+            const pNormName = normalizeText(param.name);
+            const pNormVal = param.value ? normalizeText(param.value) : '';
+            let paramHit = false;
+
+            // Check snippet parameters
+            for (const p of snip.parameters) {
+              const nameHit = p.normName === pNormName || p.normPath === pNormName || p.normName.includes(pNormName);
+              if (pNormVal) {
+                const valHit = p.normValue === pNormVal || p.normValue.includes(pNormVal);
+                if (nameHit && valHit) {
+                  paramHit = true;
+                  localMatchedTerms.add(p.name);
+                  localMatchedTerms.add(p.value);
+                  break;
+                }
+              } else if (nameHit) {
+                paramHit = true;
+                localMatchedTerms.add(p.name);
+                break;
+              }
+            }
+
+            // Check event_normalized & base_key
+            if (!paramHit && (pNormName === 'event' || pNormName === 'evento' || !param.value)) {
+              if (pNormVal) {
+                if (snip.normEvent === pNormVal || snip.normBaseKey === pNormVal || snip.normEvent.includes(pNormVal)) {
+                  paramHit = true;
+                  localMatchedTerms.add(snip.event_normalized);
+                  localMatchedTerms.add(param.value!);
+                }
+              } else if (snip.normEvent.includes(pNormName) || snip.normBaseKey.includes(pNormName)) {
+                paramHit = true;
+                localMatchedTerms.add(snip.event_normalized);
+              }
+            }
+
+            // Check in raw_code_normalized
+            if (!paramHit && pNormName) {
+              if (pNormVal) {
+                if (
+                  snip.raw_code_normalized.includes(`${pNormName}:"${pNormVal}"`) ||
+                  snip.raw_code_normalized.includes(`${pNormName}="${pNormVal}"`) ||
+                  (snip.raw_code_normalized.includes(pNormName) && snip.raw_code_normalized.includes(pNormVal))
+                ) {
+                  paramHit = true;
+                  localMatchedTerms.add(param.name);
+                  localMatchedTerms.add(param.value!);
+                }
+              } else if (snip.raw_code_normalized.includes(pNormName)) {
+                paramHit = true;
+                localMatchedTerms.add(param.name);
+              }
+            }
+
+            if (paramHit) {
+              paramMatches++;
+            }
+          }
+
+          if (condition === 'AND') {
+            if (paramMatches === extractedParams.length) {
+              bestQuality = 'all_params_snippet';
+              qualityLabel = 'Todos os parâmetros encontrados';
+              qualityScore = 400;
+              matchedCount = paramMatches;
+            } else if (paramMatches > 0 && scope === 'SNIPPET') {
+              bestQuality = 'partial_match';
+              qualityLabel = `Correspondência parcial (${paramMatches} de ${extractedParams.length})`;
+              qualityScore = 50 + Math.round((paramMatches / extractedParams.length) * 100);
+              matchedCount = paramMatches;
+            }
+          } else {
+            // OR condition
+            if (paramMatches > 0) {
+              bestQuality = 'all_params_snippet';
+              qualityLabel = `${paramMatches} parâmetro(s) encontrado(s)`;
+              qualityScore = 400;
+              matchedCount = paramMatches;
+            }
+          }
+        }
+
+        if (bestQuality) {
+          const occKey = `${sc.screen_id}#${snip.snippet_index}`;
+          const existing = occurrencesMap.get(occKey);
+          if (!existing || existing.qualityScore < qualityScore) {
+            occurrencesMap.set(occKey, {
+              screenId: sc.screen_id,
+              screenIndex: sc.screen_index,
+              screenTitle: sc.instruction || `Tela #${sc.screen_index}`,
+              snippetIndex: snip.snippet_index,
+              event: snip.event_normalized || snip.base_key || 'Snippet',
+              quality: bestQuality,
+              qualityLabel,
+              qualityScore,
+              matchedCount,
+              totalCount,
+              rawCodePreview: snip.raw_code ? snip.raw_code.slice(0, 320) : '',
+              rawCodeFull: snip.raw_code || '',
+              matchedTerms: Array.from(localMatchedTerms),
+            });
+          }
+        }
+      } // end snippet loop
+
+      // Layer 5: Scope SCREEN evaluation (if not matched in a single snippet)
+      if (
+        scope === 'SCREEN' &&
+        extractedParams.length > 1 &&
+        (matchType === 'auto' || matchType === 'params')
+      ) {
+        let screenParamMatches = 0;
+        const screenMatchedTerms = new Set<string>();
+
+        for (const param of extractedParams) {
+          const pNormName = normalizeText(param.name);
+          const pNormVal = param.value ? normalizeText(param.value) : '';
+          let foundInScreen = false;
+
+          for (const snip of sc.snippets) {
+            for (const p of snip.parameters) {
+              const nameHit = p.normName === pNormName || p.normPath === pNormName || p.normName.includes(pNormName);
+              if (pNormVal) {
+                const valHit = p.normValue === pNormVal || p.normValue.includes(pNormVal);
+                if (nameHit && valHit) {
+                  foundInScreen = true;
+                  screenMatchedTerms.add(p.name);
+                  screenMatchedTerms.add(p.value);
+                  break;
+                }
+              } else if (nameHit) {
+                foundInScreen = true;
+                screenMatchedTerms.add(p.name);
+                break;
+              }
+            }
+            if (foundInScreen) break;
+
+            if (pNormName === 'event' || pNormName === 'evento' || !param.value) {
+              if (pNormVal) {
+                if (snip.normEvent === pNormVal || snip.normBaseKey === pNormVal) {
+                  foundInScreen = true;
+                  screenMatchedTerms.add(snip.event_normalized);
+                  screenMatchedTerms.add(param.value!);
+                  break;
+                }
+              }
+            }
+          }
+
+          if (foundInScreen) {
+            screenParamMatches++;
+          }
+        }
+
+        const isScreenAllMatched = screenParamMatches === extractedParams.length;
+        if (isScreenAllMatched) {
+          const occKey = `${sc.screen_id}#screen_level`;
+          if (!occurrencesMap.has(occKey)) {
+            const firstSnip = sc.snippets[0];
+            occurrencesMap.set(occKey, {
+              screenId: sc.screen_id,
+              screenIndex: sc.screen_index,
+              screenTitle: sc.instruction || `Tela #${sc.screen_index}`,
+              snippetIndex: 0,
+              event: firstSnip?.event_normalized || 'Vários disparos',
+              quality: 'all_params_screen',
+              qualityLabel: 'Todos os parâmetros na mesma tela',
+              qualityScore: 200,
+              matchedCount: screenParamMatches,
+              totalCount: extractedParams.length,
+              rawCodePreview: firstSnip?.raw_code ? firstSnip.raw_code.slice(0, 320) : '',
+              rawCodeFull: firstSnip?.raw_code || '',
+              matchedTerms: Array.from(screenMatchedTerms),
+            });
+          }
+        } else if (screenParamMatches > 0) {
+          const occKey = `${sc.screen_id}#screen_partial`;
+          if (!occurrencesMap.has(occKey) && occurrencesMap.size === 0) {
+            const firstSnip = sc.snippets[0];
+            occurrencesMap.set(occKey, {
+              screenId: sc.screen_id,
+              screenIndex: sc.screen_index,
+              screenTitle: sc.instruction || `Tela #${sc.screen_index}`,
+              snippetIndex: 0,
+              event: firstSnip?.event_normalized || 'Snippet',
+              quality: 'partial_match',
+              qualityLabel: `Correspondência parcial (${screenParamMatches} de ${extractedParams.length})`,
+              qualityScore: 40 + Math.round((screenParamMatches / extractedParams.length) * 100),
+              matchedCount: screenParamMatches,
+              totalCount: extractedParams.length,
+              rawCodePreview: firstSnip?.raw_code ? firstSnip.raw_code.slice(0, 320) : '',
+              rawCodeFull: firstSnip?.raw_code || '',
+              matchedTerms: Array.from(screenMatchedTerms),
+            });
+          }
+        }
+      } // end screen scope check
+    } // end screen loop
+
+    const occurrences = Array.from(occurrencesMap.values());
+    if (occurrences.length > 0) {
+      occurrences.sort((a, b) => b.qualityScore - a.qualityScore);
+      const best = occurrences[0];
+
+      const uniqueScreens = new Set(occurrences.map((o) => o.screenId)).size;
+      const uniqueSnippets = new Set(occurrences.map((o) => `${o.screenId}-${o.snippetIndex}`)).size;
+
+      rawArtifactGroups.push({
+        artifactId: art.id,
+        totalOccurrences: occurrences.length,
+        uniqueScreensCount: uniqueScreens,
+        uniqueSnippetsCount: uniqueSnippets,
+        bestQuality: best.quality,
+        bestQualityLabel: best.qualityLabel,
+        bestQualityScore: best.qualityScore,
+        isPartial: best.quality === 'partial_match',
+        occurrences,
+      });
+    }
+  } // end artifact loop
+
+  const completeGroups = rawArtifactGroups.filter((g) => !g.isPartial);
+  const partialGroups = rawArtifactGroups.filter((g) => g.isPartial);
+
+  const groupSorter = (a: ParameterArtifactGroup, b: ParameterArtifactGroup) => {
+    if (b.bestQualityScore !== a.bestQualityScore) return b.bestQualityScore - a.bestQualityScore;
+    if (b.totalOccurrences !== a.totalOccurrences) return b.totalOccurrences - a.totalOccurrences;
+    return a.artifactId.localeCompare(b.artifactId);
+  };
+
+  completeGroups.sort(groupSorter);
+  partialGroups.sort(groupSorter);
+
+  const allArtifactIds: string[] = [
+    ...completeGroups.map((g) => g.artifactId),
+    ...partialGroups.map((g) => g.artifactId),
+  ];
+
+  return {
+    completeGroups,
+    partialGroups,
+    allArtifactIds,
+    totalArtifactsCount: allArtifactIds.length,
+    queryKind,
+    extractedParams,
+    durationMs: Date.now() - startTime,
+  };
+}
+
+// =============================================================================
 // Message Listener
 // =============================================================================
 self.addEventListener('message', (event: MessageEvent) => {
@@ -610,6 +1046,13 @@ self.addEventListener('message', (event: MessageEvent) => {
         results,
         total: results.length,
         durationMs: Date.now() - startTime,
+      });
+    } else if (type === 'SEARCH_CODE_AND_PARAMETERS') {
+      const response = searchCodeAndParameters(payload?.rawQuery || '', payload?.options);
+      self.postMessage({
+        type: 'SEARCH_CODE_AND_PARAMETERS_RESULT',
+        queryId,
+        response,
       });
     } else if (type === 'SEARCH_PARAMETERS') {
       const startTime = Date.now();
