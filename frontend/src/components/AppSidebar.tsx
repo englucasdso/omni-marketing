@@ -33,6 +33,7 @@ interface AppSidebarProps {
   currentRouteId: string;
   onNavigate: (item: NavItem) => void;
   onHomeClick: () => void;
+  onNewSearch?: () => void;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
   onSyncClick?: () => void;
@@ -43,6 +44,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   currentRouteId,
   onNavigate,
   onHomeClick,
+  onNewSearch,
   isMobileOpen = false,
   onCloseMobile,
   onSyncClick,
@@ -323,11 +325,17 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         {/* 5. Separador & 6. “Nova Busca” no rodapé */}
         <div className="shrink-0 p-3 border-t border-gray-100 dark:border-slate-800/80">
           <button
+            id="sidebar-nova-busca"
+            type="button"
             onClick={() => {
-              onHomeClick();
+              if (onNewSearch) {
+                onNewSearch();
+              } else {
+                onHomeClick();
+              }
               if (onCloseMobile) onCloseMobile();
             }}
-            className="flex items-center w-full h-10 rounded-xl text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
+            className="flex items-center w-full h-10 rounded-xl text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors cursor-pointer"
             title="Buscar novo termo"
             aria-label="Buscar novo termo"
             >

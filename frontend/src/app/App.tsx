@@ -634,6 +634,7 @@ export default function App() {
 
   // Estado centralizado da busca ativa (ActiveSearch)
   const [activeSearch, setActiveSearch] = useState<ActiveSearch | null>(null);
+  const [searchSessionId, setSearchSessionId] = useState(0);
 
   // Callback de transporte de resultados para a tela de Cards
   const handleApplyToCards = useCallback((
@@ -1536,21 +1537,78 @@ export default function App() {
     executeSearch(text);
   };
 
-  const resetSearch = () => {
-    setAppState("initial");
+  // Função central única para encerrar completamente a pesquisa atual e voltar ao estado inicial da busca
+  const resetSearchSession = useCallback(() => {
+    // 1. Interromper qualquer processo de busca assíncrona ativo
+    isSearchingRef.current = false;
+    setLoading(false);
+
+    // 2. Limpar busca textual e objeto central de ActiveSearch
     setQuery("");
-    setResults([]);
-    setInsights(null);
-    setShowGraph(false);
-    setTableFilter("");
-    setExecutiveSummaryResult(null);
-    setInsightsActiveTab("indicadores");
+    setActiveSearch(null);
+
+    // 3. Restaurar resultados para o inventário já carregado (sem descarregar nem recarregar do backend)
+    if (fullInventory.length > 0) {
+      setResults(fullInventory);
+    }
+
+    // 4. Limpar filtros e paginação da tela de Cards
     resetCardFilters();
+
+    // 5. Limpar filtros e estados contextuais das demais telas (Inventário, Produtos, Parâmetros, Insights)
     resetInventoryFilters();
     resetProductFilters();
     resetParamFilters();
     resetInsightsFilters();
-  };
+    setInsightFilters({ ga: 'all', produto: 'all', subproduto: 'all' });
+    setInsights(null);
+    setExecutiveSummaryResult(null);
+    setExecutiveSummaryParams(null);
+    setIsGeneratingSummary(false);
+    setInsightsActiveTab("indicadores");
+    setShowGraph(false);
+    setShowSummary(false);
+
+    // 6. Fechar quaisquer modais abertos e limpar alvos de detalhe
+    setDetailModalItem(null);
+    setDetailTarget(null);
+    setConexoesTargetArtifactId(null);
+    setShowAdmin(false);
+    setShowExportModal(false);
+    setShowExecutiveModal(false);
+    setIsSyncAuthOpen(false);
+
+    // 7. Limpar chaves residuais de busca em sessionStorage e localStorage (caso existam)
+    try {
+      const searchKeys = [
+        'search_query',
+        'active_search',
+        'search_mode',
+        'search_params',
+        'search_criteria',
+        'param_input',
+        'content_query',
+        'ai_question',
+      ];
+      searchKeys.forEach((key) => {
+        sessionStorage.removeItem(key);
+        localStorage.removeItem(key);
+      });
+    } catch (_) {
+      // Ignorar eventuais restrições de sandbox
+    }
+
+    // 8. Incrementar sinalizador para resetar o SearchCenter imediatamente (mesmo quando o componente permanece montado)
+    setSearchSessionId((prev) => prev + 1);
+
+    // 9. Atualizar estado da aplicação para 'initial'
+    setRawAppState('initial');
+
+    // 10. Navegar explicitamente para /hub-de-artefatos sem parâmetros de query na URL
+    navigate('/hub-de-artefatos', { replace: true });
+  }, [fullInventory, navigate]);
+
+  const resetSearch = resetSearchSession;
 
   const downloadFile = (data: string, filename: string, type: string) => {
     const blob = new Blob([data], { type });
@@ -1609,9 +1667,8 @@ export default function App() {
     <AppShell
       currentRouteId={appState}
       onNavigate={(item) => setAppState(item.id as any)}
-      onHomeClick={() => { 
-        setAppState('initial'); 
-      }}
+      onHomeClick={resetSearchSession}
+      onNewSearch={resetSearchSession}
       lastSync={lastSync}
       onSyncClick={() => setIsSyncAuthOpen(true)}
       contextualContent={
@@ -1747,6 +1804,7 @@ export default function App() {
           <SearchCenter
             artifacts={fullInventory}
             activeSearch={activeSearch}
+            resetSignal={searchSessionId}
             onApplyToCards={handleApplyToCards}
             onNavigateToOperationalInsights={() => setAppState("operational_insights")}
           />

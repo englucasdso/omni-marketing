@@ -7,6 +7,7 @@ interface AppShellProps {
   currentRouteId: string;
   onNavigate: (item: NavItem) => void;
   onHomeClick: () => void;
+  onNewSearch?: () => void;
   lastSync?: string | null;
   onSyncClick?: () => void;
   children: React.ReactNode;
@@ -17,6 +18,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   currentRouteId,
   onNavigate,
   onHomeClick,
+  onNewSearch,
   lastSync,
   onSyncClick,
   children,
@@ -31,6 +33,7 @@ export const AppShell: React.FC<AppShellProps> = ({
         currentRouteId={currentRouteId}
         onNavigate={onNavigate}
         onHomeClick={onHomeClick}
+        onNewSearch={onNewSearch}
         isMobileOpen={isMobileMenuOpen}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
         onSyncClick={onSyncClick}

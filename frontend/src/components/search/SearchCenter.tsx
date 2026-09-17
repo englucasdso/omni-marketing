@@ -21,6 +21,7 @@ import type { ParameterCriterion } from '../../workers/artifactSearch.worker';
 export interface SearchCenterProps {
   artifacts: Artifact[];
   activeSearch?: ActiveSearch | null;
+  resetSignal?: number;
   onApplyToCards?: (
     query: string,
     filteredIds: string[],
@@ -79,6 +80,7 @@ tipo_pessoa: "PF"`,
 export const SearchCenter: React.FC<SearchCenterProps> = ({
   artifacts,
   activeSearch,
+  resetSignal,
   onApplyToCards,
   onNavigateToOperationalInsights,
 }) => {
@@ -123,6 +125,30 @@ export const SearchCenter: React.FC<SearchCenterProps> = ({
     }
   }, [mode, paramInput, adjustTextareaHeight]);
 
+  // Função interna para zerar completamente a pesquisa do SearchCenter
+  const resetInternalSearch = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setMode('conteudo');
+    setContentQuery('');
+    setParamInput('');
+    setAiQuestion('');
+    setCriteriaCombination('AND');
+    setCriteriaScope('SNIPPET');
+    setShowAdvancedOptions(false);
+    setIgnoreCase(true);
+    setIgnoreWhitespace(true);
+    setIsSearching(false);
+    setAiLoading(false);
+    setAiError(null);
+    setIsFocused(false);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '44px';
+    }
+  }, []);
+
   // Sync index with worker
   useEffect(() => {
     if (artifacts && artifacts.length > 0) {
@@ -132,7 +158,7 @@ export const SearchCenter: React.FC<SearchCenterProps> = ({
     }
   }, [artifacts]);
 
-  // Sync state from activeSearch when present or restored
+  // Sync state from activeSearch when present or restored, or reset when cleared
   useEffect(() => {
     if (activeSearch) {
       setMode(activeSearch.mode);
@@ -149,8 +175,19 @@ export const SearchCenter: React.FC<SearchCenterProps> = ({
       } else if (activeSearch.mode === 'ia') {
         setAiQuestion(activeSearch.aiQuestion || activeSearch.query || '');
       }
+    } else if (activeSearch === null) {
+      resetInternalSearch();
     }
-  }, [activeSearch]);
+  }, [activeSearch, resetInternalSearch]);
+
+  // Listener explícito de sinal de reset central
+  const prevResetSignalRef = useRef(resetSignal);
+  useEffect(() => {
+    if (resetSignal !== undefined && resetSignal !== prevResetSignalRef.current) {
+      prevResetSignalRef.current = resetSignal;
+      resetInternalSearch();
+    }
+  }, [resetSignal, resetInternalSearch]);
 
   // Titles per mode
   const getModeTitle = () => {
