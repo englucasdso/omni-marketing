@@ -14,6 +14,28 @@ export interface ParsedQueryParam {
   rawPair?: string;
 }
 
+export interface ParamSearchTerm {
+  raw: string;
+  name: string;
+  value?: string;
+  isKeyValue: boolean;
+}
+
+/**
+ * Decodes common HTML entities often present in raw codes or snippets.
+ */
+export function decodeHtmlEntities(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ');
+}
+
 /**
  * Normalizes basic text: lowercase, remove diacritics, trim.
  */
@@ -28,6 +50,7 @@ export function normalizeText(str: string): string {
 
 /**
  * Normalizes code strictly for literal comparisons:
+ * - Decodes HTML entities
  * - Line endings (\r\n -> \n)
  * - Tabs (\t -> ' ')
  * - Runs of spaces ([ \t]+ -> ' ')
@@ -35,10 +58,31 @@ export function normalizeText(str: string): string {
  */
 export function cleanCodeLiteral(code: string): string {
   if (!code) return '';
-  return code
+  return decodeHtmlEntities(code)
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
     .replace(/\t/g, ' ')
+    .replace(/[ \t]+/g, ' ')
+    .trim();
+}
+
+/**
+ * Normalizes code whitespace:
+ * - Decodes HTML entities
+ * - Standardizes line breaks
+ * - Removes tabs and collapses spaces
+ * - Trims each line
+ */
+export function normalizeCodeWhitespace(code: string): string {
+  if (!code) return '';
+  return decodeHtmlEntities(code)
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/\t/g, ' ')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .join('\n')
     .replace(/[ \t]+/g, ' ')
     .trim();
 }
@@ -50,12 +94,12 @@ export function cleanCodeLiteral(code: string): string {
  * - Removes trailing commas and semicolons
  * - Removes spaces around punctuation: : = , { } ( ) [ ] ;
  * - Collapses remaining whitespace
- * - Lowercases
+ * - Preserves underscores and alphanumeric identifiers
  */
 export function normalizeCodeForComparison(code: string): string {
   if (!code) return '';
 
-  return code
+  return decodeHtmlEntities(code)
     // Remove single-line comments // ...
     .replace(/\/\/[^\n]*/g, '')
     // Remove multi-line comments /* ... */
@@ -63,7 +107,7 @@ export function normalizeCodeForComparison(code: string): string {
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    // Normalize string quotes to single standard marker or double quotes
+    // Normalize string quotes to double quotes
     .replace(/['"`]/g, '"')
     // Remove spaces around syntax operators and structural delimiters
     .replace(/\s*([:=,{}\(\)\[\];])\s*/g, '$1')
@@ -79,112 +123,185 @@ export function normalizeCodeForComparison(code: string): string {
 }
 
 /**
- * Deterministically detects the format/kind of the query without AI:
- * - parameter: single identifier or dotted path (e.g. "user_id", "event_data.item_id")
- * - key_value: single key with value (e.g. 'tipo_pessoa: "PF"' or 'tipo_pessoa="PF"')
- * - code_fragment: multiple lines or multiple key-value pairs without complete wrapper
- * - full_snippet: complete function call (dataLayer.push, gtag), complete JSON object { ... }
+ * Checks if the input has code structure (dataLayer.push, braces, multiple lines with code delimiters)
+ */
+export function hasCodeStructure(rawQuery: string): boolean {
+  const trimmed = (rawQuery || '').trim();
+  if (!trimmed) return false;
+
+  // dataLayer.push, gtag(, window.
+  if (/datalayer\.push|gtag\(|window\.|function\s*\(/i.test(trimmed)) {
+    return true;
+  }
+  // Explicit braces { ... }
+  if (trimmed.includes('{') && trimmed.includes('}')) {
+    return true;
+  }
+  // Multiple lines with typical code syntax
+  if (trimmed.includes('\n')) {
+    const lines = trimmed.split('\n').map((l) => l.trim()).filter(Boolean);
+    if (lines.length >= 2 && (trimmed.includes(':') || trimmed.includes('{') || trimmed.includes(','))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Deterministically detects the format/kind of the query without AI
  */
 export function detectQueryKind(rawQuery: string): ParameterQueryKind {
   const trimmed = rawQuery.trim();
   if (!trimmed) return 'parameter';
 
-  // Check for full snippet indicators: dataLayer.push, gtag, function call, or balanced outer braces
-  const hasCall = /datalayer\.push|gtag\(|window\.|function\s*\(|\(\s*\{[\s\S]*\}\s*\)/i.test(trimmed);
-  const startsWithBrace = trimmed.startsWith('{') && (trimmed.endsWith('}') || trimmed.endsWith('};') || trimmed.endsWith('}'));
-  const hasMultipleLinesWithBraces = trimmed.includes('{') && trimmed.includes('}') && trimmed.split('\n').length >= 3;
-
-  if (hasCall || startsWithBrace || hasMultipleLinesWithBraces) {
-    return 'full_snippet';
+  if (hasCodeStructure(trimmed)) {
+    const hasCall = /datalayer\.push|gtag\(|window\.|function\s*\(/i.test(trimmed);
+    const startsWithBrace = trimmed.startsWith('{') && (trimmed.endsWith('}') || trimmed.endsWith('};'));
+    if (hasCall || startsWithBrace) {
+      return 'full_snippet';
+    }
+    return 'code_fragment';
   }
 
   // Count key-value occurrences: key: val or key = val
   const pairMatches = trimmed.match(/[a-zA-Z0-9_$.-]+\s*[:=]\s*(?:"[^"]*"|'[^']*'|`[^`]*`|[a-zA-Z0-9_$.-]+)/g) || [];
-
-  if (pairMatches.length > 1 || (pairMatches.length === 1 && trimmed.includes('\n'))) {
+  if (pairMatches.length > 1) {
     return 'code_fragment';
   }
-
   if (pairMatches.length === 1) {
     return 'key_value';
-  }
-
-  // Check if multiple lines or comma separated tokens exist
-  const lines = trimmed.split('\n').map((l) => l.trim()).filter(Boolean);
-  if (lines.length > 1) {
-    return 'code_fragment';
-  }
-
-  const commaTokens = trimmed.split(',').map((t) => t.trim()).filter(Boolean);
-  if (commaTokens.length > 1) {
-    return 'code_fragment';
   }
 
   return 'parameter';
 }
 
-/**
- * Extracts structured pairs { name, path, value } from the query string.
- * Supports:
- * - Object syntax: { event: "contratacao", produto: "credito" }
- * - Code fragments: event: "contratacao",\nproduto: "credito"
- * - Key-value: tipo_pessoa: "PF" or tipo_pessoa="PF"
- * - Parameter names: user_id, event_data.produto
- */
-export function extractQueryParams(rawQuery: string): ParsedQueryParam[] {
-  const trimmed = rawQuery.trim();
-  if (!trimmed) return [];
+function parseSingleParamTerm(str: string): ParamSearchTerm | null {
+  const t = str.trim();
+  if (!t) return null;
 
-  const results: ParsedQueryParam[] = [];
-  const seenKeys = new Set<string>();
+  // Match key: value or key = value
+  const kvMatch = t.match(/^["']?([a-zA-Z0-9_$.-]+)["']?\s*[:=]\s*(.*)$/);
+  if (kvMatch) {
+    const key = kvMatch[1].trim();
+    let val = kvMatch[2].trim();
+    // Remove trailing comma/semicolon
+    val = val.replace(/[,;]+$/, '').trim();
+    // Remove enclosing quotes
+    val = val.replace(/^["'`]|["'`]$/g, '').trim();
 
-  // Regex to match pairs: key: "value" OR key: 'value' OR key: value OR key = "value"
-  const pairRegex = /([a-zA-Z0-9_$.-]+)\s*[:=]\s*(?:"([^"]*)"|'([^']*)'|`([^`]*)`|([a-zA-Z0-9_$.-]+))/g;
-  let match: RegExpExecArray | null;
-
-  while ((match = pairRegex.exec(trimmed)) !== null) {
-    const rawKey = match[1]?.trim();
-    const rawVal = (match[2] ?? match[3] ?? match[4] ?? match[5] ?? '').trim();
-
-    if (rawKey) {
-      const isPath = rawKey.includes('.');
-      const dedupeKey = `${normalizeText(rawKey)}=${normalizeText(rawVal)}`;
-      if (!seenKeys.has(dedupeKey)) {
-        seenKeys.add(dedupeKey);
-        results.push({
-          name: isPath ? rawKey.split('.').pop()! : rawKey,
-          path: isPath ? rawKey : undefined,
-          value: rawVal,
-          rawPair: match[0].trim(),
-        });
-      }
+    if (key) {
+      return {
+        raw: t,
+        name: key,
+        value: val,
+        isKeyValue: true,
+      };
     }
   }
 
-  if (results.length > 0) {
-    return results;
-  }
+  // Standalone identifier (e.g. "produto", "event", "tipo_pessoa")
+  // Strictly preserve underscores, do not remove _
+  const cleanName = t.replace(/^["'`]|["'`]$/g, '').replace(/[{}\(\)]/g, '').trim();
+  if (!cleanName) return null;
 
-  // If no key-value pairs with : or = were found, treat tokens as standalone parameters
-  // Split by newlines, commas, pluses, or semicolons
-  const tokens = trimmed
-    .split(/[\n,;+]+/)
-    .map((t) => t.replace(/[{}\(\)]/g, '').trim())
-    .filter(Boolean);
+  return {
+    raw: t,
+    name: cleanName,
+    isKeyValue: false,
+  };
+}
 
-  for (const tok of tokens) {
-    const isPath = tok.includes('.');
-    const cleanTok = tok.replace(/['"`]/g, '').trim();
-    if (cleanTok && !seenKeys.has(normalizeText(cleanTok))) {
-      seenKeys.add(normalizeText(cleanTok));
+function extractPairsFromCode(code: string): ParamSearchTerm[] {
+  const results: ParamSearchTerm[] = [];
+  const seenKeys = new Set<string>();
+
+  const pairRegex = /(?:^|[^a-zA-Z0-9_$])["']?([a-zA-Z0-9_$.-]+)["']?\s*[:=]\s*(?:"([^"]*)"|'([^']*)'|`([^`]*)`|([a-zA-Z0-9_$.-]+))/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = pairRegex.exec(code)) !== null) {
+    const rawKey = match[1]?.trim();
+    const rawVal = (match[2] ?? match[3] ?? match[4] ?? match[5] ?? '').trim();
+    if (rawKey && !seenKeys.has(rawKey.toLowerCase())) {
+      seenKeys.add(rawKey.toLowerCase());
       results.push({
-        name: isPath ? cleanTok.split('.').pop()! : cleanTok,
-        path: isPath ? cleanTok : undefined,
+        raw: match[0].trim(),
+        name: rawKey,
+        value: rawVal,
+        isKeyValue: true,
       });
     }
   }
 
   return results;
+}
+
+/**
+ * Parses query terms strictly:
+ * - If query contains '+', strictly splits by '+' and trims external spaces
+ * - Preserves underscores and casing/exact names
+ * - Parses "name: value" pairs
+ * - Ignores empty terms (e.g. "+ +")
+ * - If query is empty or only '+', returns []
+ */
+export function parseParameterSearchTerms(rawQuery: string): ParamSearchTerm[] {
+  const trimmed = (rawQuery || '').trim();
+  if (!trimmed) return [];
+
+  // If query contains the '+' operator, strictly split by '+'
+  if (trimmed.includes('+')) {
+    const segments = trimmed.split('+');
+    const terms: ParamSearchTerm[] = [];
+
+    for (const seg of segments) {
+      const segTrimmed = seg.trim();
+      if (!segTrimmed) continue; // Ignore empty terms
+
+      const parsed = parseSingleParamTerm(segTrimmed);
+      if (parsed) {
+        terms.push(parsed);
+      }
+    }
+    return terms;
+  }
+
+  // If query has full code structure (dataLayer.push, { ... }, multiple lines)
+  if (hasCodeStructure(trimmed)) {
+    const codePairs = extractPairsFromCode(trimmed);
+    return codePairs;
+  }
+
+  // If comma separated and no code structure
+  if (trimmed.includes(',')) {
+    const segments = trimmed.split(',');
+    const terms: ParamSearchTerm[] = [];
+    for (const seg of segments) {
+      const segTrimmed = seg.trim();
+      if (!segTrimmed) continue;
+      const parsed = parseSingleParamTerm(segTrimmed);
+      if (parsed) terms.push(parsed);
+    }
+    return terms;
+  }
+
+  // Single term (e.g. "tipo_pessoa: PF" or "produto")
+  const single = parseSingleParamTerm(trimmed);
+  return single ? [single] : [];
+}
+
+/**
+ * Extracts structured pairs { name, path, value } from the query string.
+ */
+export function extractQueryParams(rawQuery: string): ParsedQueryParam[] {
+  const terms = parseParameterSearchTerms(rawQuery);
+  return terms.map((t) => {
+    const isPath = t.name.includes('.');
+    return {
+      name: isPath ? t.name.split('.').pop()! : t.name,
+      path: isPath ? t.name : undefined,
+      value: t.value,
+      rawPair: t.isKeyValue ? `${t.name}: ${t.value}` : t.name,
+    };
+  });
 }
 
 /**

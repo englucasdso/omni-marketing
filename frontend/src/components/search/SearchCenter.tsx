@@ -283,13 +283,15 @@ export const SearchCenter: React.FC<SearchCenterProps> = ({
     const rawQuery = (overrideInput !== undefined ? overrideInput : paramInput).trim();
     setIsSearching(true);
     try {
-      if (!rawQuery) {
-        // If empty, return all artifacts
-        const allIds = artifacts.map((a) => String(a.id));
-        onApplyToCards?.('', allIds, {
+      const cleanTokens = rawQuery.replace(/\+/g, '').trim();
+      if (!rawQuery || !cleanTokens) {
+        onApplyToCards?.(rawQuery, [], {
           mode: 'parametros',
           scope: criteriaScope,
           operator: criteriaCombination,
+          parameterGroups: {},
+          matchedTerms: [],
+          queryKind: 'parameter',
         });
         return;
       }
@@ -316,6 +318,7 @@ export const SearchCenter: React.FC<SearchCenterProps> = ({
             screenId: occ.screenId,
             screenIndex: occ.screenIndex,
             screenTitle: occ.screenTitle,
+            snippetId: occ.snippetId,
             snippetIndex: occ.snippetIndex,
             event: occ.event,
             quality: occ.quality,

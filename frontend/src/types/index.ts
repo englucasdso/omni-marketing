@@ -260,6 +260,7 @@ export interface ParameterOccurrenceSummary {
   screenId: string;
   screenIndex: number;
   screenTitle: string;
+  snippetId?: string;
   snippetIndex: number;
   event: string;
   quality: string;
