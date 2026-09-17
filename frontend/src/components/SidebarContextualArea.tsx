@@ -164,30 +164,7 @@ export const SidebarContextualArea: React.FC<SidebarContextualAreaProps> = ({
 
     return (
       <div className="flex flex-col gap-2 w-full min-w-0" id="sidebar-contextual-cards">
-        {/* Campo de Busca Reativo (Filtro Imediato na tela de Cards) */}
-        <div className="relative w-full">
-          <Search className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none shrink-0" />
-          <input
-            type="text"
-            placeholder="Buscar cards..."
-            value={cardSearch}
-            onChange={(e) => onCardSearchChange(e.target.value)}
-            className="w-full pl-8 pr-7 py-1.5 bg-gray-50/90 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 rounded-lg text-xs font-ui text-gray-800 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-slate-600 focus:border-gray-400 dark:focus:border-slate-500 transition-all truncate"
-          />
-          {cardSearch && (
-            <button
-              type="button"
-              onClick={() => onCardSearchChange('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 p-0.5"
-              title="Limpar busca"
-              aria-label="Limpar busca"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          )}
-        </div>
-
-        {/* Botão de Filtros (Abre o Popover Flutuante) */}
+        {/* Botão de Refinar Resultados (Abre o Popover Flutuante) */}
         <button
           ref={filterButtonRef}
           type="button"
@@ -201,7 +178,7 @@ export const SidebarContextualArea: React.FC<SidebarContextualAreaProps> = ({
         >
           <div className="flex items-center gap-1.5 truncate">
             <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">Filtros</span>
+            <span className="truncate">Refinar resultados</span>
             {activeFiltersCount > 0 && (
               <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-[#7B0209] text-white">
                 {activeFiltersCount}
@@ -215,7 +192,7 @@ export const SidebarContextualArea: React.FC<SidebarContextualAreaProps> = ({
           isOpen={isPopoverOpen}
           onClose={() => setIsPopoverOpen(false)}
           anchorRef={filterButtonRef}
-          title="Filtros de Cards"
+          title="Refinar resultados"
           activeCount={activeFiltersCount}
           onResetAll={onResetCardFilters}
         >

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Search,
   X,
@@ -6,810 +6,846 @@ import {
   Sparkles,
   FileText,
   Loader2,
-  ArrowRight,
-  RotateCcw,
-  Keyboard,
-  Info,
+  Plus,
+  Trash2,
+  Activity,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
-import { Artifact } from '../../types';
+import { motion, AnimatePresence } from 'motion/react';
+import { Artifact, ActiveSearch } from '../../types';
 import { searchWorkerClient } from '../../services/searchWorkerClient';
-import { SearchResultCard } from './SearchResultCard';
-import { ParameterCriteriaBuilder } from './ParameterCriteriaBuilder';
-import type {
-  ContentSearchResult,
-  ParameterCriterion,
-  ParameterSearchResult,
-} from '../../workers/artifactSearch.worker';
-
-export interface SemanticSearchResultItem {
-  artifactId: string;
-  title: string;
-  artifactType: string;
-  produto: string;
-  subproduto: string;
-  screenId?: string;
-  screenIndex?: number;
-  screenTitle?: string;
-  snippetIndex?: number;
-  score: number;
-  confidence: "ALTA" | "MEDIA" | "BAIXA";
-  reason: string;
-  evidence: string[];
-  codeSnippet?: string;
-  event?: string;
-}
+import type { ParameterCriterion } from '../../workers/artifactSearch.worker';
 
 export interface SearchCenterProps {
   artifacts: Artifact[];
-  onOpenDetails: (artifact: Artifact) => void;
-  onOpenSnippet: (artifact: Artifact, screenId?: string, snippetIndex?: number) => void;
-  onViewInTree: (artifactId: string) => void;
-  onOpenJourney: (mapId: string) => void;
-  onApplyToCards?: (query: string, filteredIds: string[]) => void;
+  activeSearch?: ActiveSearch | null;
+  onApplyToCards?: (
+    query: string,
+    filteredIds: string[],
+    meta?: {
+      mode: 'conteudo' | 'parametros' | 'ia';
+      parameterCriteria?: ParameterCriterion[];
+      aiQuestion?: string;
+      scope?: 'SNIPPET' | 'SCREEN';
+      operator?: 'AND' | 'OR';
+    }
+  ) => void;
+  onNavigateToOperationalInsights?: () => void;
+  // Optional callbacks kept for API compatibility
+  onOpenDetails?: (artifact: Artifact) => void;
+  onOpenSnippet?: (artifact: Artifact, screenId?: string, snippetIndex?: number) => void;
+  onViewInTree?: (artifactId: string) => void;
+  onOpenJourney?: (mapId: string) => void;
 }
 
 export const SearchCenter: React.FC<SearchCenterProps> = ({
   artifacts,
-  onOpenDetails,
-  onOpenSnippet,
-  onViewInTree,
-  onOpenJourney,
+  activeSearch,
   onApplyToCards,
+  onNavigateToOperationalInsights,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  // Current Mode: 'conteudo' | 'parametros' | 'ia'
   const [mode, setMode] = useState<'conteudo' | 'parametros' | 'ia'>('conteudo');
 
-  // Input states
+  // Input states per mode
   const [contentQuery, setContentQuery] = useState('');
+  const [paramInput, setParamInput] = useState('');
   const [aiQuestion, setAiQuestion] = useState('');
+
+  // Parameter mode controls
   const [criteria, setCriteria] = useState<ParameterCriterion[]>([]);
   const [criteriaCombination, setCriteriaCombination] = useState<'AND' | 'OR'>('AND');
   const [criteriaScope, setCriteriaScope] = useState<'SNIPPET' | 'SCREEN'>('SNIPPET');
 
-  // Status & loading
-  const [isIndexBuilding, setIsIndexBuilding] = useState(true);
+  // Parameter autocomplete
+  const [paramSuggestions, setParamSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Status & Feedback states
   const [isSearching, setIsSearching] = useState(false);
-  const [searchDurationMs, setSearchDurationMs] = useState<number | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
-  const [aiMessage, setAiMessage] = useState<string | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
 
-  // Results
-  const [contentResults, setContentResults] = useState<ContentSearchResult[]>([]);
-  const [parameterResults, setParameterResults] = useState<ParameterSearchResult[]>([]);
-  const [aiResults, setAiResults] = useState<SemanticSearchResultItem[]>([]);
-
-  // Keyboard navigation & abort controller
-  const [selectedIndex, setSelectedIndex] = useState<number>(-1);
-  const aiAbortControllerRef = useRef<AbortController | null>(null);
-  const surfaceRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const suggestionsBoxRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Build Worker Index when artifacts change
+  // Sync index with worker
   useEffect(() => {
-    if (artifacts.length > 0) {
-      setIsIndexBuilding(true);
+    if (artifacts && artifacts.length > 0) {
+      searchWorkerClient.initIndex(artifacts).catch((err) => {
+        console.warn('[SearchCenter] Worker index init:', err);
+      });
+    }
+  }, [artifacts]);
+
+  // Sync state from activeSearch when present or restored
+  useEffect(() => {
+    if (activeSearch) {
+      setMode(activeSearch.mode);
+      if (activeSearch.mode === 'conteudo') {
+        setContentQuery(activeSearch.query || '');
+      } else if (activeSearch.mode === 'parametros') {
+        setParamInput(activeSearch.query || '');
+        if (activeSearch.parameterCriteria && activeSearch.parameterCriteria.length > 0) {
+          setCriteria(activeSearch.parameterCriteria);
+        }
+        if (activeSearch.operator) {
+          setCriteriaCombination(activeSearch.operator);
+        }
+        if (activeSearch.scope) {
+          setCriteriaScope(activeSearch.scope);
+        }
+      } else if (activeSearch.mode === 'ia') {
+        setAiQuestion(activeSearch.aiQuestion || activeSearch.query || '');
+      }
+    }
+  }, [activeSearch]);
+
+  // Click outside suggestions box
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        suggestionsBoxRef.current &&
+        !suggestionsBoxRef.current.contains(e.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(e.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Fetch autocomplete suggestions for parameter mode
+  const handleParamInputChange = (val: string) => {
+    setParamInput(val);
+    const lastToken = val.split(/[+,]/).pop()?.trim() || '';
+    if (lastToken.length >= 2) {
       searchWorkerClient
-        .initIndex(artifacts)
-        .then(() => setIsIndexBuilding(false))
-        .catch((err) => {
-          console.error('[SearchCenter] Failed to build worker index:', err);
-          setIsIndexBuilding(false);
+        .getParameterSuggestions('qualquer', lastToken, 6)
+        .then((suggs) => {
+          setParamSuggestions(suggs);
+          setShowSuggestions(suggs.length > 0);
+        })
+        .catch(() => {
+          setParamSuggestions([]);
+          setShowSuggestions(false);
         });
-    }
-  }, [artifacts]);
-
-  // Fast map by ID for rendering full artifact data in result cards
-  const artifactMap = useMemo(() => {
-    const map = new Map<string, Artifact>();
-    artifacts.forEach((a) => map.set(String(a.id), a));
-    return map;
-  }, [artifacts]);
-
-  // Intelligent Mode Suggestions
-  const suggestion = useMemo(() => {
-    if (mode !== 'conteudo') return null;
-    const trimmed = contentQuery.trim();
-    if (!trimmed) return null;
-
-    if (trimmed.includes('=')) {
-      return {
-        type: 'parametros' as const,
-        text: 'Parece uma busca por parâmetros.',
-        actionText: 'Trocar para Parâmetros',
-      };
-    }
-
-    const lower = trimmed.toLowerCase();
-    const isQuestion =
-      trimmed.endsWith('?') ||
-      lower.startsWith('como') ||
-      lower.startsWith('qual') ||
-      lower.startsWith('quais') ||
-      lower.startsWith('onde') ||
-      lower.startsWith('tenho') ||
-      lower.startsWith('existe') ||
-      lower.startsWith('por que');
-
-    if (isQuestion) {
-      return {
-        type: 'ia' as const,
-        text: 'Deseja pesquisar com IA?',
-        actionText: 'Trocar para Perguntar à IA',
-      };
-    }
-
-    return null;
-  }, [contentQuery, mode]);
-
-  // Handle Mode Suggestion Switch
-  const handleApplySuggestion = (targetMode: 'parametros' | 'ia') => {
-    if (targetMode === 'parametros') {
-      const parts = contentQuery.split('=');
-      const namePart = parts[0]?.trim() || '';
-      const valPart = parts[1]?.trim() || '';
-      setCriteria([
-        {
-          field: 'nome',
-          operator: valPart ? 'igual' : 'existe',
-          value: valPart || namePart,
-        },
-      ]);
-      setMode('parametros');
-    } else if (targetMode === 'ia') {
-      setAiQuestion(contentQuery);
-      setMode('ia');
+    } else {
+      setParamSuggestions([]);
+      setShowSuggestions(false);
     }
   };
 
-  // Debounced Content Search
-  useEffect(() => {
-    if (mode !== 'conteudo') return;
-
-    const trimmed = contentQuery.trim();
-    if (!trimmed) {
-      setContentResults([]);
-      setSearchDurationMs(null);
-      return;
+  // Titles per mode
+  const getModeTitle = () => {
+    switch (mode) {
+      case 'conteudo':
+        return 'Qual artefato você quer encontrar?';
+      case 'parametros':
+        return 'Buscar por parâmetros de tagueamento';
+      case 'ia':
+        return 'O que você gostaria de perguntar à IA sobre os artefatos?';
     }
+  };
 
+  // Placeholders per mode
+  const getModePlaceholder = () => {
+    switch (mode) {
+      case 'conteudo':
+        return 'Busque por ID, nome do mapa ou qualquer termo relacionado';
+      case 'parametros':
+        return 'Digite o nome, caminho ou valor do parâmetro (ex: event, transaction_id, true)';
+      case 'ia':
+        return 'Ex: Onde é disparado o evento de confirmação de pagamento?';
+    }
+  };
+
+  // Current input value based on mode
+  const currentInputValue =
+    mode === 'conteudo' ? contentQuery : mode === 'parametros' ? paramInput : aiQuestion;
+
+  const handleInputChange = (val: string) => {
+    if (mode === 'conteudo') {
+      setContentQuery(val);
+    } else if (mode === 'parametros') {
+      handleParamInputChange(val);
+    } else {
+      setAiQuestion(val);
+      if (aiError) setAiError(null);
+    }
+  };
+
+  const handleClearInput = () => {
+    if (mode === 'conteudo') {
+      setContentQuery('');
+    } else if (mode === 'parametros') {
+      setParamInput('');
+      setShowSuggestions(false);
+    } else {
+      setAiQuestion('');
+      setAiError(null);
+    }
+    inputRef.current?.focus();
+  };
+
+  // Parse direct parameter typing (e.g. user_id + produto + fluxo or key=val)
+  const parseParamInputToCriteria = (rawInput: string): ParameterCriterion[] => {
+    const trimmed = rawInput.trim();
+    if (!trimmed) return [];
+
+    // Split by '+' or ',' for multiple parameters
+    const tokens = trimmed
+      .split(/[+,]/)
+      .map((t) => t.trim())
+      .filter(Boolean);
+
+    const parsed: ParameterCriterion[] = [];
+    for (const tok of tokens) {
+      if (tok.includes('=')) {
+        const [k, ...rest] = tok.split('=');
+        const v = rest.join('=').trim();
+        const keyTrimmed = k.trim();
+        if (keyTrimmed && v) {
+          parsed.push({
+            field: 'nome',
+            operator: 'igual',
+            value: keyTrimmed,
+          });
+          parsed.push({
+            field: 'valor',
+            operator: 'contem',
+            value: v,
+          });
+        } else if (keyTrimmed) {
+          parsed.push({
+            field: 'nome',
+            operator: 'contem',
+            value: keyTrimmed,
+          });
+        }
+      } else {
+        parsed.push({
+          field: 'qualquer',
+          operator: 'contem',
+          value: tok,
+        });
+      }
+    }
+    return parsed;
+  };
+
+  // Execute Search in Conteúdo Mode
+  const executeContentSearch = async (searchQuery: string) => {
+    const q = searchQuery.trim();
     setIsSearching(true);
-    const timeout = setTimeout(() => {
-      searchWorkerClient
-        .searchContent(trimmed, 60)
-        .then((res) => {
-          setContentResults(res.results);
-          setSearchDurationMs(res.durationMs);
-        })
-        .catch((e) => console.error(e))
-        .finally(() => setIsSearching(false));
-    }, 150);
+    try {
+      if (!q || q.toLowerCase() === 'inventario' || q.toLowerCase() === 'inventário') {
+        const allIds = artifacts.map((a) => String(a.id));
+        onApplyToCards?.(q, allIds, { mode: 'conteudo' });
+        return;
+      }
 
-    return () => clearTimeout(timeout);
-  }, [contentQuery, mode]);
-
-  // Parameter Search
-  const executeParameterSearch = useCallback(() => {
-    if (criteria.length === 0) {
-      setParameterResults([]);
-      setSearchDurationMs(null);
-      return;
+      const res = await searchWorkerClient.searchContent(q, 500);
+      const filteredIds = Array.from(new Set(res.results.map((r) => String(r.artifactId))));
+      onApplyToCards?.(q, filteredIds, { mode: 'conteudo' });
+    } catch (err) {
+      console.error('[SearchCenter] Content search error:', err);
+      // Fallback: match in inventory
+      const lower = q.toLowerCase();
+      const fallbackIds = artifacts
+        .filter(
+          (a) =>
+            a.id?.toLowerCase().includes(lower) ||
+            a.titulo?.toLowerCase().includes(lower) ||
+            a.produto?.toLowerCase().includes(lower) ||
+            a.subproduto?.toLowerCase().includes(lower)
+        )
+        .map((a) => String(a.id));
+      onApplyToCards?.(q, fallbackIds, { mode: 'conteudo' });
+    } finally {
+      setIsSearching(false);
     }
+  };
 
+  // Execute Search in Parâmetros Mode
+  const executeParamSearch = async () => {
     setIsSearching(true);
-    searchWorkerClient
-      .searchParameters(criteria, criteriaCombination, criteriaScope, 60)
-      .then((res) => {
-        setParameterResults(res.results);
-        setSearchDurationMs(res.durationMs);
-      })
-      .catch((e) => console.error(e))
-      .finally(() => setIsSearching(false));
-  }, [criteria, criteriaCombination, criteriaScope]);
+    setShowSuggestions(false);
+    try {
+      const parsedDirectCriteria = parseParamInputToCriteria(paramInput);
+      const combinedCriteria = [...parsedDirectCriteria, ...criteria];
 
-  // Trigger Parameter search whenever criteria or options change
-  useEffect(() => {
-    if (mode === 'parametros') {
-      executeParameterSearch();
+      if (combinedCriteria.length === 0) {
+        // If empty, return all artifacts
+        const allIds = artifacts.map((a) => String(a.id));
+        onApplyToCards?.('', allIds, {
+          mode: 'parametros',
+          parameterCriteria: [],
+          scope: criteriaScope,
+          operator: criteriaCombination,
+        });
+        return;
+      }
+
+      const res = await searchWorkerClient.searchParameters(
+        combinedCriteria,
+        criteriaCombination,
+        criteriaScope,
+        500
+      );
+
+      const filteredIds = Array.from(new Set(res.results.map((r) => String(r.artifactId))));
+
+      onApplyToCards?.(paramInput, filteredIds, {
+        mode: 'parametros',
+        parameterCriteria: combinedCriteria,
+        scope: criteriaScope,
+        operator: criteriaCombination,
+      });
+    } catch (err) {
+      console.error('[SearchCenter] Parameter search error:', err);
+      onApplyToCards?.(paramInput, [], {
+        mode: 'parametros',
+        parameterCriteria: criteria,
+        scope: criteriaScope,
+        operator: criteriaCombination,
+      });
+    } finally {
+      setIsSearching(false);
     }
-  }, [mode, criteria, criteriaCombination, criteriaScope, executeParameterSearch]);
+  };
 
-  // Semantic AI Search Execution
-  const executeAiSearch = async () => {
-    const trimmed = aiQuestion.trim();
-    if (!trimmed || aiLoading) return;
+  // Execute Search in Perguntar à IA Mode
+  const executeAiSearch = async (questionToAsk?: string) => {
+    const q = (questionToAsk !== undefined ? questionToAsk : aiQuestion).trim();
+    if (!q) return;
 
-    if (aiAbortControllerRef.current) {
-      aiAbortControllerRef.current.abort();
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
     }
     const abortController = new AbortController();
-    aiAbortControllerRef.current = abortController;
+    abortControllerRef.current = abortController;
 
     setAiLoading(true);
     setAiError(null);
-    setAiMessage(null);
 
-    const startTime = Date.now();
     try {
       const response = await fetch('/api/search/semantic', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: trimmed }),
+        body: JSON.stringify({ question: q }),
         signal: abortController.signal,
       });
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.message || data.error || 'Não foi possível concluir a busca por IA.');
+        throw new Error(
+          data.message || data.error || 'Serviço de IA temporariamente indisponível.'
+        );
       }
 
-      setAiResults(data.results || []);
-      setAiMessage(data.message || null);
-      setSearchDurationMs(Date.now() - startTime);
+      const rawResults = Array.isArray(data.results) ? data.results : [];
+      const filteredIds: string[] = Array.from(
+        new Set(
+          rawResults
+            .map((r: any) => String(r.artifactId || r.id || ''))
+            .filter((id: string) => id.length > 0)
+        )
+      );
+
+      onApplyToCards?.(q, filteredIds, {
+        mode: 'ia',
+        aiQuestion: q,
+      });
     } catch (err: any) {
-      if (err.name === 'AbortError') {
-        console.log('[SearchCenter] AI Search cancelled by user.');
-        return;
-      }
+      if (err.name === 'AbortError') return;
       console.error('[SearchCenter] AI Search error:', err);
-      setAiError(err.message || 'Não foi possível concluir a busca por IA.');
-      setAiResults([]);
+      setAiError(
+        err.message ||
+          'Não foi possível consultar a IA no momento. Verifique a conexão ou tente novamente.'
+      );
     } finally {
       setAiLoading(false);
-      aiAbortControllerRef.current = null;
     }
   };
 
-  const handleCancelAiSearch = () => {
-    if (aiAbortControllerRef.current) {
-      aiAbortControllerRef.current.abort();
-      aiAbortControllerRef.current = null;
-      setAiLoading(false);
+  // Central submit handler
+  const handleExecuteSearch = () => {
+    if (mode === 'conteudo') {
+      executeContentSearch(contentQuery);
+    } else if (mode === 'parametros') {
+      executeParamSearch();
+    } else if (mode === 'ia') {
+      executeAiSearch();
     }
   };
 
-  // Keyboard navigation & Esc to close
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
+  // Handle Enter key
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleExecuteSearch();
+    }
+  };
 
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        setIsOpen(false);
-      }
-    };
+  // Add explicit criterion in parameter mode
+  const handleAddCriterion = () => {
+    setCriteria((prev) => [...prev, { field: 'nome', operator: 'contem', value: '' }]);
+  };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+  const handleUpdateCriterion = (idx: number, updates: Partial<ParameterCriterion>) => {
+    setCriteria((prev) => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], ...updates };
+      return next;
+    });
+  };
 
-  const activeResultsCount =
-    mode === 'conteudo'
-      ? contentResults.length
-      : mode === 'parametros'
-      ? parameterResults.length
-      : aiResults.length;
+  const handleRemoveCriterion = (idx: number) => {
+    setCriteria((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleClearCriteria = () => {
+    setCriteria([]);
+    setParamInput('');
+    setShowSuggestions(false);
+  };
 
   return (
-    <div className="relative w-full z-30">
-      {/* 1. Integrated Search Bar on Cards Screen */}
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={() => {
-          setIsOpen(true);
-          setTimeout(() => inputRef.current?.focus(), 50);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            setIsOpen(true);
-            setTimeout(() => inputRef.current?.focus(), 50);
-          }
-        }}
-        className="w-full rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-850 p-3 shadow-sm hover:border-[#7B0209] transition-all cursor-pointer flex items-center justify-between gap-3 group focus:outline-none focus:ring-2 focus:ring-[#7B0209]/40"
-      >
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="p-2 rounded-xl bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-slate-400 group-hover:text-[#7B0209] group-hover:bg-red-50 dark:group-hover:bg-red-950/40 transition-colors">
-            <Search className="w-4 h-4" />
-          </div>
-
-          <div className="flex flex-col min-w-0 flex-1">
-            <span className="text-xs font-heading font-semibold text-gray-800 dark:text-slate-200 truncate">
-              {contentQuery || aiQuestion
-                ? `${contentQuery || aiQuestion}`
-                : 'Buscar artefatos, parâmetros de tagueamento ou perguntar à IA...'}
-            </span>
-            <span className="text-[11px] text-gray-400 dark:text-slate-500">
-              {isIndexBuilding
-                ? 'Preparando busca...'
-                : `Modo ativo: ${
-                    mode === 'conteudo'
-                      ? 'Conteúdo'
-                      : mode === 'parametros'
-                      ? `Parâmetros (${criteria.length} critério${criteria.length !== 1 ? 's' : ''})`
-                      : 'Perguntar à IA'
-                  }`}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 text-xs font-semibold text-gray-400">
-          <span className="hidden sm:inline-block px-2 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-[10px] font-mono">
-            Pressione para abrir
-          </span>
-          <span className="px-2.5 py-1 rounded-lg bg-[#7B0209] text-white text-xs font-semibold shadow-sm">
-            Buscar
-          </span>
-        </div>
+    <div className="w-full max-w-4xl mx-auto flex flex-col items-center justify-start">
+      {/* Dynamic Animated Title */}
+      <div className="flex flex-col items-center text-center justify-center mb-6 w-full gap-2 min-h-[60px]">
+        <AnimatePresence mode="wait">
+          <motion.h2
+            key={mode}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18 }}
+            className="text-3xl sm:text-4xl font-normal text-gray-900 dark:text-slate-50 tracking-tight leading-tight"
+          >
+            {getModeTitle()}
+          </motion.h2>
+        </AnimatePresence>
       </div>
 
-      {/* 2. Expanded Search Surface Overlay */}
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 transition-opacity"
-            onClick={() => setIsOpen(false)}
-          />
+      {/* Mode Selector Segmented Control */}
+      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-gray-100/90 dark:bg-slate-800/90 border border-gray-200/80 dark:border-slate-700/80 shadow-inner mb-6">
+        <button
+          type="button"
+          onClick={() => setMode('conteudo')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
+            mode === 'conteudo'
+              ? 'bg-[#7B0209] text-white shadow-sm'
+              : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
+          }`}
+        >
+          <FileText className="w-3.5 h-3.5" />
+          <span>Conteúdo</span>
+        </button>
 
-          {/* Wide Popover / Surface connected to Search Bar */}
+        <button
+          type="button"
+          onClick={() => setMode('parametros')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
+            mode === 'parametros'
+              ? 'bg-[#7B0209] text-white shadow-sm'
+              : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
+          }`}
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5" />
+          <span>Parâmetros</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMode('ia')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
+            mode === 'ia'
+              ? 'bg-[#7B0209] text-white shadow-sm'
+              : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>Perguntar à IA</span>
+        </button>
+      </div>
+
+      {/* Central Unified Search Bar */}
+      <div className="w-full relative mb-4">
+        <div className="animated-border">
           <div
-            ref={surfaceRef}
-            className="absolute top-0 left-0 right-0 z-50 rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[85vh] transition-all"
+            className={`inner-container glass-card py-3.5 px-5 flex items-center gap-3.5 transition-all duration-300 ${
+              isFocused
+                ? 'bg-white dark:bg-slate-900 border-[#7B0209]/40 shadow-md ring-2 ring-[#7B0209]/20'
+                : 'border-gray-200 dark:border-slate-800'
+            }`}
           >
-            {/* Surface Header: Segmented Control + Close Button */}
-            <div className="p-4 border-b border-gray-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-gray-50/50 dark:bg-slate-900/50">
-              {/* Segmented Control */}
-              <div className="flex items-center p-1 rounded-xl bg-gray-200/70 dark:bg-slate-800 border border-gray-200 dark:border-slate-700">
-                <button
-                  type="button"
-                  onClick={() => setMode('conteudo')}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                    mode === 'conteudo'
-                      ? 'bg-[#7B0209] text-white shadow-sm'
-                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
-                  }`}
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  Conteúdo
-                </button>
+            <Search className="w-5 h-5 text-gray-400 dark:text-slate-500 shrink-0" />
 
-                <button
-                  type="button"
-                  onClick={() => setMode('parametros')}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                    mode === 'parametros'
-                      ? 'bg-[#7B0209] text-white shadow-sm'
-                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
-                  }`}
-                >
-                  <SlidersHorizontal className="w-3.5 h-3.5" />
-                  Parâmetros
-                  {criteria.length > 0 && (
-                    <span className="w-4 h-4 rounded-full bg-white/20 text-[10px] flex items-center justify-center font-bold">
-                      {criteria.length}
-                    </span>
-                  )}
-                </button>
+            <input
+              ref={inputRef}
+              type="text"
+              value={currentInputValue}
+              onChange={(e) => handleInputChange(e.target.value)}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              onKeyDown={handleKeyDown}
+              placeholder={getModePlaceholder()}
+              className="w-full bg-transparent border-none outline-none text-base sm:text-lg text-gray-900 dark:text-slate-50 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-0"
+            />
 
-                <button
-                  type="button"
-                  onClick={() => setMode('ia')}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                    mode === 'ia'
-                      ? 'bg-[#7B0209] text-white shadow-sm'
-                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
-                  }`}
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Perguntar à IA
-                </button>
-              </div>
-
-              {/* Status and Actions */}
-              <div className="flex items-center gap-2 text-xs">
-                {isIndexBuilding && (
-                  <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium animate-pulse">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    Preparando busca...
-                  </span>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                  title="Fechar (Esc)"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Mode Suggestion Pill (Non-intrusive) */}
-            {suggestion && (
-              <div className="px-4 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-900/40 flex items-center justify-between gap-2 text-xs">
-                <span className="text-amber-800 dark:text-amber-300 font-medium">
-                  {suggestion.text}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleApplySuggestion(suggestion.type)}
-                  className="px-2.5 py-1 rounded bg-[#7B0209] text-white font-semibold text-[11px] hover:bg-[#600207] transition-colors cursor-pointer flex items-center gap-1"
-                >
-                  {suggestion.actionText}
-                  <ArrowRight className="w-3 h-3" />
-                </button>
-              </div>
+            {/* Clear button */}
+            {currentInputValue && !isSearching && !aiLoading && (
+              <button
+                type="button"
+                onClick={handleClearInput}
+                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 transition-colors"
+                title="Limpar campo"
+                aria-label="Limpar campo"
+              >
+                <X className="w-4 h-4" />
+              </button>
             )}
 
-            {/* Mode-Specific Input Areas */}
-            <div className="p-4 border-b border-gray-100 dark:border-slate-800">
-              {mode === 'conteudo' && (
-                <div className="relative">
-                  <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    value={contentQuery}
-                    onChange={(e) => setContentQuery(e.target.value)}
-                    placeholder="Buscar por título, ID, produto, evento, parâmetro, código ou status..."
-                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-850 text-sm text-gray-900 dark:text-slate-100 placeholder-gray-400 focus:outline-none focus:border-[#7B0209]"
-                  />
-                  {contentQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setContentQuery('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 cursor-pointer"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
+            {/* Spinner indicator if searching */}
+            {(isSearching || aiLoading) && (
+              <Loader2 className="w-4 h-4 animate-spin text-[#7B0209] shrink-0" />
+            )}
+
+            {/* Submit Action Button */}
+            <button
+              type="button"
+              onClick={handleExecuteSearch}
+              disabled={isSearching || aiLoading}
+              className="px-5 py-2.5 rounded-xl bg-[#7B0209] hover:bg-[#630207] text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-50"
+            >
+              {mode === 'ia' ? (
+                <>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Perguntar</span>
+                </>
+              ) : (
+                <>
+                  <Search className="w-3.5 h-3.5" />
+                  <span>Buscar</span>
+                </>
               )}
+            </button>
+          </div>
+        </div>
 
-              {mode === 'parametros' && (
-                <ParameterCriteriaBuilder
-                  criteria={criteria}
-                  onChangeCriteria={setCriteria}
-                  combination={criteriaCombination}
-                  onChangeCombination={setCriteriaCombination}
-                  scope={criteriaScope}
-                  onChangeScope={setCriteriaScope}
-                  onSearch={executeParameterSearch}
-                />
-              )}
-
-              {mode === 'ia' && (
-                <div className="space-y-3">
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="text"
-                      value={aiQuestion}
-                      onChange={(e) => setAiQuestion(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          executeAiSearch();
-                        }
-                      }}
-                      placeholder="Faça uma pergunta sobre os artefatos disponíveis..."
-                      className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-850 text-sm text-gray-900 dark:text-slate-100 placeholder-gray-400 focus:outline-none focus:border-[#7B0209]"
-                    />
-
-                    <div className="flex items-center gap-2">
-                      {aiLoading ? (
-                        <button
-                          type="button"
-                          onClick={handleCancelAiSearch}
-                          className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-slate-300 hover:bg-gray-300 cursor-pointer"
-                        >
-                          Cancelar
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={executeAiSearch}
-                          disabled={!aiQuestion.trim()}
-                          className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-[#7B0209] text-white hover:bg-[#600207] disabled:opacity-50 transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <Sparkles className="w-3.5 h-3.5" />
-                          Buscar com IA
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Suggestion Prompts */}
-                  <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
-                    <span className="text-gray-400">Sugestões:</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAiQuestion('Quais jornadas envolvem contratação de cartão ou benefício INSS?');
-                      }}
-                      className="px-2 py-0.5 rounded-md bg-gray-100 dark:bg-slate-800 hover:text-[#7B0209] transition-colors cursor-pointer text-[11px]"
-                    >
-                      Jornadas de cartão / INSS
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAiQuestion('Existe algum evento de portabilidade de crédito configurado?');
-                      }}
-                      className="px-2 py-0.5 rounded-md bg-gray-100 dark:bg-slate-800 hover:text-[#7B0209] transition-colors cursor-pointer text-[11px]"
-                    >
-                      Portabilidade de crédito
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAiQuestion('Quais mapas possuem telas com status de correção ou validação pendente?');
-                      }}
-                      className="px-2 py-0.5 rounded-md bg-gray-100 dark:bg-slate-800 hover:text-[#7B0209] transition-colors cursor-pointer text-[11px]"
-                    >
-                      Telas com correção pendente
-                    </button>
-                  </div>
-                </div>
-              )}
+        {/* Parameter Autocomplete Dropdown */}
+        {mode === 'parametros' && showSuggestions && paramSuggestions.length > 0 && (
+          <div
+            ref={suggestionsBoxRef}
+            className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden py-1"
+          >
+            <div className="px-3 py-1 text-[10px] uppercase font-bold tracking-wider text-gray-400 dark:text-slate-500 border-b border-gray-100 dark:border-slate-800">
+              Sugestões de parâmetros
             </div>
+            {paramSuggestions.map((sugg, i) => (
+              <button
+                key={i}
+                type="button"
+                onMouseDown={() => {
+                  const parts = paramInput.split('+');
+                  parts[parts.length - 1] = ' ' + sugg + ' ';
+                  setParamInput(parts.join('+').trim());
+                  setShowSuggestions(false);
+                  inputRef.current?.focus();
+                }}
+                className="w-full text-left px-3.5 py-2 text-xs font-mono text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800 flex items-center justify-between transition-colors"
+              >
+                <span>{sugg}</span>
+                <span className="text-[10px] text-gray-400 dark:text-slate-500">adicionar</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
-            {/* Results Header Info Bar */}
-            <div className="px-4 py-2 bg-gray-50/80 dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between text-xs text-gray-500 dark:text-slate-400">
-              <div>
-                {isSearching || aiLoading ? (
-                  <span className="flex items-center gap-1.5 text-[#7B0209] dark:text-red-400 font-semibold">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    {aiLoading ? 'Analisando o inventário...' : 'Pesquisando...'}
-                  </span>
-                ) : (
-                  <span>
-                    {activeResultsCount > 0 ? (
-                      <>
-                        <strong className="text-gray-900 dark:text-slate-100 font-bold">
-                          {activeResultsCount}
-                        </strong>{' '}
-                        resultado{activeResultsCount !== 1 ? 's' : ''} encontrado{activeResultsCount !== 1 ? 's' : ''}
-                        {searchDurationMs !== null && ` em ${searchDurationMs}ms`}
-                      </>
-                    ) : (
-                      <span>Nenhum resultado para exibir</span>
-                    )}
-                  </span>
-                )}
-              </div>
+      {/* Mode-Specific Sub-Controls & Assistance */}
 
-              {activeResultsCount > 0 && onApplyToCards && (
+      {/* Mode 1: Conteúdo Assistance */}
+      {mode === 'conteudo' && (
+        <div className="w-full flex flex-col items-start gap-3 mt-4 px-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setContentQuery('Abertura de Contas');
+                executeContentSearch('Abertura de Contas');
+              }}
+              className="text-xs font-medium text-gray-500 dark:text-slate-400 hover:text-[#7B0209] dark:hover:text-red-400 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-slate-800/80 border border-gray-200/60 dark:border-slate-700/60 cursor-pointer"
+            >
+              <Search className="w-3 h-3 text-gray-400" />
+              <span>Abertura de contas PF e PJ</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setContentQuery('Cartões');
+                executeContentSearch('Cartões');
+              }}
+              className="text-xs font-medium text-gray-500 dark:text-slate-400 hover:text-[#7B0209] dark:hover:text-red-400 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-slate-800/80 border border-gray-200/60 dark:border-slate-700/60 cursor-pointer"
+            >
+              <Search className="w-3 h-3 text-gray-400" />
+              <span>Cartões de crédito ou BIA</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setContentQuery('inventario');
+                executeContentSearch('inventario');
+              }}
+              className="text-xs font-medium text-gray-500 dark:text-slate-400 hover:text-[#7B0209] dark:hover:text-red-400 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-slate-800/80 border border-gray-200/60 dark:border-slate-700/60 cursor-pointer"
+            >
+              <Search className="w-3 h-3 text-gray-400" />
+              <span>Digite "inventário" para ver toda a base</span>
+            </button>
+
+            {onNavigateToOperationalInsights && (
+              <button
+                type="button"
+                onClick={onNavigateToOperationalInsights}
+                className="text-xs font-semibold text-gray-600 dark:text-slate-300 hover:text-[#7B0209] transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50/50 dark:bg-red-950/20 border border-red-200/60 dark:border-red-900/30 cursor-pointer ml-auto"
+              >
+                <Activity className="w-3.5 h-3.5 text-[#7B0209]" />
+                <span>Ver insights</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Mode 2: Parâmetros Sub-Controls */}
+      {mode === 'parametros' && (
+        <div className="w-full flex flex-col gap-3.5 mt-2 px-1">
+          {/* Discreet Controls Bar: Combination + Scope + Add Button */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700">
+            <div className="flex flex-wrap items-center gap-2.5">
+              {/* AND / OR Combination */}
+              <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-lg border border-gray-200 dark:border-slate-700 text-xs font-semibold">
                 <button
                   type="button"
-                  onClick={() => {
-                    const ids =
-                      mode === 'conteudo'
-                        ? contentResults.map((r) => r.artifactId)
-                        : mode === 'parametros'
-                        ? parameterResults.map((r) => r.artifactId)
-                        : aiResults.map((r) => r.artifactId);
-                    onApplyToCards(contentQuery || aiQuestion, ids);
-                    setIsOpen(false);
-                  }}
-                  className="text-xs font-semibold text-[#7B0209] dark:text-red-400 hover:underline cursor-pointer flex items-center gap-1"
+                  onClick={() => setCriteriaCombination('AND')}
+                  className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
+                    criteriaCombination === 'AND'
+                      ? 'bg-[#7B0209] text-white'
+                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
+                  }`}
                 >
-                  Filtrar Cards com estes resultados
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  Todos — AND
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCriteriaCombination('OR')}
+                  className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
+                    criteriaCombination === 'OR'
+                      ? 'bg-[#7B0209] text-white'
+                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
+                  }`}
+                >
+                  Qualquer — OR
+                </button>
+              </div>
+
+              {/* Scope: Same Snippet vs Same Screen */}
+              <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-lg border border-gray-200 dark:border-slate-700 text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setCriteriaScope('SNIPPET')}
+                  className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
+                    criteriaScope === 'SNIPPET'
+                      ? 'bg-[#7B0209] text-white'
+                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
+                  }`}
+                >
+                  No mesmo snippet
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCriteriaScope('SCREEN')}
+                  className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
+                    criteriaScope === 'SCREEN'
+                      ? 'bg-[#7B0209] text-white'
+                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
+                  }`}
+                >
+                  Na mesma tela
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {(criteria.length > 0 || paramInput) && (
+                <button
+                  type="button"
+                  onClick={handleClearCriteria}
+                  className="px-2.5 py-1.5 rounded-lg text-xs text-gray-500 hover:text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                >
+                  Limpar critérios
                 </button>
               )}
-            </div>
-
-            {/* Results List Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[220px]">
-              {/* AI Loading State */}
-              {aiLoading && (
-                <div className="py-12 text-center space-y-3">
-                  <Loader2 className="w-8 h-8 text-[#7B0209] animate-spin mx-auto" />
-                  <p className="text-sm font-semibold text-gray-700 dark:text-slate-200">
-                    Analisando o inventário...
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    Consultando modelo com base nos artefatos e evidências reais.
-                  </p>
-                </div>
-              )}
-
-              {/* AI Error State */}
-              {!aiLoading && aiError && (
-                <div className="py-8 px-4 text-center space-y-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 rounded-xl">
-                  <p className="text-sm font-bold text-red-700 dark:text-red-400">
-                    Não foi possível concluir a busca por IA.
-                  </p>
-                  <p className="text-xs text-red-600 dark:text-red-300">{aiError}</p>
-                  <button
-                    type="button"
-                    onClick={executeAiSearch}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#7B0209] text-white hover:bg-[#600207] cursor-pointer inline-flex items-center gap-1.5"
-                  >
-                    <RotateCcw className="w-3 h-3" />
-                    Tentar novamente
-                  </button>
-                </div>
-              )}
-
-              {/* Mode Conteúdo Results & Empty States */}
-              {mode === 'conteudo' && !isSearching && (
-                <>
-                  {contentQuery.trim() === '' ? (
-                    <div className="py-12 text-center text-xs text-gray-400">
-                      Digite termos para pesquisar em títulos, IDs, caminhos, telas, eventos e códigos.
-                    </div>
-                  ) : contentResults.length === 0 ? (
-                    <div className="py-12 text-center text-sm font-medium text-gray-500 dark:text-slate-400">
-                      Nenhum artefato corresponde aos termos pesquisados.
-                    </div>
-                  ) : (
-                    contentResults.map((res) => {
-                      const art = artifactMap.get(res.artifactId);
-                      if (!art) return null;
-                      return (
-                        <SearchResultCard
-                          key={res.artifactId}
-                          artifact={art}
-                          mode="conteudo"
-                          score={res.score}
-                          matchedFields={res.matchedFields}
-                          screenId={res.screenId}
-                          screenIndex={res.screenIndex}
-                          screenTitle={res.screenTitle}
-                          snippetIndex={res.snippetIndex}
-                          codeExcerpt={res.codeExcerpt}
-                          matchedValue={res.matchedValue}
-                          onOpenDetails={(item) => {
-                            setIsOpen(false);
-                            onOpenDetails(item);
-                          }}
-                          onOpenSnippet={(item, scId, snipIdx) => {
-                            setIsOpen(false);
-                            onOpenSnippet(item, scId, snipIdx);
-                          }}
-                          onViewInTree={(id) => {
-                            setIsOpen(false);
-                            onViewInTree(id);
-                          }}
-                          onOpenJourney={(id) => {
-                            setIsOpen(false);
-                            onOpenJourney(id);
-                          }}
-                        />
-                      );
-                    })
-                  )}
-                </>
-              )}
-
-              {/* Mode Parâmetros Results & Empty States */}
-              {mode === 'parametros' && !isSearching && (
-                <>
-                  {criteria.length === 0 ? null : parameterResults.length === 0 ? (
-                    <div className="py-12 text-center text-sm font-medium text-gray-500 dark:text-slate-400">
-                      Nenhum snippet possui essa combinação de parâmetros.
-                    </div>
-                  ) : (
-                    parameterResults.map((res, rIdx) => {
-                      const art = artifactMap.get(res.artifactId);
-                      if (!art) return null;
-                      return (
-                        <SearchResultCard
-                          key={`${res.artifactId}-${res.screenId}-${res.snippetIndex}-${rIdx}`}
-                          artifact={art}
-                          mode="parametros"
-                          screenId={res.screenId}
-                          screenIndex={res.screenIndex}
-                          screenTitle={res.screenTitle}
-                          snippetIndex={res.snippetIndex}
-                          matchedCriteria={res.matchedCriteria}
-                          matchedValues={res.matchedValues}
-                          codeExcerpt={res.rawCodePreview}
-                          additionalMatchesCount={res.additionalMatchesCount}
-                          onOpenDetails={(item) => {
-                            setIsOpen(false);
-                            onOpenDetails(item);
-                          }}
-                          onOpenSnippet={(item, scId, snipIdx) => {
-                            setIsOpen(false);
-                            onOpenSnippet(item, scId, snipIdx);
-                          }}
-                          onViewInTree={(id) => {
-                            setIsOpen(false);
-                            onViewInTree(id);
-                          }}
-                          onOpenJourney={(id) => {
-                            setIsOpen(false);
-                            onOpenJourney(id);
-                          }}
-                        />
-                      );
-                    })
-                  )}
-                </>
-              )}
-
-              {/* Mode IA Results & Empty States */}
-              {mode === 'ia' && !aiLoading && !aiError && (
-                <>
-                  {!aiQuestion.trim() && aiResults.length === 0 ? (
-                    <div className="py-12 text-center text-sm font-medium text-gray-500 dark:text-slate-400">
-                      Faça uma pergunta sobre os artefatos disponíveis.
-                    </div>
-                  ) : aiResults.length === 0 && aiMessage ? (
-                    <div className="py-12 text-center text-sm font-medium text-gray-500 dark:text-slate-400">
-                      {aiMessage}
-                    </div>
-                  ) : (
-                    <>
-                      {aiMessage && (
-                        <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/40 text-xs font-semibold text-[#7B0209] dark:text-red-300">
-                          {aiMessage}
-                        </div>
-                      )}
-                      {aiResults.map((res) => {
-                        const art = artifactMap.get(res.artifactId);
-                        if (!art) return null;
-                        return (
-                          <SearchResultCard
-                            key={res.artifactId}
-                            artifact={art}
-                            mode="ia"
-                            score={res.score}
-                            screenId={res.screenId}
-                            screenIndex={res.screenIndex}
-                            screenTitle={res.screenTitle}
-                            snippetIndex={res.snippetIndex}
-                            codeExcerpt={res.codeSnippet}
-                            aiConfidence={res.confidence}
-                            aiReason={res.reason}
-                            aiEvidences={res.evidence}
-                            onOpenDetails={(item) => {
-                              setIsOpen(false);
-                              onOpenDetails(item);
-                            }}
-                            onOpenSnippet={(item, scId, snipIdx) => {
-                              setIsOpen(false);
-                              onOpenSnippet(item, scId, snipIdx);
-                            }}
-                            onViewInTree={(id) => {
-                              setIsOpen(false);
-                              onViewInTree(id);
-                            }}
-                            onOpenJourney={(id) => {
-                              setIsOpen(false);
-                              onOpenJourney(id);
-                            }}
-                          />
-                        );
-                      })}
-                    </>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* Surface Footer */}
-            <div className="p-3 border-t border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900/50 flex items-center justify-between text-xs text-gray-400">
-              <div className="flex items-center gap-2">
-                <Keyboard className="w-3.5 h-3.5" />
-                <span>Pressione Esc para fechar a qualquer momento</span>
-              </div>
 
               <button
                 type="button"
-                onClick={() => setIsOpen(false)}
-                className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-300 font-semibold hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                onClick={handleAddCriterion}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#7B0209] text-white hover:bg-[#600207] shadow-sm transition-all cursor-pointer"
               >
-                Fechar busca
+                <Plus className="w-3.5 h-3.5" />
+                Adicionar parâmetro
               </button>
             </div>
           </div>
-        </>
+
+          {/* Criteria Rows (if any explicit criteria added) */}
+          {criteria.length > 0 && (
+            <div className="flex flex-col gap-2 p-3 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800">
+              {criteria.map((crit, idx) => (
+                <div
+                  key={idx}
+                  className="flex flex-wrap items-center gap-2 p-2 rounded-lg bg-gray-50/80 dark:bg-slate-800/80 border border-gray-200/70 dark:border-slate-700/70"
+                >
+                  {/* Field Selector */}
+                  <select
+                    value={crit.field}
+                    onChange={(e) =>
+                      handleUpdateCriterion(idx, {
+                        field: e.target.value as ParameterCriterion['field'],
+                      })
+                    }
+                    className="px-2.5 py-1.5 rounded-md text-xs font-ui bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-slate-200"
+                  >
+                    <option value="nome">Nome</option>
+                    <option value="caminho">Caminho</option>
+                    <option value="valor">Valor</option>
+                    <option value="qualquer">Qualquer campo</option>
+                  </select>
+
+                  {/* Operator Selector */}
+                  <select
+                    value={crit.operator}
+                    onChange={(e) =>
+                      handleUpdateCriterion(idx, {
+                        operator: e.target.value as ParameterCriterion['operator'],
+                      })
+                    }
+                    className="px-2.5 py-1.5 rounded-md text-xs font-ui bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-slate-200"
+                  >
+                    <option value="contem">contém</option>
+                    <option value="igual">igual a</option>
+                    <option value="comeca_com">começa com</option>
+                    <option value="existe">existe</option>
+                  </select>
+
+                  {/* Value Input */}
+                  <input
+                    type="text"
+                    value={crit.value}
+                    onChange={(e) => handleUpdateCriterion(idx, { value: e.target.value })}
+                    placeholder="Valor do critério..."
+                    className="flex-1 min-w-[140px] px-2.5 py-1.5 rounded-md text-xs font-mono bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-slate-200 placeholder-gray-400"
+                  />
+
+                  {/* Delete button */}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveCriterion(idx)}
+                    className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                    title="Remover critério"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Mode 3: Perguntar à IA Sub-Controls */}
+      {mode === 'ia' && (
+        <div className="w-full flex flex-col items-start gap-3 mt-3 px-2">
+          {/* AI Loading indicator */}
+          {aiLoading && (
+            <div className="w-full p-3 rounded-xl bg-red-50/60 dark:bg-slate-800/60 border border-red-100 dark:border-slate-700 flex items-center gap-3 text-xs font-ui text-gray-700 dark:text-slate-200">
+              <Loader2 className="w-4 h-4 animate-spin text-[#7B0209] shrink-0" />
+              <span>Consultando inteligência artificial sobre os artefatos...</span>
+            </div>
+          )}
+
+          {/* AI Error banner */}
+          {aiError && (
+            <div className="w-full p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 flex items-center justify-between gap-3 text-xs font-ui text-red-800 dark:text-red-200">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
+                <span>{aiError}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => executeAiSearch()}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold cursor-pointer shrink-0"
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span>Tentar novamente</span>
+              </button>
+            </div>
+          )}
+
+          {/* Example AI questions */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
+              Exemplos:
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                const q = 'Onde é disparado o evento de confirmação de pagamento?';
+                setAiQuestion(q);
+                executeAiSearch(q);
+              }}
+              className="text-xs font-medium text-gray-500 dark:text-slate-400 hover:text-[#7B0209] dark:hover:text-red-400 transition-colors flex items-center gap-1 px-3 py-1 rounded-lg bg-gray-50 dark:bg-slate-800/80 border border-gray-200/60 dark:border-slate-700/60 cursor-pointer"
+            >
+              <Sparkles className="w-3 h-3 text-[#7B0209]" />
+              <span>Confirmação de pagamento</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const q = 'Quais mapas possuem fluxos de Pix ou Cartões?';
+                setAiQuestion(q);
+                executeAiSearch(q);
+              }}
+              className="text-xs font-medium text-gray-500 dark:text-slate-400 hover:text-[#7B0209] dark:hover:text-red-400 transition-colors flex items-center gap-1 px-3 py-1 rounded-lg bg-gray-50 dark:bg-slate-800/80 border border-gray-200/60 dark:border-slate-700/60 cursor-pointer"
+            >
+              <Sparkles className="w-3 h-3 text-[#7B0209]" />
+              <span>Fluxos de Pix ou Cartões</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const q = 'Em qual tela é coletado o CPF do usuário?';
+                setAiQuestion(q);
+                executeAiSearch(q);
+              }}
+              className="text-xs font-medium text-gray-500 dark:text-slate-400 hover:text-[#7B0209] dark:hover:text-red-400 transition-colors flex items-center gap-1 px-3 py-1 rounded-lg bg-gray-50 dark:bg-slate-800/80 border border-gray-200/60 dark:border-slate-700/60 cursor-pointer"
+            >
+              <Sparkles className="w-3 h-3 text-[#7B0209]" />
+              <span>Coleta de CPF</span>
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

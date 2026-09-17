@@ -92,7 +92,7 @@ export const ParameterCriteriaBuilder: React.FC<ParameterCriteriaBuilderProps> =
               onClick={() => onChangeScope('SNIPPET')}
               className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
                 scope === 'SNIPPET'
-                  ? 'bg-[#E30328] text-white'
+                  ? 'bg-[#7B0209] text-white'
                   : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
               }`}
             >
@@ -103,7 +103,7 @@ export const ParameterCriteriaBuilder: React.FC<ParameterCriteriaBuilderProps> =
               onClick={() => onChangeScope('SCREEN')}
               className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
                 scope === 'SCREEN'
-                  ? 'bg-[#E30328] text-white'
+                  ? 'bg-[#7B0209] text-white'
                   : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
               }`}
             >

@@ -432,11 +432,24 @@ function searchParameters(
   criteria: ParameterCriterion[],
   combination: 'AND' | 'OR',
   scope: 'SNIPPET' | 'SCREEN',
-  limit = 50
+  limit = 500
 ): ParameterSearchResult[] {
   if (!criteria || criteria.length === 0) return [];
 
-  const results: ParameterSearchResult[] = [];
+  // Canonicalize criteria to guarantee identical results regardless of order
+  const canonicalCriteria = [...criteria].sort((a, b) => {
+    const keyA = `${a.field || ''}:${a.operator || ''}:${a.value || ''}`;
+    const keyB = `${b.field || ''}:${b.operator || ''}:${b.value || ''}`;
+    return keyA.localeCompare(keyB);
+  });
+
+  interface ArtifactMatchGroup {
+    artifactId: string;
+    totalMatches: number;
+    results: ParameterSearchResult[];
+  }
+
+  const matchedGroups: ArtifactMatchGroup[] = [];
 
   for (const art of indexedArtifacts) {
     let artifactMatchesCount = 0;
@@ -452,7 +465,7 @@ function searchParameters(
           let allMatched = true;
           let anyMatched = false;
 
-          for (const crit of criteria) {
+          for (const crit of canonicalCriteria) {
             const evalRes = evaluateCriterionOnSnippet(crit, snip);
             if (evalRes.matched) {
               anyMatched = true;
@@ -484,7 +497,7 @@ function searchParameters(
         // Evaluate per screen
         const screenCriteriaMatched = new Map<number, { label: string; val: string; snippetIdx: number }>();
 
-        criteria.forEach((crit, critIdx) => {
+        canonicalCriteria.forEach((crit, critIdx) => {
           for (const snip of sc.snippets) {
             const evalRes = evaluateCriterionOnSnippet(crit, snip);
             if (evalRes.matched) {
@@ -500,7 +513,7 @@ function searchParameters(
 
         const isMatch =
           combination === 'AND'
-            ? screenCriteriaMatched.size === criteria.length
+            ? screenCriteriaMatched.size === canonicalCriteria.length
             : screenCriteriaMatched.size > 0;
 
         if (isMatch) {
@@ -525,13 +538,28 @@ function searchParameters(
     }
 
     if (artifactResults.length > 0) {
-      // Set additional matches count on the first item
       artifactResults[0].additionalMatchesCount = Math.max(0, artifactMatchesCount - 1);
-      results.push(...artifactResults);
+      matchedGroups.push({
+        artifactId: art.id,
+        totalMatches: artifactMatchesCount,
+        results: artifactResults,
+      });
     }
   }
 
-  return results.slice(0, limit);
+  // Sort groups by number of matches descending, tie-break by artifact ID ascending
+  matchedGroups.sort((a, b) => {
+    if (b.totalMatches !== a.totalMatches) return b.totalMatches - a.totalMatches;
+    return a.artifactId.localeCompare(b.artifactId);
+  });
+
+  const finalResults: ParameterSearchResult[] = [];
+  for (const group of matchedGroups) {
+    finalResults.push(...group.results);
+    if (finalResults.length >= limit) break;
+  }
+
+  return finalResults.slice(0, limit);
 }
 
 function getSuggestions(field: string, input: string, limit = 10): string[] {

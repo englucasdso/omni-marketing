@@ -84,7 +84,7 @@ class SearchWorkerClient {
 
   public searchContent(
     query: string,
-    limit = 50
+    limit = 500
   ): Promise<{ results: ContentSearchResult[]; total: number; durationMs: number }> {
     if (!this.worker) {
       return Promise.resolve({ results: [], total: 0, durationMs: 0 });
@@ -110,7 +110,7 @@ class SearchWorkerClient {
     criteria: ParameterCriterion[],
     combination: 'AND' | 'OR' = 'AND',
     scope: 'SNIPPET' | 'SCREEN' = 'SNIPPET',
-    limit = 50
+    limit = 500
   ): Promise<{ results: ParameterSearchResult[]; total: number; durationMs: number }> {
     if (!this.worker) {
       return Promise.resolve({ results: [], total: 0, durationMs: 0 });

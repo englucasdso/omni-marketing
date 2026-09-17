@@ -14,13 +14,13 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, useDeferredValue } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useNavigate, useLocation, Routes, Route } from "react-router-dom";
-import { X, AlertTriangle, Target, Network, Filter, CheckCircle2, AlertCircle, Clock, User, Info, Shield, LogOut, Trash2, Plus, Settings, Landmark, LayoutList, RefreshCw, Check, Loader2, KeyRound, Activity, ArrowRight, Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ExternalLink, Download, Sparkles, FileText, Layers, Tag, Code2, Eye, ArrowUpDown, Calendar, RotateCcw } from "lucide-react";
+import { X, AlertTriangle, Target, Network, Filter, CheckCircle2, AlertCircle, Clock, User, Info, Shield, LogOut, Trash2, Plus, Settings, Landmark, LayoutList, RefreshCw, Check, Loader2, KeyRound, Activity, ArrowRight, Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ExternalLink, Download, Sparkles, FileText, Layers, Tag, Code2, Eye, ArrowUpDown, Calendar, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { ConexoesCanvas } from "../components/ConexoesCanvas";
 import { JourneysCanvas } from "../components/JourneysCanvas";
 import { JourneysSidebarFilters } from "../components/JourneysSidebarFilters";
 import { getOperationalInsights } from "../utils/inventoryHelpers";
 import { fetchInventory, searchContent, fetchUsers, createUser, updateUser, deleteUser } from "../services/api";
-import { Artifact, Insights, SearchResponse, User as UserType, UserRole, UserStatus } from "../types";
+import { Artifact, Insights, SearchResponse, User as UserType, UserRole, UserStatus, ActiveSearch } from "../types";
 import { normalizar, formatDataBR, getFilteredInsights } from "../utils/helpers";
 import { 
   buildArtifactSearchableText, 
@@ -560,9 +560,7 @@ export default function App() {
       setRawAppState('initial');
       navigate('/hub-de-artefatos', { replace: true });
     } else if (p === '/hub-de-artefatos') {
-      if (!['initial', 'empty', 'decision', 'results', 'home'].includes(appState)) {
-        setRawAppState('initial');
-      }
+      setRawAppState('initial');
     } else if (p === '/hub-de-artefatos/cards') {
       setRawAppState('results');
     } else if (p === '/hub-de-artefatos/inventario') {
@@ -613,7 +611,7 @@ export default function App() {
   const [fullInventory, setFullInventory] = useState<Artifact[]>([]);
 
   useEffect(() => {
-    if ((appState === "operational_insights" || appState === "home" || appState === "journeys") && fullInventory.length === 0) {
+    if ((appState === "operational_insights" || appState === "home" || appState === "journeys" || appState === "initial") && fullInventory.length === 0) {
       setLoading(true);
       fetchInventory()
         .then((res) => {
@@ -634,6 +632,67 @@ export default function App() {
     }
   }, [appState, results.length, loading]);
 
+  // Estado centralizado da busca ativa (ActiveSearch)
+  const [activeSearch, setActiveSearch] = useState<ActiveSearch | null>(null);
+
+  // Callback de transporte de resultados para a tela de Cards
+  const handleApplyToCards = useCallback((
+    searchQuery: string,
+    filteredIds: string[],
+    meta?: {
+      mode: 'conteudo' | 'parametros' | 'ia';
+      parameterCriteria?: any[];
+      aiQuestion?: string;
+      scope?: 'SNIPPET' | 'SCREEN';
+      operator?: 'AND' | 'OR';
+    }
+  ) => {
+    // 1. Receber filteredIds
+    // 2. Remover duplicidades mantendo ordem
+    const uniqueIds = Array.from(new Set((filteredIds || []).map(id => String(id).trim()).filter(Boolean)));
+
+    // 3 & 4. Preservar a ordem de relevância e resolver os IDs contra fullInventory
+    const inventoryMap = new Map<string, Artifact>();
+    fullInventory.forEach(art => inventoryMap.set(String(art.id), art));
+
+    // 5. Ignorar IDs inexistentes
+    const resolvedArtifacts: Artifact[] = [];
+    for (const id of uniqueIds) {
+      const art = inventoryMap.get(id);
+      if (art) {
+        resolvedArtifacts.push(art);
+      }
+    }
+
+    const currentMode = meta?.mode || 'conteudo';
+    const isFullBase = (currentMode === 'conteudo' && (!searchQuery.trim() || searchQuery.toLowerCase().trim() === 'inventario' || searchQuery.toLowerCase().trim() === 'inventário') && uniqueIds.length === 0);
+    const finalResults = isFullBase ? fullInventory : resolvedArtifacts;
+
+    // 6. Atualizar results
+    setResults(finalResults);
+
+    // 7. Atualizar ActiveSearch
+    const newActiveSearch: ActiveSearch = {
+      mode: currentMode,
+      query: searchQuery,
+      resultsCount: finalResults.length,
+      timestamp: Date.now(),
+      filteredIds: uniqueIds,
+      parameterCriteria: meta?.parameterCriteria,
+      aiQuestion: meta?.aiQuestion,
+      scope: meta?.scope,
+      operator: meta?.operator,
+    };
+    setActiveSearch(newActiveSearch);
+
+    // 8. Resetar a paginação e limpar cardSearch para não conflitar
+    setCardSearch("");
+    setCardPage(1);
+
+    // 9. Navegar para /hub-de-artefatos/cards
+    setAppState("results");
+  }, [fullInventory]);
+
   // Estados e controle exclusivos da tela de Cards
   const [cardSearch, setCardSearch] = useState("");
   const [cardSort, setCardSort] = useState<"recentes" | "antigos" | "az" | "za">("recentes");
@@ -646,8 +705,11 @@ export default function App() {
 
   // Fonte de dados para a página de Cards
   const cardSource = useMemo(() => {
+    if (activeSearch !== null) {
+      return results;
+    }
     return results.length > 0 ? results : fullInventory;
-  }, [results, fullInventory]);
+  }, [activeSearch, results, fullInventory]);
 
   // Lista dinâmica de responsáveis únicos, ordenados alfabeticamente
   const availableResponsibles = useMemo(() => {
@@ -1543,8 +1605,6 @@ export default function App() {
       onNavigate={(item) => setAppState(item.id as any)}
       onHomeClick={() => { 
         setAppState('initial'); 
-        setQuery(''); 
-        resetSearch(); 
       }}
       lastSync={lastSync}
       onSyncClick={() => setIsSyncAuthOpen(true)}
@@ -1678,81 +1738,12 @@ export default function App() {
         ) : (
           <>
         <section className={`hero flex flex-col flex-1 w-full items-center justify-start pt-8 ${appState !== "initial" ? "hidden" : ""}`}>
-          <div className="flex flex-col items-center text-center justify-center mb-10 w-full max-w-4xl mx-auto gap-4 relative min-h-[120px]">
-            <motion.h2 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-4xl font-normal text-gray-900 dark:text-slate-50 tracking-tight leading-tight"
-            >
-              <TypewriterText text="Qual artefato você quer encontrar?" />
-            </motion.h2>
-          </div>
-
-          <div className="w-full max-w-4xl mb-12">
-            <div className="animated-border">
-              <div className={`inner-container glass-card py-4 px-6 flex items-center transition-all duration-300 ${isSearchActive ? "bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-700 shadow-sm ring-1 ring-gray-300/60 dark:ring-slate-700/60" : "border-gray-200 dark:border-slate-800"}`}>
-                <textarea
-                  ref={textareaRef}
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onFocus={() => setIsSearchActive(true)}
-                  onBlur={() => setIsSearchActive(false)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      executeSearch();
-                    }
-                  }}
-                  className="w-full bg-transparent border-none outline-none text-xl placeholder-gray-400 resize-none min-h-[1.5em] overflow-hidden focus:outline-none focus:ring-0"
-                  placeholder="Busque por ID, nome do mapa ou qualquer termo relacionado"
-                  rows={1}
-                />
-              </div>
-            </div>
-
-            {/* Clickable Search Tooltips */}
-            <div className="flex flex-col items-start gap-3 mt-8 ml-4">
-              <motion.button 
-                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}
-                onClick={() => useSuggestion("Abertura de Contas")}
-                className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400 dark:text-slate-500 hover:text-red-600 transition-colors flex items-center gap-3 group"
-              >
-                <div className="relative flex items-center justify-center">
-                  <Search className="w-3.5 h-3.5" />
-                </div>
-                <span>Abertura de contas PF e PJ</span>
-              </motion.button>
-              <motion.button 
-                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
-                onClick={() => useSuggestion("Cartões")}
-                className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400 dark:text-slate-500 hover:text-red-600 transition-colors flex items-center gap-3 group"
-              >
-                <div className="relative flex items-center justify-center">
-                  <Search className="w-3.5 h-3.5" />
-                </div>
-                <span>Cartões de crédito ou BIA</span>
-              </motion.button>
-              <motion.button 
-                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}
-                onClick={() => useSuggestion("inventario")}
-                className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400 dark:text-slate-500 hover:text-red-600 transition-colors flex items-center gap-3 group"
-              >
-                <div className="relative flex items-center justify-center">
-                  <Search className="w-3.5 h-3.5" />
-                </div>
-                <span>Digite "inventário" para ver toda a base</span>
-              </motion.button>
-              
-              <motion.button 
-                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }}
-                onClick={() => setAppState("operational_insights")}
-                className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400 dark:text-slate-500 hover:text-purple-600 transition-colors flex items-center gap-3 group mt-4 px-4 py-2 bg-gray-50 dark:bg-slate-800 rounded-full hover:bg-purple-50"
-              >
-                <Activity className="w-3.5 h-3.5" />
-                <span>Ver insights</span>
-              </motion.button>
-            </div>
-          </div>
+          <SearchCenter
+            artifacts={fullInventory}
+            activeSearch={activeSearch}
+            onApplyToCards={handleApplyToCards}
+            onNavigateToOperationalInsights={() => setAppState("operational_insights")}
+          />
         </section>
 
         {/* Level 2: Insights Dashboard (Operational) */}
@@ -2249,35 +2240,44 @@ export default function App() {
           <section className={`results space-y-6 ${appState === "results" && !loading ? "" : "hidden"}`}>
             <PageHeader
               title="Cards de Artefatos"
-              subtitle="Visualização em cards com metadados, status e histórico de cada especificação."
-              actions={
-                <button 
-                  onClick={() => setShowExportModal(true)}
-                  className="btn-neu flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-ui font-semibold text-bradesco-red hover:text-bradesco-red-hover h-10 cursor-pointer"
-                >
-                  <Download className="w-4 h-4 text-bradesco-red" />
-                  Extrair Dados
-                </button>
+              subtitle={
+                activeSearch ? (
+                  activeSearch.mode === 'conteudo' ? (
+                    activeSearch.query ? (
+                      `Busca por conteúdo: ${totalCardsCount} ${totalCardsCount === 1 ? 'artefato encontrado' : 'artefatos encontrados'} para "${activeSearch.query}"`
+                    ) : (
+                      `Inventário completo: ${totalCardsCount} artefatos`
+                    )
+                  ) : activeSearch.mode === 'parametros' ? (
+                    `Busca por parâmetros: ${totalCardsCount} ${totalCardsCount === 1 ? 'artefato encontrado' : 'artefatos encontrados'}${activeSearch.query ? ` para "${activeSearch.query}"` : ''}`
+                  ) : (
+                    `Busca por IA: ${totalCardsCount} ${totalCardsCount === 1 ? 'artefato encontrado' : 'artefatos encontrados'} para "${activeSearch.aiQuestion || activeSearch.query}"`
+                  )
+                ) : (
+                  "Visualização em cards com metadados, status e histórico de cada especificação."
+                )
               }
-            />
-
-            {/* Centro de Busca Unificado (Conteúdo, Parâmetros e Perguntar à IA) */}
-            <SearchCenter
-              artifacts={fullInventory}
-              onOpenDetails={(art) => setDetailModalItem(art)}
-              onOpenSnippet={(art, screenId, snippetIdx) => {
-                setDetailModalItem(art);
-                setDetailTarget(screenId ? { screenId, snippetIndex: snippetIdx } : null);
-              }}
-              onViewInTree={handleViewInTree}
-              onOpenJourney={(mapId) => {
-                setJourneyMapId(mapId);
-                navigate('/hub-de-artefatos/jornadas');
-              }}
-              onApplyToCards={(searchTerm) => {
-                setCardSearch(searchTerm);
-                setCardPage(1);
-              }}
+              actions={
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => {
+                      setAppState('initial');
+                    }}
+                    className="btn-neu flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-ui font-semibold text-gray-700 dark:text-slate-200 hover:text-[#7B0209] h-10 cursor-pointer"
+                    title="Editar busca no Hub de Artefatos"
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-[#7B0209]" />
+                    <span>Editar busca</span>
+                  </button>
+                  <button 
+                    onClick={() => setShowExportModal(true)}
+                    className="btn-neu flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-ui font-semibold text-bradesco-red hover:text-bradesco-red-hover h-10 cursor-pointer"
+                  >
+                    <Download className="w-4 h-4 text-bradesco-red" />
+                    Extrair Dados
+                  </button>
+                </div>
+              }
             />
 
             {/* Âncora para rolagem suave ao trocar de página */}

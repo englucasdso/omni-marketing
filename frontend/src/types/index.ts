@@ -255,3 +255,16 @@ export interface ResolvedArtifactTaxonomy {
   descendant_path_ids: string[];
   descendant_path_titles: string[];
 }
+
+export interface ActiveSearch {
+  mode: 'conteudo' | 'parametros' | 'ia';
+  query: string;
+  resultsCount: number;
+  timestamp: number;
+  filteredIds: string[];
+  parameterCriteria?: any[];
+  aiQuestion?: string;
+  scope?: 'SNIPPET' | 'SCREEN';
+  operator?: 'AND' | 'OR';
+}
+
