@@ -3014,12 +3014,10 @@ export default function App() {
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
                       Gerando...
-                      Gerando...
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-5 h-5" />
-                      Gerar resumo
                       Gerar resumo
                     </>
                   )}
