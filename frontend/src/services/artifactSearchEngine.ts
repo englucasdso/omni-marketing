@@ -5,15 +5,10 @@
 import { Artifact } from '../types';
 import {
   cleanCodeLiteral,
-  normalizeCodeWhitespace,
   normalizeCodeForComparison,
   detectQueryKind,
   extractQueryParams,
   normalizeText,
-  decodeHtmlEntities,
-  hasCodeStructure,
-  parseParameterSearchTerms,
-  ParamSearchTerm,
   ParameterQueryKind,
   ParsedQueryParam,
 } from '../utils/parameterSearchParser';
@@ -40,28 +35,13 @@ export interface WorkerArtifactItem {
       parameters?: Array<{
         name?: string;
         path?: string;
-        raw_value?: any;
-        normalized_value?: any;
         value?: any;
-        value_type?: string;
       }>;
     }>;
   }>;
 }
 
-export interface IndexedSnippetParameter {
-  name: string;
-  normName: string;
-  path: string;
-  normPath: string;
-  raw_value: string;
-  normalized_value: string;
-  value: string;
-  normValue: string;
-}
-
 export interface IndexedSnippet {
-  snippet_id: string;
   snippet_index: number;
   event_normalized: string;
   normEvent: string;
@@ -71,7 +51,14 @@ export interface IndexedSnippet {
   raw_code_clean: string;
   raw_code_normalized: string;
   normRawCode: string;
-  parameters: IndexedSnippetParameter[];
+  parameters: Array<{
+    name: string;
+    normName: string;
+    path: string;
+    normPath: string;
+    value: string;
+    normValue: string;
+  }>;
   normParamNames: Set<string>;
   normParamPaths: Set<string>;
   normParamValues: Set<string>;
@@ -145,7 +132,6 @@ export interface ParameterOccurrence {
   screenId: string;
   screenIndex: number;
   screenTitle: string;
-  snippetId: string;
   snippetIndex: number;
   event: string;
   quality: ParameterMatchQuality;
@@ -199,22 +185,14 @@ class ArtifactSearchEngine {
     this.indexedArtifacts = artifacts.map((art) => {
       const screens: IndexedScreen[] = (art.screens || []).map((sc, scIdx) => {
         const snippets: IndexedSnippet[] = (sc.snippets || []).map((snip, snipIdx) => {
-          const params: IndexedSnippetParameter[] = (snip.parameters || []).map((p) => {
+          const params = (snip.parameters || []).map((p) => {
             const rawName = String(p.name || '').trim();
             const rawPath = String(p.path || '').trim();
-
-            // Prioridade: normalized_value, depois raw_value e somente depois value como compatibilidade legada
-            const pNormValStr = p.normalized_value !== undefined && p.normalized_value !== null ? String(p.normalized_value).trim() : '';
-            const pRawValStr = p.raw_value !== undefined && p.raw_value !== null ? String(p.raw_value).trim() : '';
-            const pValStr = p.value !== undefined && p.value !== null ? String(p.value).trim() : '';
-
-            const resolvedVal = pNormValStr || pRawValStr || pValStr;
-            const actualRawVal = pRawValStr || resolvedVal;
-            const actualNormVal = pNormValStr || resolvedVal;
+            const rawVal = p.value !== undefined && p.value !== null ? String(p.value).trim() : '';
 
             const nName = normalizeText(rawName);
             const nPath = normalizeText(rawPath);
-            const nVal = normalizeText(resolvedVal);
+            const nVal = normalizeText(rawVal);
 
             if (rawName && nName.length > 1) {
               const cur = this.nameFrequency.get(nName) || { original: rawName, count: 0 };
@@ -226,8 +204,8 @@ class ArtifactSearchEngine {
               cur.count++;
               this.pathFrequency.set(nPath, cur);
             }
-            if (resolvedVal && nVal.length > 1 && nVal.length < 50) {
-              const cur = this.valueFrequency.get(nVal) || { original: resolvedVal, count: 0 };
+            if (rawVal && nVal.length > 1 && nVal.length < 50) {
+              const cur = this.valueFrequency.get(nVal) || { original: rawVal, count: 0 };
               cur.count++;
               this.valueFrequency.set(nVal, cur);
             }
@@ -237,9 +215,7 @@ class ArtifactSearchEngine {
               normName: nName,
               path: rawPath,
               normPath: nPath,
-              raw_value: actualRawVal,
-              normalized_value: actualNormVal,
-              value: resolvedVal,
+              value: rawVal,
               normValue: nVal,
             };
           });
@@ -256,12 +232,9 @@ class ArtifactSearchEngine {
             if (p.normName) normParamNames.add(p.normName);
             if (p.normPath) normParamPaths.add(p.normPath);
             if (p.normValue) normParamValues.add(p.normValue);
-            if (p.raw_value) normParamValues.add(normalizeText(p.raw_value));
-            if (p.normalized_value) normParamValues.add(normalizeText(p.normalized_value));
           });
 
           return {
-            snippet_id: String(snip.snippet_id || `${sc.screen_id}_s${snipIdx + 1}`),
             snippet_index: snipIdx,
             event_normalized: rawEvent,
             normEvent: normalizeText(rawEvent),
@@ -450,24 +423,17 @@ class ArtifactSearchEngine {
       if (!targetNorm) {
         return { matched: snippet.parameters.length > 0, label: 'Parâmetro existe' };
       }
-      const found = snippet.parameters.find((p) => {
-        const segs = p.normPath.split('.');
-        const lastSeg = segs[segs.length - 1];
-        const nameExact = p.normName === targetNorm || p.normPath === targetNorm || lastSeg === targetNorm;
-        return (
-          (f === 'nome' && nameExact) ||
-          (f === 'caminho' && p.normPath === targetNorm) ||
-          (f === 'valor' && p.normValue === targetNorm) ||
-          (f === 'qualquer' && (nameExact || p.normValue === targetNorm))
-        );
-      });
+      const found = snippet.parameters.find(
+        (p) =>
+          (f === 'nome' && (p.normName === targetNorm || p.normName.includes(targetNorm))) ||
+          (f === 'caminho' && (p.normPath === targetNorm || p.normPath.includes(targetNorm))) ||
+          (f === 'valor' && (p.normValue === targetNorm || p.normValue.includes(targetNorm))) ||
+          (f === 'qualquer' && (p.normName.includes(targetNorm) || p.normPath.includes(targetNorm) || p.normValue.includes(targetNorm)))
+      );
       if (found) {
         return { matched: true, label: `${found.name} existe`, val: found.value };
       }
-      if (
-        (f === 'qualquer' || f === 'nome') &&
-        (snippet.normEvent === targetNorm || snippet.normBaseKey === targetNorm)
-      ) {
+      if ((f === 'qualquer' || f === 'nome') && (snippet.normEvent.includes(targetNorm) || snippet.normBaseKey.includes(targetNorm))) {
         return { matched: true, label: `Evento ${snippet.event_normalized} existe`, val: snippet.event_normalized };
       }
       return { matched: false };
@@ -478,12 +444,10 @@ class ArtifactSearchEngine {
     for (const p of snippet.parameters) {
       let matchesField = false;
       let valMatched = '';
-      const segs = p.normPath.split('.');
-      const lastSeg = segs[segs.length - 1];
 
       if (f === 'nome') {
-        if (op === 'igual') matchesField = p.normName === targetNorm || p.normPath === targetNorm || lastSeg === targetNorm;
-        else if (op === 'contem') matchesField = p.normName === targetNorm || p.normPath === targetNorm || lastSeg === targetNorm;
+        if (op === 'igual') matchesField = p.normName === targetNorm;
+        else if (op === 'contem') matchesField = p.normName.includes(targetNorm);
         else if (op === 'comeca_com') matchesField = p.normName.startsWith(targetNorm);
         valMatched = `${p.name}: ${p.value}`;
       } else if (f === 'caminho') {
@@ -497,11 +461,10 @@ class ArtifactSearchEngine {
         else if (op === 'comeca_com') matchesField = p.normValue.startsWith(targetNorm);
         valMatched = `${p.name} = "${p.value}"`;
       } else {
-        const nameExact = p.normName === targetNorm || p.normPath === targetNorm || lastSeg === targetNorm;
         if (op === 'igual') {
-          matchesField = nameExact || p.normValue === targetNorm;
+          matchesField = p.normName === targetNorm || p.normValue === targetNorm || p.normPath === targetNorm;
         } else if (op === 'contem') {
-          matchesField = nameExact || p.normValue.includes(targetNorm);
+          matchesField = p.normName.includes(targetNorm) || p.normValue.includes(targetNorm) || p.normPath.includes(targetNorm);
         } else if (op === 'comeca_com') {
           matchesField = p.normName.startsWith(targetNorm) || p.normValue.startsWith(targetNorm);
         }
@@ -516,7 +479,7 @@ class ArtifactSearchEngine {
     if (f === 'nome' || f === 'qualquer') {
       let evMatch = false;
       if (op === 'igual') evMatch = snippet.normEvent === targetNorm || snippet.normBaseKey === targetNorm;
-      else if (op === 'contem') evMatch = snippet.normEvent === targetNorm || snippet.normBaseKey === targetNorm;
+      else if (op === 'contem') evMatch = snippet.normEvent.includes(targetNorm) || snippet.normBaseKey.includes(targetNorm);
       else if (op === 'comeca_com') evMatch = snippet.normEvent.startsWith(targetNorm) || snippet.normBaseKey.startsWith(targetNorm);
 
       if (evMatch) {
@@ -530,7 +493,7 @@ class ArtifactSearchEngine {
   public searchParameters(
     criteria: ParameterCriterion[],
     combination: 'AND' | 'OR',
-    _scope: 'SNIPPET' | 'SCREEN',
+    scope: 'SNIPPET' | 'SCREEN',
     limit = 500
   ): ParameterSearchResult[] {
     if (!criteria || criteria.length === 0) return [];
@@ -554,38 +517,79 @@ class ArtifactSearchEngine {
       const artifactResults: ParameterSearchResult[] = [];
 
       for (const sc of art.screens) {
-        // Enforce same snippet constraint strictly
-        for (const snip of sc.snippets) {
-          const matchedCriteriaList: string[] = [];
-          const matchedValuesList: string[] = [];
+        if (scope === 'SNIPPET') {
+          for (const snip of sc.snippets) {
+            const matchedCriteriaList: string[] = [];
+            const matchedValuesList: string[] = [];
 
-          let allMatched = true;
-          let anyMatched = false;
+            let allMatched = true;
+            let anyMatched = false;
 
-          for (const crit of canonicalCriteria) {
-            const evalRes = this.evaluateCriterionOnSnippet(crit, snip);
-            if (evalRes.matched) {
-              anyMatched = true;
-              if (evalRes.label) matchedCriteriaList.push(evalRes.label);
-              if (evalRes.val) matchedValuesList.push(evalRes.val);
-            } else {
-              allMatched = false;
+            for (const crit of canonicalCriteria) {
+              const evalRes = this.evaluateCriterionOnSnippet(crit, snip);
+              if (evalRes.matched) {
+                anyMatched = true;
+                if (evalRes.label) matchedCriteriaList.push(evalRes.label);
+                if (evalRes.val) matchedValuesList.push(evalRes.val);
+              } else {
+                allMatched = false;
+              }
+            }
+
+            const isMatch = combination === 'AND' ? allMatched : anyMatched;
+            if (isMatch) {
+              artifactMatchesCount++;
+              artifactResults.push({
+                artifactId: art.id,
+                screenId: sc.screen_id,
+                screenIndex: sc.screen_index,
+                screenTitle: sc.instruction,
+                snippetIndex: snip.snippet_index,
+                matchedCriteria: matchedCriteriaList,
+                matchedValues: matchedValuesList,
+                rawCodePreview: snip.raw_code ? snip.raw_code.slice(0, 160) : undefined,
+                event: snip.event_normalized,
+                additionalMatchesCount: 0,
+              });
             }
           }
+        } else {
+          const screenCriteriaMatched = new Map<number, { label: string; val: string; snippetIdx: number }>();
 
-          const isMatch = combination === 'AND' ? allMatched : anyMatched;
+          canonicalCriteria.forEach((crit, critIdx) => {
+            for (const snip of sc.snippets) {
+              const evalRes = this.evaluateCriterionOnSnippet(crit, snip);
+              if (evalRes.matched) {
+                screenCriteriaMatched.set(critIdx, {
+                  label: evalRes.label || 'Parâmetro',
+                  val: evalRes.val || '',
+                  snippetIdx: snip.snippet_index,
+                });
+                break;
+              }
+            }
+          });
+
+          const isMatch =
+            combination === 'AND'
+              ? screenCriteriaMatched.size === canonicalCriteria.length
+              : screenCriteriaMatched.size > 0;
+
           if (isMatch) {
             artifactMatchesCount++;
+            const firstSnippetIdx = screenCriteriaMatched.values().next().value?.snippetIdx ?? 0;
+            const snip = sc.snippets[firstSnippetIdx] || sc.snippets[0];
+
             artifactResults.push({
               artifactId: art.id,
               screenId: sc.screen_id,
               screenIndex: sc.screen_index,
               screenTitle: sc.instruction,
-              snippetIndex: snip.snippet_index,
-              matchedCriteria: matchedCriteriaList,
-              matchedValues: matchedValuesList,
-              rawCodePreview: snip.raw_code ? snip.raw_code.slice(0, 160) : undefined,
-              event: snip.event_normalized,
+              snippetIndex: firstSnippetIdx,
+              matchedCriteria: Array.from(screenCriteriaMatched.values()).map((v) => v.label),
+              matchedValues: Array.from(screenCriteriaMatched.values()).map((v) => v.val),
+              rawCodePreview: snip?.raw_code ? snip.raw_code.slice(0, 160) : undefined,
+              event: snip?.event_normalized,
               additionalMatchesCount: 0,
             });
           }
@@ -644,73 +648,6 @@ class ArtifactSearchEngine {
     return candidates.slice(0, limit).map((c) => c.original);
   }
 
-  private matchesParamTermInSnippet(snip: IndexedSnippet, term: ParamSearchTerm): boolean {
-    const targetKey = term.name.toLowerCase().trim();
-    const targetVal = term.value !== undefined ? term.value.toLowerCase().trim() : undefined;
-
-    // 1. Check snippet.parameters
-    for (const p of snip.parameters) {
-      const pName = p.name.toLowerCase().trim();
-      const pPath = p.path.toLowerCase().trim();
-      const segments = pPath.split('.');
-      const lastSegment = segments[segments.length - 1].trim();
-
-      const nameMatches = pName === targetKey || pPath === targetKey || lastSegment === targetKey;
-
-      if (nameMatches) {
-        if (term.isKeyValue && targetVal !== undefined) {
-          const pVal = String(p.value || '').toLowerCase().trim();
-          const pRaw = String(p.raw_value || '').toLowerCase().trim();
-          const pNorm = String(p.normalized_value || '').toLowerCase().trim();
-          const normTargetVal = normalizeText(targetVal);
-
-          if (
-            pVal === targetVal ||
-            pRaw === targetVal ||
-            pNorm === targetVal ||
-            (normTargetVal && p.normValue === normTargetVal) ||
-            (normTargetVal && normalizeText(pRaw) === normTargetVal) ||
-            (normTargetVal && normalizeText(pNorm) === normTargetVal)
-          ) {
-            return true;
-          }
-        } else {
-          return true;
-        }
-      }
-    }
-
-    // 2. Exact identifier boundary match in snippet.raw_code
-    // Note: event_normalized and base_key are derived metadata and must NOT satisfy an exact key search for 'event'.
-    if (snip.raw_code) {
-      const code = decodeHtmlEntities(snip.raw_code);
-      const escapedKey = targetKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-      if (term.isKeyValue && targetVal !== undefined) {
-        const escapedVal = targetVal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        // Matches key: "value" or key: 'value' or key: value with exact identifier boundary
-        const kvRegex = new RegExp(
-          `(?:^|[^a-zA-Z0-9_$])["']?${escapedKey}["']?\\s*:\\s*["']?${escapedVal}["']?(?=[,\\s}\\]\\);]|$)`,
-          'i'
-        );
-        if (kvRegex.test(code)) {
-          return true;
-        }
-      } else {
-        // Matches key: or "key": or 'key': with exact identifier boundary
-        const keyRegex = new RegExp(
-          `(?:^|[^a-zA-Z0-9_$])["']?${escapedKey}["']?\\s*:`,
-          'i'
-        );
-        if (keyRegex.test(code)) {
-          return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
   public searchCodeAndParameters(
     rawQuery: string,
     options?: {
@@ -723,9 +660,7 @@ class ArtifactSearchEngine {
     const startTime = Date.now();
     const trimmed = (rawQuery || '').trim();
 
-    // Protection 1: Empty or query with only '+' or whitespace returns empty response immediately
-    const cleanTokens = trimmed.replace(/\+/g, '').trim();
-    if (!trimmed || !cleanTokens) {
+    if (!trimmed) {
       return {
         completeGroups: [],
         partialGroups: [],
@@ -737,32 +672,23 @@ class ArtifactSearchEngine {
       };
     }
 
-    const isCode = hasCodeStructure(trimmed);
-    const cleanedQuery = cleanCodeLiteral(trimmed);
-    const normalizedWhitespaceQuery = normalizeCodeWhitespace(trimmed);
-    const normalizedQuery = normalizeCodeForComparison(trimmed);
     const queryKind = detectQueryKind(trimmed);
-    const terms = parseParameterSearchTerms(trimmed);
+    const cleanedQuery = cleanCodeLiteral(trimmed);
+    const normalizedQuery = normalizeCodeForComparison(trimmed);
     const extractedParams = extractQueryParams(trimmed);
 
-    // Protection 2: If no terms and no code structure, return empty
-    if (!isCode && terms.length === 0) {
-      return {
-        completeGroups: [],
-        partialGroups: [],
-        allArtifactIds: [],
-        totalArtifactsCount: 0,
-        queryKind,
-        extractedParams: [],
-        durationMs: 0,
-      };
-    }
+    const matchType = options?.matchType || 'auto';
+    const scope = options?.scope || 'SNIPPET';
+    const condition = options?.condition || 'AND';
 
-    // Explicit scope and condition handling:
-    // For queries with '+', the condition MUST be 'AND', regardless of heuristics.
-    const hasPlus = trimmed.includes('+');
-    const condition: 'AND' | 'OR' = hasPlus ? 'AND' : (options?.condition || 'AND');
-    const scope: 'SNIPPET' | 'SCREEN' = options?.scope || 'SNIPPET';
+    const searchTerms: string[] = [];
+    extractedParams.forEach((p) => {
+      if (p.name) searchTerms.push(p.name);
+      if (p.value) searchTerms.push(p.value);
+    });
+    if (cleanedQuery.length < 50) {
+      searchTerms.push(cleanedQuery);
+    }
 
     const rawArtifactGroups: ParameterArtifactGroup[] = [];
 
@@ -770,70 +696,140 @@ class ArtifactSearchEngine {
       const occurrencesMap = new Map<string, ParameterOccurrence>();
 
       for (const sc of art.screens) {
-        let screenHadCompleteSnippetMatch = false;
-
-        // 1. Evaluate individual snippets
         for (const snip of sc.snippets) {
           let bestQuality: ParameterMatchQuality | null = null;
           let qualityLabel = '';
           let qualityScore = 0;
-          let matchedTerms: string[] = [];
+          let matchedCount = 0;
+          const totalCount = extractedParams.length > 0 ? extractedParams.length : 1;
+          const localMatchedTerms = new Set<string>();
 
-          // Tier 1: Snippet idêntico
-          const snipClean = snip.raw_code_clean;
-          const snipNormWS = normalizeCodeWhitespace(snip.raw_code);
-          const snipNormComp = snip.raw_code_normalized;
-
+          // Layer 1: Identical snippet
           if (
-            snipClean.length > 0 &&
-            (snipClean === cleanedQuery ||
-              snipNormWS === normalizedWhitespaceQuery ||
-              snipNormComp === normalizedQuery)
+            (matchType === 'auto' || matchType === 'literal' || matchType === 'normalized') &&
+            snip.raw_code_clean.length > 0 &&
+            snip.raw_code_clean === cleanedQuery
           ) {
             bestQuality = 'identical_snippet';
             qualityLabel = 'Snippet idêntico';
             qualityScore = 1000;
-            matchedTerms = terms.length > 0 ? terms.map((t) => (t.isKeyValue ? `${t.name}: ${t.value}` : t.name)) : [cleanedQuery];
+            matchedCount = totalCount;
+            searchTerms.forEach((t) => localMatchedTerms.add(t));
           }
-          // Tier 2: Fragmento de código idêntico após normalização de espaços
+          // Layer 2: Literal slice
           else if (
-            isCode &&
-            normalizedWhitespaceQuery.length >= 5 &&
-            (snipNormWS.includes(normalizedWhitespaceQuery) || snipNormComp.includes(normalizedQuery))
+            (matchType === 'auto' || matchType === 'literal') &&
+            cleanedQuery.length >= 3 &&
+            snip.raw_code_clean.includes(cleanedQuery)
           ) {
             bestQuality = 'literal_slice';
-            qualityLabel = 'Fragmento de código idêntico';
+            qualityLabel = 'Trecho exato';
             qualityScore = 800;
-            matchedTerms = terms.length > 0 ? terms.map((t) => (t.isKeyValue ? `${t.name}: ${t.value}` : t.name)) : [cleanedQuery];
+            matchedCount = totalCount;
+            localMatchedTerms.add(cleanedQuery);
+            searchTerms.forEach((t) => localMatchedTerms.add(t));
           }
-          // Tier 3: Parâmetros no MESMO snippet
-          else if (terms.length > 0) {
+          // Layer 3: Normalized code equivalent
+          else if (
+            (matchType === 'auto' || matchType === 'normalized') &&
+            normalizedQuery.length >= 3 &&
+            (snip.raw_code_normalized === normalizedQuery || snip.raw_code_normalized.includes(normalizedQuery))
+          ) {
+            bestQuality = 'normalized_code';
+            qualityLabel = 'Código equivalente';
+            qualityScore = 600;
+            matchedCount = totalCount;
+            searchTerms.forEach((t) => localMatchedTerms.add(t));
+          }
+
+          // Layer 4 & 6: Structured matching on snippet
+          if (
+            !bestQuality &&
+            extractedParams.length > 0 &&
+            (matchType === 'auto' || matchType === 'params')
+          ) {
+            let paramMatches = 0;
+
+            for (const param of extractedParams) {
+              const pNormName = normalizeText(param.name);
+              const pNormVal = param.value ? normalizeText(param.value) : '';
+              let paramHit = false;
+
+              for (const p of snip.parameters) {
+                const nameHit = p.normName === pNormName || p.normPath === pNormName || p.normName.includes(pNormName);
+                if (pNormVal) {
+                  const valHit = p.normValue === pNormVal || p.normValue.includes(pNormVal);
+                  if (nameHit && valHit) {
+                    paramHit = true;
+                    localMatchedTerms.add(p.name);
+                    localMatchedTerms.add(p.value);
+                    break;
+                  }
+                } else if (nameHit) {
+                  paramHit = true;
+                  localMatchedTerms.add(p.name);
+                  break;
+                }
+              }
+
+              if (!paramHit && (pNormName === 'event' || pNormName === 'evento' || !param.value)) {
+                if (pNormVal) {
+                  if (snip.normEvent === pNormVal || snip.normBaseKey === pNormVal || snip.normEvent.includes(pNormVal)) {
+                    paramHit = true;
+                    localMatchedTerms.add(snip.event_normalized);
+                    localMatchedTerms.add(param.value!);
+                  }
+                } else if (snip.normEvent.includes(pNormName) || snip.normBaseKey.includes(pNormName)) {
+                  paramHit = true;
+                  localMatchedTerms.add(snip.event_normalized);
+                }
+              }
+
+              if (!paramHit && pNormName) {
+                if (pNormVal) {
+                  if (
+                    snip.raw_code_normalized.includes(`${pNormName}:"${pNormVal}"`) ||
+                    snip.raw_code_normalized.includes(`${pNormName}="${pNormVal}"`) ||
+                    (snip.raw_code_normalized.includes(pNormName) && snip.raw_code_normalized.includes(pNormVal))
+                  ) {
+                    paramHit = true;
+                    localMatchedTerms.add(param.name);
+                    localMatchedTerms.add(param.value!);
+                  }
+                } else if (snip.raw_code_normalized.includes(pNormName)) {
+                  paramHit = true;
+                  localMatchedTerms.add(param.name);
+                }
+              }
+
+              if (paramHit) {
+                paramMatches++;
+              }
+            }
+
             if (condition === 'AND') {
-              const allMatched = terms.every((t) => this.matchesParamTermInSnippet(snip, t));
-              if (allMatched) {
+              if (paramMatches === extractedParams.length) {
                 bestQuality = 'all_params_snippet';
                 qualityLabel = 'Todos os parâmetros encontrados';
-                qualityScore = 600;
-                matchedTerms = terms.map((t) => (t.isKeyValue ? `${t.name}: ${t.value}` : t.name));
+                qualityScore = 400;
+                matchedCount = paramMatches;
+              } else if (paramMatches > 0 && scope === 'SNIPPET') {
+                bestQuality = 'partial_match';
+                qualityLabel = `Correspondência parcial (${paramMatches} de ${extractedParams.length})`;
+                qualityScore = 50 + Math.round((paramMatches / extractedParams.length) * 100);
+                matchedCount = paramMatches;
               }
             } else {
-              // OR condition
-              const matchedTermsList = terms.filter((t) => this.matchesParamTermInSnippet(snip, t));
-              if (matchedTermsList.length > 0) {
-                const isAll = matchedTermsList.length === terms.length;
-                bestQuality = isAll ? 'all_params_snippet' : 'partial_match';
-                qualityLabel = isAll ? 'Todos os parâmetros encontrados' : `${matchedTermsList.length} de ${terms.length} parâmetros encontrados`;
-                qualityScore = isAll ? 600 : 300 + (matchedTermsList.length * 50);
-                matchedTerms = matchedTermsList.map((t) => (t.isKeyValue ? `${t.name}: ${t.value}` : t.name));
+              if (paramMatches > 0) {
+                bestQuality = 'all_params_snippet';
+                qualityLabel = `${paramMatches} parâmetro(s) encontrado(s)`;
+                qualityScore = 400;
+                matchedCount = paramMatches;
               }
             }
           }
 
-          // If this snippet matched Tier 1, Tier 2, or Tier 3:
           if (bestQuality) {
-            if (qualityScore >= 600) {
-              screenHadCompleteSnippetMatch = true;
-            }
             const occKey = `${sc.screen_id}#${snip.snippet_index}`;
             const existing = occurrencesMap.get(occKey);
             if (!existing || existing.qualityScore < qualityScore) {
@@ -841,79 +837,110 @@ class ArtifactSearchEngine {
                 screenId: sc.screen_id,
                 screenIndex: sc.screen_index,
                 screenTitle: sc.instruction || `Tela #${sc.screen_index}`,
-                snippetId: snip.snippet_id || `${sc.screen_id}_s${snip.snippet_index + 1}`,
                 snippetIndex: snip.snippet_index,
                 event: snip.event_normalized || snip.base_key || 'Snippet',
                 quality: bestQuality,
                 qualityLabel,
                 qualityScore,
-                matchedCount: matchedTerms.length,
-                totalCount: terms.length,
+                matchedCount,
+                totalCount,
                 rawCodePreview: snip.raw_code ? snip.raw_code.slice(0, 320) : '',
                 rawCodeFull: snip.raw_code || '',
-                matchedTerms,
+                matchedTerms: Array.from(localMatchedTerms),
               });
             }
           }
         } // end snippet loop
 
-        // 2. Se scope === 'SCREEN' e a tela como um todo satisfaz a condição
-        if (scope === 'SCREEN' && terms.length > 0 && !screenHadCompleteSnippetMatch) {
-          if (condition === 'AND') {
-            const allTermsOnScreen = terms.every((t) =>
-              sc.snippets.some((snip) => this.matchesParamTermInSnippet(snip, t))
-            );
-            if (allTermsOnScreen && sc.snippets.length > 0) {
-              const repSnip = sc.snippets.find((snip) =>
-                terms.some((t) => this.matchesParamTermInSnippet(snip, t))
-              ) || sc.snippets[0];
+        // Layer 5: Scope SCREEN evaluation
+        if (
+          scope === 'SCREEN' &&
+          extractedParams.length > 1 &&
+          (matchType === 'auto' || matchType === 'params')
+        ) {
+          let screenParamMatches = 0;
+          const screenMatchedTerms = new Set<string>();
 
-              const occKey = `${sc.screen_id}#screen`;
+          for (const param of extractedParams) {
+            const pNormName = normalizeText(param.name);
+            const pNormVal = param.value ? normalizeText(param.value) : '';
+            let foundInScreen = false;
+
+            for (const snip of sc.snippets) {
+              for (const p of snip.parameters) {
+                const nameHit = p.normName === pNormName || p.normPath === pNormName || p.normName.includes(pNormName);
+                if (pNormVal) {
+                  const valHit = p.normValue === pNormVal || p.normValue.includes(pNormVal);
+                  if (nameHit && valHit) {
+                    foundInScreen = true;
+                    screenMatchedTerms.add(p.name);
+                    screenMatchedTerms.add(p.value);
+                    break;
+                  }
+                } else if (nameHit) {
+                  foundInScreen = true;
+                  screenMatchedTerms.add(p.name);
+                  break;
+                }
+              }
+              if (foundInScreen) break;
+
+              if (pNormName === 'event' || pNormName === 'evento' || !param.value) {
+                if (pNormVal) {
+                  if (snip.normEvent === pNormVal || snip.normBaseKey === pNormVal) {
+                    foundInScreen = true;
+                    screenMatchedTerms.add(snip.event_normalized);
+                    screenMatchedTerms.add(param.value!);
+                    break;
+                  }
+                }
+              }
+            }
+
+            if (foundInScreen) {
+              screenParamMatches++;
+            }
+          }
+
+          const isScreenAllMatched = screenParamMatches === extractedParams.length;
+          if (isScreenAllMatched) {
+            const occKey = `${sc.screen_id}#screen_level`;
+            if (!occurrencesMap.has(occKey)) {
+              const firstSnip = sc.snippets[0];
               occurrencesMap.set(occKey, {
                 screenId: sc.screen_id,
                 screenIndex: sc.screen_index,
                 screenTitle: sc.instruction || `Tela #${sc.screen_index}`,
-                snippetId: repSnip.snippet_id || `${sc.screen_id}_s${repSnip.snippet_index + 1}`,
-                snippetIndex: repSnip.snippet_index,
-                event: repSnip.event_normalized || repSnip.base_key || 'Tela',
+                snippetIndex: 0,
+                event: firstSnip?.event_normalized || 'Vários disparos',
                 quality: 'all_params_screen',
                 qualityLabel: 'Todos os parâmetros na mesma tela',
-                qualityScore: 450,
-                matchedCount: terms.length,
-                totalCount: terms.length,
-                rawCodePreview: repSnip.raw_code ? repSnip.raw_code.slice(0, 320) : '',
-                rawCodeFull: repSnip.raw_code || '',
-                matchedTerms: terms.map((t) => (t.isKeyValue ? `${t.name}: ${t.value}` : t.name)),
+                qualityScore: 200,
+                matchedCount: screenParamMatches,
+                totalCount: extractedParams.length,
+                rawCodePreview: firstSnip?.raw_code ? firstSnip.raw_code.slice(0, 320) : '',
+                rawCodeFull: firstSnip?.raw_code || '',
+                matchedTerms: Array.from(screenMatchedTerms),
               });
             }
-          } else {
-            // OR condition no escopo SCREEN
-            const matchedTermsOnScreen = terms.filter((t) =>
-              sc.snippets.some((snip) => this.matchesParamTermInSnippet(snip, t))
-            );
-            if (matchedTermsOnScreen.length > 0 && sc.snippets.length > 0) {
-              const repSnip = sc.snippets.find((snip) =>
-                terms.some((t) => this.matchesParamTermInSnippet(snip, t))
-              ) || sc.snippets[0];
-
-              const occKey = `${sc.screen_id}#screen`;
+          } else if (screenParamMatches > 0) {
+            const occKey = `${sc.screen_id}#screen_partial`;
+            if (!occurrencesMap.has(occKey) && occurrencesMap.size === 0) {
+              const firstSnip = sc.snippets[0];
               occurrencesMap.set(occKey, {
                 screenId: sc.screen_id,
                 screenIndex: sc.screen_index,
                 screenTitle: sc.instruction || `Tela #${sc.screen_index}`,
-                snippetId: repSnip.snippet_id || `${sc.screen_id}_s${repSnip.snippet_index + 1}`,
-                snippetIndex: repSnip.snippet_index,
-                event: repSnip.event_normalized || repSnip.base_key || 'Tela',
-                quality: matchedTermsOnScreen.length === terms.length ? 'all_params_screen' : 'partial_match',
-                qualityLabel: matchedTermsOnScreen.length === terms.length
-                  ? 'Todos os parâmetros na mesma tela'
-                  : `${matchedTermsOnScreen.length} de ${terms.length} parâmetros encontrados`,
-                qualityScore: 350 + (matchedTermsOnScreen.length * 20),
-                matchedCount: matchedTermsOnScreen.length,
-                totalCount: terms.length,
-                rawCodePreview: repSnip.raw_code ? repSnip.raw_code.slice(0, 320) : '',
-                rawCodeFull: repSnip.raw_code || '',
-                matchedTerms: matchedTermsOnScreen.map((t) => (t.isKeyValue ? `${t.name}: ${t.value}` : t.name)),
+                snippetIndex: 0,
+                event: firstSnip?.event_normalized || 'Snippet',
+                quality: 'partial_match',
+                qualityLabel: `Correspondência parcial (${screenParamMatches} de ${extractedParams.length})`,
+                qualityScore: 40 + Math.round((screenParamMatches / extractedParams.length) * 100),
+                matchedCount: screenParamMatches,
+                totalCount: extractedParams.length,
+                rawCodePreview: firstSnip?.raw_code ? firstSnip.raw_code.slice(0, 320) : '',
+                rawCodeFull: firstSnip?.raw_code || '',
+                matchedTerms: Array.from(screenMatchedTerms),
               });
             }
           }
@@ -922,10 +949,7 @@ class ArtifactSearchEngine {
 
       const occurrences = Array.from(occurrencesMap.values());
       if (occurrences.length > 0) {
-        occurrences.sort((a, b) => {
-          if (b.qualityScore !== a.qualityScore) return b.qualityScore - a.qualityScore;
-          return a.snippetIndex - b.snippetIndex;
-        });
+        occurrences.sort((a, b) => b.qualityScore - a.qualityScore);
         const best = occurrences[0];
 
         const uniqueScreens = new Set(occurrences.map((o) => o.screenId)).size;
@@ -939,11 +963,14 @@ class ArtifactSearchEngine {
           bestQuality: best.quality,
           bestQualityLabel: best.qualityLabel,
           bestQualityScore: best.qualityScore,
-          isPartial: false,
+          isPartial: best.quality === 'partial_match',
           occurrences,
         });
       }
     } // end artifact loop
+
+    const completeGroups = rawArtifactGroups.filter((g) => !g.isPartial);
+    const partialGroups = rawArtifactGroups.filter((g) => g.isPartial);
 
     const groupSorter = (a: ParameterArtifactGroup, b: ParameterArtifactGroup) => {
       if (b.bestQualityScore !== a.bestQualityScore) return b.bestQualityScore - a.bestQualityScore;
@@ -951,11 +978,13 @@ class ArtifactSearchEngine {
       return a.artifactId.localeCompare(b.artifactId);
     };
 
-    rawArtifactGroups.sort(groupSorter);
+    completeGroups.sort(groupSorter);
+    partialGroups.sort(groupSorter);
 
-    const completeGroups = rawArtifactGroups;
-    const partialGroups: ParameterArtifactGroup[] = [];
-    const allArtifactIds: string[] = completeGroups.map((g) => g.artifactId);
+    const allArtifactIds: string[] = [
+      ...completeGroups.map((g) => g.artifactId),
+      ...partialGroups.map((g) => g.artifactId),
+    ];
 
     return {
       completeGroups,
